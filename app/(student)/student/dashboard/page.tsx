@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo/metadata";
-import { StudentDashboard } from "@/components/dashboard/student/student-dashboard";
+import { StudentDashboard } from "./components/student-dashboard";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Tổng quan sinh viên",

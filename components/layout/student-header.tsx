@@ -21,7 +21,7 @@ const NAV_ITEMS = [
   { label: "Lịch nhóm", href: "/student/schedule", icon: CalendarClock },
 ];
 
-export function DashboardHeader() {
+export function StudentHeader() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const initial = (user?.fullName ?? "?").trim().slice(0, 1).toUpperCase();
