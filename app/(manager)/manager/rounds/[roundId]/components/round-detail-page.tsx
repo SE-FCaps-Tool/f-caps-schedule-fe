@@ -67,7 +67,6 @@ import { useLecturers } from "@/hooks/manager/useLecturers";
 import { useGroups } from "@/hooks/manager/useGroups";
 import type { RoomType, RoundStatus, RoundInvitation } from "@/lib/api/services/fetchRounds";
 import type { GroupListItem } from "@/lib/api/services/fetchGroups";
-import type { PublishReadiness } from "@/lib/api/services/fetchScheduling";
 
 const ROOM_TYPE_LABEL: Record<RoomType, string> = {
   NORMAL: "Phòng thường",
@@ -88,14 +87,6 @@ const FUTURE_PHASE_LABEL: Partial<Record<RoundStatus, string>> = {
 function notImplemented(action: string) {
   toast.info(`${action} — chưa có trong spec BE, cần chốt endpoint`);
 }
-
-const PUBLISH_CHECK_LABEL: Record<keyof PublishReadiness["checks"], string> = {
-  activeVersion: "Có phương án lịch đang kích hoạt",
-  allSessionsHaveTimeslot: "Mọi phiên đã có timeslot",
-  allSessionsHaveCouncil: "Mọi phiên đã có hội đồng (council)",
-  allSessionsHaveRoom: "Mọi phiên đã được gán phòng",
-  roomConflicts: "Không có xung đột phòng",
-};
 
 function PublishDialog({
   open,
@@ -126,18 +117,20 @@ function PublishDialog({
 
         <div className="space-y-2 py-2">
           {isLoading && <Skeleton className="h-24 w-full" />}
-          {readiness && (
+          {readiness && readiness.ready && (
+            <p className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="size-4 shrink-0" />
+              Đủ điều kiện công bố lịch.
+            </p>
+          )}
+          {readiness && !readiness.ready && (
             <ul className="space-y-1.5 text-sm">
-              {(Object.keys(PUBLISH_CHECK_LABEL) as (keyof PublishReadiness["checks"])[]).map((key) => {
-                const value = readiness.checks[key];
-                const passed = key === "roomConflicts" ? value === 0 : Boolean(value);
-                return (
-                  <li key={key} className="flex items-center justify-between gap-3">
-                    <span className={passed ? "text-muted-foreground" : "text-destructive"}>{PUBLISH_CHECK_LABEL[key]}</span>
-                    <StatusDot tone={passed ? "emerald" : "red"} label={passed ? "Đạt" : key === "roomConflicts" ? String(value) : "Chưa đạt"} />
-                  </li>
-                );
-              })}
+              {readiness.blockers.map((blocker) => (
+                <li key={blocker.code} className="flex items-center justify-between gap-3">
+                  <span className="text-destructive">{blocker.message}</span>
+                  <StatusDot tone="red" label={blocker.code} />
+                </li>
+              ))}
             </ul>
           )}
         </div>

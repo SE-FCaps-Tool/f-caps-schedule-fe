@@ -58,16 +58,16 @@ export interface RoundScheduleVersionItem {
   createdAt: string;
 }
 
-/** spec §29/§69 — Publish */
+/** spec §29/§69 — Publish. Field thật của BE (app/routes/target_room_publish.py::publish_readiness) */
+export interface PublishReadinessBlocker {
+  code: string;
+  message: string;
+}
+
 export interface PublishReadiness {
   ready: boolean;
-  checks: {
-    activeVersion: boolean;
-    allSessionsHaveTimeslot: boolean;
-    allSessionsHaveCouncil: boolean;
-    allSessionsHaveRoom: boolean;
-    roomConflicts: number;
-  };
+  versionId: string | null;
+  blockers: PublishReadinessBlocker[];
 }
 
 /** spec §71 — Post-publish, đổi phòng cho một Session cụ thể (khác Room Assignment hàng loạt ở Phase 5) */
