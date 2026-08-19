@@ -23,7 +23,7 @@ export function SupervisedGroups() {
   const reduceMotion = useReducedMotion();
 
   const needsAttention = useMemo(
-    () => (projects ?? []).filter((p) => !p.group.leader || p.remediation?.status === "PENDING").length,
+    () => (projects ?? []).filter((p) => !p.group?.leader || p.remediation?.status === "PENDING").length,
     [projects]
   );
 

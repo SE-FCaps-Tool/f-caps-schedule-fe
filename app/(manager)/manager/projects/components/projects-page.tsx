@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { FilePlus2, MoreHorizontal, Search, Upload, WifiOff } from "lucide-react";
+import { FilePlus2, MoreHorizontal, Pencil, Search, Upload, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,8 +22,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StatusDot } from "../../_shared/status-dot";
 import { PROJECT_STATUS_META, type ProjectProgressState } from "../../_shared/labels";
 import { useSemesterContext } from "../../_shared/semester-context";
-import { useProjects, useCreateProject } from "@/hooks/manager/useProjects";
+import { useProjects, useCreateProject, useUpdateProject } from "@/hooks/manager/useProjects";
 import { useLecturers } from "@/hooks/manager/useLecturers";
+import type { ProjectListItem } from "@/lib/api/services/fetchProjects";
 
 function notImplemented(action: string) {
   toast.info(`${action} — chưa có trong spec BE, cần chốt endpoint`);
@@ -176,11 +177,73 @@ function CreateProjectDialog({
   );
 }
 
+function toLecturerSelectValue(id: string | undefined) {
+  return id?.replace(/^lec_/i, "") ?? "";
+}
+
+function EditProjectSupervisorsDialog({
+  project,
+  open,
+  onOpenChange,
+}: {
+  project: ProjectListItem | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const updateProject = useUpdateProject();
+  const [mainLecturerId, setMainLecturerId] = useState(() => toLecturerSelectValue(project?.mainSupervisor?.id));
+  const [coLecturerId, setCoLecturerId] = useState(() => toLecturerSelectValue(project?.coSupervisor?.id));
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!project || !mainLecturerId) return;
+    updateProject.mutate(
+      {
+        projectId: project.id,
+        payload: {
+          mainSupervisorId: mainLecturerId,
+          coSupervisorId: coLecturerId || undefined,
+        },
+      },
+      { onSuccess: () => onOpenChange(false) }
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Gán giảng viên cho đề tài</DialogTitle>
+            <DialogDescription>
+              {project ? `${project.code} — ${project.nameVi}` : "Chọn giảng viên hướng dẫn chính và phụ."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <SupervisorPicker
+              mainLecturerId={mainLecturerId}
+              coLecturerId={coLecturerId}
+              onChangeMain={setMainLecturerId}
+              onChangeCo={setCoLecturerId}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={updateProject.isPending || !project || !mainLecturerId}>
+              {updateProject.isPending ? "Đang lưu..." : "Lưu GVHD"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function ProjectsPage() {
   const { currentSemesterId, currentSemester } = useSemesterContext();
   const { data: projectsResult, isLoading, isError } = useProjects(currentSemester?.id);
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<ProjectListItem | null>(null);
 
   const projects = projectsResult?.data;
 
@@ -220,6 +283,14 @@ export function ProjectsPage() {
       </div>
 
       <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} semesterId={currentSemester?.id} />
+      <EditProjectSupervisorsDialog
+        key={editingProject?.id ?? "no-project"}
+        project={editingProject}
+        open={editingProject !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingProject(null);
+        }}
+      />
 
       <div className="relative mt-6 max-w-sm">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -299,7 +370,10 @@ export function ProjectsPage() {
                             }
                           />
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => notImplemented("Chỉnh sửa đề tài")}>Chỉnh sửa</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditingProject(project)}>
+                              <Pencil />
+                              Gán GVHD
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

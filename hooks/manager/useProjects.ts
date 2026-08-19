@@ -2,7 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { fetchProjects, type ProjectCreatePayload, type ProjectListParams } from "@/lib/api/services/fetchProjects";
+import {
+  fetchProjects,
+  type ProjectCreatePayload,
+  type ProjectListParams,
+  type ProjectUpdatePayload,
+} from "@/lib/api/services/fetchProjects";
 import { managerKeys } from "@/lib/api/managerQueryKeys";
 import { friendlyErrorMessage } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
@@ -29,6 +34,23 @@ export function useCreateProject(semesterId?: number | null) {
     },
     onError: (error: ApiError) => {
       toast.error(friendlyErrorMessage(error, "Không tạo được đề tài"));
+    },
+  });
+}
+
+/** PATCH /projects/:projectId — cập nhật GVHD của đề tài */
+export function useUpdateProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ projectId, payload }: { projectId: string; payload: ProjectUpdatePayload }) =>
+      fetchProjects.update(projectId, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["manager", "projects"] });
+      toast.success("Đã cập nhật GVHD đề tài");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không cập nhật được GVHD"));
     },
   });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CalendarPlus, ChevronRight, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,8 +13,18 @@ import { useSemesterContext } from "../../_shared/semester-context";
 import { useRounds } from "@/hooks/manager/useRounds";
 
 export function RoundsPage() {
+  const router = useRouter();
   const { currentSemesterId, currentSemester } = useSemesterContext();
   const { data: roundsResult, isLoading, isError } = useRounds(currentSemester?.id);
+
+  function openRound(roundId: string) {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("semester") && currentSemesterId) {
+      params.set("semester", currentSemesterId);
+    }
+    const query = params.toString();
+    router.push(`/manager/rounds/${roundId}${query ? `?${query}` : ""}`);
+  }
   // Học kỳ CLOSED hiển thị mọi đợt ở trạng thái LOCKED (chỉ xem, không thao tác) — §8 doc
   const isLockedSemester = currentSemester?.status === "CLOSED";
   const rounds = roundsResult?.data ?? [];
@@ -85,7 +96,22 @@ export function RoundsPage() {
                 {rounds.map((round) => {
                   const statusMeta = isLockedSemester ? ROUND_STATUS_META.LOCKED : ROUND_STATUS_META[round.status];
                   return (
-                    <TableRow key={round.id} className="cursor-pointer">
+                    <TableRow
+                      key={round.id}
+                      className="cursor-pointer"
+                      onClick={(event) => {
+                        if (event.target instanceof Element && event.target.closest("a,button")) return;
+                        openRound(round.id);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openRound(round.id);
+                        }
+                      }}
+                      role="link"
+                      tabIndex={0}
+                    >
                       <TableCell className="pl-4 p-0">
                         <Link href={`/manager/rounds/${round.id}`} className="block max-w-xs truncate px-2 py-2 font-medium">
                           {round.name || ROUND_TYPE_LABEL[round.type]}

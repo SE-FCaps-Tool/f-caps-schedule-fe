@@ -61,6 +61,13 @@ export interface ProjectCreateResponse {
   status: ProjectStatus;
 }
 
+export interface ProjectUpdatePayload {
+  nameVi?: string;
+  nameEn?: string | null;
+  mainSupervisorId: string;
+  coSupervisorId?: string;
+}
+
 export interface ProjectDetail {
   id: string;
   code: string;
@@ -116,6 +123,11 @@ export const fetchProjects = {
       payload
     );
     return response.data.data;
+  },
+
+  /** PATCH /projects/:projectId — đổi tên/GVHD của đề tài */
+  update: async (projectId: string, payload: ProjectUpdatePayload): Promise<void> => {
+    await apiService.patch(`api/v1/projects/${projectId}`, payload);
   },
 
   /** GET /projects/:projectId — spec §18 */

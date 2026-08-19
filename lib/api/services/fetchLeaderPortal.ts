@@ -16,7 +16,7 @@ import { formatInVietnamTime } from "@/lib/utils/formatDate";
 export type PreferenceStatus = "NOT_REQUIRED" | "PENDING" | "SUBMITTED";
 
 export interface LeaderDashboard {
-  group: { id: string; code: string; memberCount: number; maxMembers: number };
+  group: { id: string; code: string; memberCount: number; maxMembers: number } | null;
   project: { id: string; code: string; titleVi: string; titleEn: string | null; status: ProjectStatus } | null;
   mainSupervisor: { id: string; name: string } | null;
   coSupervisor: { id: string; name: string } | null;

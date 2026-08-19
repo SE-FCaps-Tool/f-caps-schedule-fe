@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { WifiOff } from "lucide-react";
+import { CalendarClock, WifiOff } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLeaderDashboard, useLeaderSessions } from "@/hooks/student/useLeaderPortal";
 import { ScheduleCalendar } from "./schedule-calendar";
@@ -12,7 +12,7 @@ export function StudentSchedule() {
   const { data: sessions, isLoading: sessionsLoading, isError: sessionsError } = useLeaderSessions();
 
   const data = useMemo(() => {
-    if (!dashboard || !sessions) return null;
+    if (!dashboard || !dashboard.group || !sessions) return null;
     return toStudentScheduleData(
       { code: dashboard.group.code, projectTitleEn: dashboard.project?.titleEn ?? null },
       sessions
@@ -36,6 +36,15 @@ export function StudentSchedule() {
       <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
         <WifiOff className="size-4 shrink-0" />
         Không tải được lịch nhóm. Thử tải lại trang.
+      </div>
+    );
+  }
+
+  if (data.rounds.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
+        <CalendarClock className="size-4 shrink-0" />
+        Nhóm chưa có lịch nào được xếp.
       </div>
     );
   }

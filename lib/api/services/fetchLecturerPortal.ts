@@ -188,7 +188,7 @@ export interface SupervisedProject {
     code: string;
     memberCount: number;
     leader: { id: string; name: string; code: string } | null;
-  };
+  } | null;
   projectStatus: ProjectStatus;
   nextEvaluation: { roundType: RoundType; date: string | null } | null;
   latestResult: {

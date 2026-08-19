@@ -19,8 +19,11 @@ import { toneBadgeClass, toneDotClass } from "./tone";
 export function GroupRow({ project }: { project: SupervisedProject }) {
   const [expanded, setExpanded] = useState(false);
   const reduceMotion = useReducedMotion();
-  const statusMeta = PROJECT_STATUS_META[project.projectStatus];
-  const leader = project.group.leader;
+  const statusMeta = PROJECT_STATUS_META[project.projectStatus] ?? {
+    label: project.projectStatus ?? "Không rõ",
+    tone: "neutral" as const,
+  };
+  const leader = project.group?.leader ?? null;
   const result = project.latestResult;
   const resultMeta = result
     ? result.kind === "REVIEW"
@@ -40,7 +43,7 @@ export function GroupRow({ project }: { project: SupervisedProject }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <span className="font-mono text-sm font-semibold">{project.group.code}</span>
+            <span className="font-mono text-sm font-semibold">{project.group?.code ?? "—"}</span>
             <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
               {project.supervisorRole === "MAIN" ? "GVHD chính" : "Đồng hướng dẫn"}
             </span>
@@ -124,7 +127,7 @@ export function GroupRow({ project }: { project: SupervisedProject }) {
 
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Users2 className="size-4" />
-                {project.group.memberCount} thành viên
+                {project.group?.memberCount ?? 0} thành viên
                 {leader && (
                   <span className="ml-1 inline-flex items-center gap-1 text-foreground">
                     <Crown className="size-3.5 text-primary" />

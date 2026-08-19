@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarClock, LayoutDashboard, LogOut, User, Settings } from "lucide-react";
+import { CalendarClock, CalendarDays, Award, LayoutDashboard, LogOut, User, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -20,7 +20,9 @@ import type { UserRole } from "@/lib/types/roles";
 
 const NAV_ITEMS = [
   { label: "Tổng quan", href: "/student/dashboard", icon: LayoutDashboard },
+  { label: "Đăng ký lịch", href: "/student/preferences", icon: CalendarDays },
   { label: "Lịch nhóm", href: "/student/schedule", icon: CalendarClock },
+  { label: "Kết quả", href: "/student/results", icon: Award },
 ];
 
 export function StudentHeader() {

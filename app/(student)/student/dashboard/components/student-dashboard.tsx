@@ -27,7 +27,7 @@ export function StudentDashboard() {
     <div className="h-full overflow-y-auto p-4 md:p-6">
       <div className="motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-2 duration-500">
         <h1 className="text-2xl font-semibold tracking-tight">Tổng quan nhóm</h1>
-        {data && (
+        {data?.group && (
           <div className="mt-2 flex items-center gap-2">
             <span className="font-mono text-sm font-medium">{data.group.code}</span>
             <CopyGroupCodeButton code={data.group.code} />
@@ -78,7 +78,10 @@ export function StudentDashboard() {
             />
             <DetailRow label="GVHD chính" value={data.mainSupervisor?.name ?? "Chưa gán"} />
             <DetailRow label="Đồng hướng dẫn" value={data.coSupervisor?.name ?? "—"} />
-            <DetailRow label="Số thành viên" value={`${data.group.memberCount}/${data.group.maxMembers}`} />
+            <DetailRow
+              label="Số thành viên"
+              value={data.group ? `${data.group.memberCount}/${data.group.maxMembers}` : "—"}
+            />
           </div>
 
           <div>

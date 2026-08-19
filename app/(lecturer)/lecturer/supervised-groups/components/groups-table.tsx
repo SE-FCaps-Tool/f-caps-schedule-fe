@@ -54,14 +54,17 @@ export function GroupsTable({ projects }: { projects: SupervisedProject[] }) {
         </TableHeader>
         <TableBody>
           {projects.map((project) => {
-            const statusMeta = PROJECT_STATUS_META[project.projectStatus];
-            const leader = project.group.leader;
+            const statusMeta = PROJECT_STATUS_META[project.projectStatus] ?? {
+              label: project.projectStatus ?? "Không rõ",
+              tone: "neutral" as const,
+            };
+            const leader = project.group?.leader ?? null;
 
             return (
               <TableRow key={project.id}>
                 <TableCell className={colDivider}>
                   <div className="flex items-baseline gap-2">
-                    <span className="font-mono text-sm font-semibold">{project.group.code}</span>
+                    <span className="font-mono text-sm font-semibold">{project.group?.code ?? "—"}</span>
                     <span className="text-[11px] font-medium text-muted-foreground">
                       {project.supervisorRole === "MAIN" ? "Chính" : "Đồng HD"}
                     </span>
@@ -74,12 +77,12 @@ export function GroupsTable({ projects }: { projects: SupervisedProject[] }) {
                     <>
                       <span className="block truncate text-sm font-medium">{leader.name}</span>
                       <span className="text-xs text-muted-foreground">
-                        {leader.code} · {project.group.memberCount} thành viên
+                        {leader.code} · {project.group?.memberCount ?? 0} thành viên
                       </span>
                     </>
                   ) : (
                     <span className="text-sm text-muted-foreground">
-                      Chưa có trưởng nhóm · {project.group.memberCount} thành viên
+                      Chưa có trưởng nhóm · {project.group?.memberCount ?? 0} thành viên
                     </span>
                   )}
                 </TableCell>

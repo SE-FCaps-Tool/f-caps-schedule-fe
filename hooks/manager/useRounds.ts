@@ -2,7 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { fetchRounds, type InviteLecturersPayload, type RoundCreatePayload } from "@/lib/api/services/fetchRounds";
+import {
+  fetchRounds,
+  type AttachRoundResourcesPayload,
+  type InviteLecturersPayload,
+  type RoundCreatePayload,
+} from "@/lib/api/services/fetchRounds";
 import { managerKeys } from "@/lib/api/managerQueryKeys";
 import { friendlyErrorMessage } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
@@ -53,6 +58,22 @@ export function useOpenRoundRegistration() {
     },
     onError: (error: ApiError) => {
       toast.error(friendlyErrorMessage(error, "Không mở được đăng ký — kiểm tra timeslot/loại phòng đã cấu hình"));
+    },
+  });
+}
+
+/** POST /rounds/:roundId/actions/open-group-registration — khóa Lecturer, mở Leader. */
+export function useOpenGroupRegistration() {
+  const invalidate = useInvalidateRounds();
+
+  return useMutation({
+    mutationFn: (roundId: string) => fetchRounds.openGroupRegistration(roundId),
+    onSuccess: async (_data, roundId) => {
+      await invalidate(roundId);
+      toast.success("Đã chuyển sang đăng ký lịch cho sinh viên");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không chuyển được sang đăng ký sinh viên"));
     },
   });
 }
@@ -135,6 +156,23 @@ export function useEligibleProjects(roundId: string | null) {
     queryFn: () => fetchRounds.eligibleProjects(roundId as string),
     enabled: roundId !== null,
     staleTime: 15 * 1000,
+  });
+}
+
+/** POST /rounds/:roundId/resources — Manager gắn nhóm đủ điều kiện vào Round. */
+export function useAttachRoundResources() {
+  const invalidate = useInvalidateRounds();
+
+  return useMutation({
+    mutationFn: ({ roundId, payload }: { roundId: string; payload: AttachRoundResourcesPayload }) =>
+      fetchRounds.attachResources(roundId, payload),
+    onSuccess: async (_data, variables) => {
+      await invalidate(variables.roundId);
+      toast.success("Đã gắn nhóm vào đợt đánh giá");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không gắn được nhóm vào đợt đánh giá"));
+    },
   });
 }
 

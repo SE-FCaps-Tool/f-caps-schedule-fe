@@ -47,7 +47,9 @@ import {
   useEligibleProjects,
   useRegistrationSummary,
   useRoundMyAvailability,
+  useAttachRoundResources,
   useOpenRoundRegistration,
+  useOpenGroupRegistration,
   useCloseRoundRegistration,
   useInviteLecturers,
   useRemindInvitation,
@@ -364,6 +366,8 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
   const [activeInvitation, setActiveInvitation] = useState<RoundInvitation | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set());
+  const [groupRegistrationOpened, setGroupRegistrationOpened] = useState(false);
 
   const { data: round, isLoading: roundLoading, isError: roundError } = useRoundDetail(roundId);
   const { data: invitations, isLoading: invitationsLoading, isError: invitationsError } = useRoundInvitations(roundId);
@@ -375,11 +379,13 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
   const { data: roundVersions, isLoading: roundVersionsLoading, isError: roundVersionsError } = useRoundScheduleVersions(roundId);
 
   const openRegistration = useOpenRoundRegistration();
+  const openGroupRegistration = useOpenGroupRegistration();
   const closeRegistration = useCloseRoundRegistration();
   const generateSchedule = useGenerateSchedule();
   const setActiveVersion = useSetActiveScheduleVersion();
   const discardVersion = useDiscardScheduleVersion();
   const remindInvitation = useRemindInvitation();
+  const attachRoundResources = useAttachRoundResources();
 
   const timeslots = availability?.timeslots ?? [];
   const missingSubmission = invitations?.filter((l) => l.status === "ACCEPTED" && l.availabilitySlotCount === 0) ?? [];
@@ -410,6 +416,37 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
   const name = round.name || `${ROUND_TYPE_LABEL[round.type]} — ${currentSemesterId}`;
   const futurePhaseLabel = FUTURE_PHASE_LABEL[round.status];
   const roundTimeslots = round.days.flatMap((d) => d.slots.map((s) => ({ ...s, date: d.date })));
+  const roundRoomTypes = round.roomTypes;
+  const groupRegistrationIsOpen =
+    groupRegistrationOpened || round.registrationPhase === "GROUP" || round.registrationPhase === "CLOSED";
+
+  function toggleGroup(groupId: string) {
+    setSelectedGroupIds((current) => {
+      const next = new Set(current);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }
+
+  function attachSelectedGroups() {
+    if (selectedGroupIds.size === 0) return;
+    if (roundTimeslots.length === 0 || roundRoomTypes.length === 0) {
+      toast.error("Round cần có timeslot và loại phòng trước khi gắn nhóm");
+      return;
+    }
+    attachRoundResources.mutate(
+      {
+        roundId,
+        payload: {
+          groupIds: [...selectedGroupIds],
+          timeslotIds: roundTimeslots.map((slot) => slot.id),
+          roomTypes: roundRoomTypes,
+        },
+      },
+      { onSuccess: () => setSelectedGroupIds(new Set()) }
+    );
+  }
 
   function isLecturerAssignedToSlot(lecturerId: number, timeslotId: number) {
     return availability?.selected_by_lecturer?.[String(lecturerId)]?.includes(timeslotId) ?? false;
@@ -438,9 +475,27 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
           </Button>
         )}
         {round.status === "OPEN_REGISTRATION" && (
-          <Button size="sm" disabled={closeRegistration.isPending} onClick={() => closeRegistration.mutate(roundId)}>
-            Đóng đăng ký
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={groupRegistrationIsOpen || openGroupRegistration.isPending}
+              onClick={() =>
+                openGroupRegistration.mutate(roundId, {
+                  onSuccess: () => setGroupRegistrationOpened(true),
+                })
+              }
+            >
+              {openGroupRegistration.isPending
+                ? "Đang chuyển..."
+                : groupRegistrationIsOpen
+                  ? "Đã mở đăng ký cho sinh viên"
+                  : "Mở đăng ký cho sinh viên"}
+            </Button>
+            <Button size="sm" disabled={closeRegistration.isPending} onClick={() => closeRegistration.mutate(roundId)}>
+              Đóng đăng ký
+            </Button>
+          </div>
         )}
         {round.status === "SCHEDULED" && (
           <Button size="sm" onClick={() => setPublishOpen(true)}>
@@ -639,6 +694,22 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
         </TabsContent>
 
         <TabsContent value="groups" className="mt-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              Chọn nhóm đủ điều kiện để đăng ký vào Round này.
+            </p>
+            <Button
+              size="sm"
+              disabled={selectedGroupIds.size === 0 || attachRoundResources.isPending}
+              onClick={attachSelectedGroups}
+            >
+              {attachRoundResources.isPending
+                ? "Đang gắn..."
+                : selectedGroupIds.size > 0
+                  ? `Gắn ${selectedGroupIds.size} nhóm vào Round`
+                  : "Gắn nhóm vào Round"}
+            </Button>
+          </div>
           {groupsLoading && <LoadingBlock />}
           {groupsError && <ErrorBlock label="Không tải được danh sách nhóm." />}
           {eligibleProjects && eligibleProjects.length === 0 && (
@@ -649,6 +720,7 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10 pl-4"><span className="sr-only">Chọn</span></TableHead>
                     <TableHead className="pl-4">Nhóm</TableHead>
                     <TableHead>Leader</TableHead>
                     <TableHead className="text-right">Thành viên</TableHead>
@@ -661,6 +733,14 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
                     const group = groupById.get(row.groupId);
                     return (
                       <TableRow key={row.projectId} className={ROW_REVEAL_CLASS} style={rowRevealStyle(index)}>
+                        <TableCell className="pl-4">
+                          <Checkbox
+                            checked={selectedGroupIds.has(row.groupId)}
+                            disabled={!row.eligible || !row.groupId || attachRoundResources.isPending}
+                            onCheckedChange={() => row.groupId && toggleGroup(row.groupId)}
+                            aria-label={`Chọn nhóm ${group?.code ?? row.groupId}`}
+                          />
+                        </TableCell>
                         <TableCell className="pl-4 font-mono text-xs font-medium">{group?.code ?? row.groupId}</TableCell>
                         <TableCell className={group?.leader ? "text-muted-foreground" : "font-medium text-amber-600 dark:text-amber-400"}>
                           {group?.leader?.fullName ?? "Chưa có"}
