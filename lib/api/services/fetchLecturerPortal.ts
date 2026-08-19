@@ -2,6 +2,7 @@ import apiService from "../core";
 import type { RoundType, RoundInvitationStatus } from "./fetchRounds";
 import type { ReviewResult, DefenseResult } from "./fetchResults";
 import type { ProjectStatus } from "./fetchProjects";
+import { formatInVietnamTime } from "@/lib/utils/formatDate";
 
 /** capstone-fe-be-implementation-spec.md §5 — IMPLEMENTATION PROPOSAL */
 export type PreferredLoad = "LOW" | "MEDIUM" | "HIGH";
@@ -33,6 +34,33 @@ export interface LecturerAvailability {
   slots: AvailabilitySlot[];
 }
 
+export interface LecturerAvailabilityResponse {
+  round: unknown;
+  timeslots: {
+    id: number | string;
+    startAt: string;
+    endAt: string;
+    dayDate: string;
+  }[];
+  lecturerId: number | string;
+  selectedTimeslotIds: (number | string)[];
+}
+
+/** Adapt BE availability data without inventing a preferred load not supplied by the API. */
+export function adaptLecturerAvailability(response: LecturerAvailabilityResponse): LecturerAvailability {
+  const selectedIds = new Set(response.selectedTimeslotIds.map(String));
+  return {
+    preferredLoad: null,
+    slots: response.timeslots.map((slot) => ({
+      timeslotId: String(slot.id),
+      date: formatInVietnamTime(slot.startAt, "YYYY-MM-DD"),
+      startTime: formatInVietnamTime(slot.startAt, "HH:mm"),
+      endTime: formatInVietnamTime(slot.endAt, "HH:mm"),
+      available: selectedIds.has(String(slot.id)),
+    })),
+  };
+}
+
 export interface SubmitAvailabilityPayload {
   preferredLoad: PreferredLoad;
   slots: { timeslotId: string; available: boolean }[];
@@ -52,8 +80,10 @@ export const fetchLecturerPortal = {
 
   /** GET /rounds/:roundId/availability/me — spec §32/§55 */
   availability: async (roundId: string): Promise<LecturerAvailability> => {
-    const response = await apiService.get<{ data: LecturerAvailability }>(`api/v1/rounds/${roundId}/availability/me`);
-    return response.data.data;
+    const response = await apiService.get<{ data: LecturerAvailabilityResponse }>(
+      `api/v1/rounds/${roundId}/availability/me`
+    );
+    return adaptLecturerAvailability(response.data.data);
   },
 
   /**

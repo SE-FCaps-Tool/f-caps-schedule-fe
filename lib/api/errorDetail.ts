@@ -88,6 +88,10 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   RESULT_PERMISSION_DENIED: "Bạn không có quyền nhập kết quả cho phiên này",
   RESULT_TYPE_INVALID: "Loại kết quả không khớp với loại đợt đánh giá",
   REMEDIATION_REQUIRED_FIELDS_MISSING: "Thiếu hạn khắc phục hoặc người xác minh cho mức LEVEL_2",
+  REGISTRATION_PHASE_INVALID: "Hiện chưa đến hoặc đã hết giai đoạn đăng ký dành cho bạn",
+  GROUP_SELECTION_DISABLED: "Đợt đánh giá này không mở đăng ký nguyện vọng cho nhóm",
+  AUTH_RESOURCE_SCOPE: "Bạn không có quyền truy cập dữ liệu này",
+  GROUP_NOT_IN_ROUND: "Nhóm không thuộc đợt đánh giá này",
 };
 
 /**

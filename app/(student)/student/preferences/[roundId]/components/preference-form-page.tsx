@@ -99,7 +99,7 @@ function PreferenceGrid({
 
 export function PreferenceFormPage({ roundId }: { roundId: string }) {
   const { data: dashboard, isLoading: dashboardLoading, isError: dashboardError } = useLeaderDashboard();
-  const groupId = dashboard?.group.id ?? null;
+  const groupId = dashboard?.group?.id ?? null;
   const { data: slots, isLoading: slotsLoading, isError: slotsError } = useGroupPreferences(roundId, groupId);
 
   const isLoading = dashboardLoading || (groupId !== null && slotsLoading);

@@ -3,6 +3,7 @@ import type { RoundType, RoundStatus } from "./fetchRounds";
 import type { ProjectStatus } from "./fetchProjects";
 import type { ReviewResult, DefenseResult } from "./fetchResults";
 import type { RemediationStatus } from "./fetchLecturerPortal";
+import { formatInVietnamTime } from "@/lib/utils/formatDate";
 
 /**
  * capstone-fe-be-implementation-spec.md PHẦN V — FE Project Leader (§37-40, Phase 9e).
@@ -51,6 +52,29 @@ export interface SubmitGroupPreferencePayload {
   timeslotIds: string[];
 }
 
+export interface GroupPreferencesResponse {
+  roundId: number | string;
+  groupId: number | string;
+  timeslots: {
+    timeslotId: number | string;
+    startAt: string;
+    endAt: string;
+    selected: boolean | null;
+    source: string | null;
+  }[];
+}
+
+/** Adapt the BE aggregate response to the flat slot list consumed by the Leader UI. */
+export function adaptGroupPreferences(response: GroupPreferencesResponse): GroupPreference[] {
+  return response.timeslots.map((slot) => ({
+    timeslotId: String(slot.timeslotId),
+    date: formatInVietnamTime(slot.startAt, "YYYY-MM-DD"),
+    startTime: formatInVietnamTime(slot.startAt, "HH:mm"),
+    endTime: formatInVietnamTime(slot.endAt, "HH:mm"),
+    selected: slot.selected === true,
+  }));
+}
+
 /** spec §40 */
 export type LeaderSessionStatus = "SCHEDULED" | "COMPLETED" | "POSTPONED" | "GROUP_ABSENT" | "CANCELLED";
 
@@ -74,10 +98,10 @@ export const fetchLeaderPortal = {
 
   /** GET /rounds/:roundId/groups/:groupId/preferences — spec §39 */
   groupPreferences: async (roundId: string, groupId: string): Promise<GroupPreference[]> => {
-    const response = await apiService.get<{ data: GroupPreference[] }>(
+    const response = await apiService.get<{ data: GroupPreferencesResponse }>(
       `api/v1/rounds/${roundId}/groups/${groupId}/preferences`
     );
-    return response.data.data;
+    return adaptGroupPreferences(response.data.data);
   },
 
   /**

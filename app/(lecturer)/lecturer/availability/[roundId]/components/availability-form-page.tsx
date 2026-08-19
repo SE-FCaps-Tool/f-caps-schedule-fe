@@ -12,11 +12,13 @@ import { formatDate } from "@/lib/utils/formatDate";
 import { PREFERRED_LOAD_LABEL } from "../../../_shared/labels";
 import { useLecturerAvailability, useSubmitAvailability } from "@/hooks/lecturer/useLecturerPortal";
 import type { LecturerAvailability, PreferredLoad } from "@/lib/api/services/fetchLecturerPortal";
+import { friendlyErrorMessage } from "@/lib/api/errorDetail";
+import type { ApiError } from "@/types/api";
 
 function AvailabilityForm({ roundId, availability }: { roundId: string; availability: LecturerAvailability }) {
   const submitAvailability = useSubmitAvailability(roundId);
 
-  const [preferredLoad, setPreferredLoad] = useState<PreferredLoad>(availability.preferredLoad ?? "MEDIUM");
+  const [preferredLoad, setPreferredLoad] = useState<PreferredLoad | null>(availability.preferredLoad);
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(availability.slots.filter((s) => s.available).map((s) => s.timeslotId))
   );
@@ -34,6 +36,7 @@ function AvailabilityForm({ roundId, availability }: { roundId: string; availabi
   }
 
   function handleSubmit() {
+    if (preferredLoad === null) return;
     submitAvailability.mutate({
       preferredLoad,
       slots: availability.slots.map((s) => ({ timeslotId: s.timeslotId, available: selected.has(s.timeslotId) })),
@@ -44,9 +47,9 @@ function AvailabilityForm({ roundId, availability }: { roundId: string; availabi
     <div className="mt-6 space-y-6">
       <div className="max-w-xs space-y-1.5">
         <Label>Mức tải mong muốn</Label>
-        <Select value={preferredLoad} onValueChange={(v) => v && setPreferredLoad(v as PreferredLoad)}>
+        <Select value={preferredLoad ?? undefined} onValueChange={(v) => v && setPreferredLoad(v as PreferredLoad)}>
           <SelectTrigger className="w-full">
-            <SelectValue>{(v: PreferredLoad) => PREFERRED_LOAD_LABEL[v]}</SelectValue>
+            <SelectValue placeholder="Chọn mức tải">{(v: PreferredLoad) => PREFERRED_LOAD_LABEL[v]}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {(Object.keys(PREFERRED_LOAD_LABEL) as PreferredLoad[]).map((load) => (
@@ -107,7 +110,7 @@ function AvailabilityForm({ roundId, availability }: { roundId: string; availabi
         </div>
       )}
 
-      <Button disabled={submitAvailability.isPending} onClick={handleSubmit}>
+      <Button disabled={submitAvailability.isPending || preferredLoad === null} onClick={handleSubmit}>
         {submitAvailability.isPending ? "Đang lưu..." : "Lưu lịch rảnh"}
       </Button>
     </div>
@@ -115,7 +118,7 @@ function AvailabilityForm({ roundId, availability }: { roundId: string; availabi
 }
 
 export function AvailabilityFormPage({ roundId }: { roundId: string }) {
-  const { data: availability, isLoading, isError } = useLecturerAvailability(roundId);
+  const { data: availability, isLoading, isError, error } = useLecturerAvailability(roundId);
 
   return (
     <div>
@@ -138,7 +141,7 @@ export function AvailabilityFormPage({ roundId }: { roundId: string }) {
       {isError && (
         <div className="mt-6 flex items-center gap-2 py-10 text-sm text-muted-foreground">
           <WifiOff className="size-4 shrink-0" />
-          Không tải được timeslot. Thử tải lại trang.
+          {friendlyErrorMessage(error as unknown as ApiError, "Không tải được timeslot. Thử tải lại trang.")}
         </div>
       )}
 
