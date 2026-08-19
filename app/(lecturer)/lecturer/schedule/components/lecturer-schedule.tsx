@@ -1,16 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
-import { lecturerSessions } from "./mock-data";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useLecturerSessions } from "@/hooks/lecturer/useLecturerPortal";
+import { toLecturerSession } from "./types";
 import { ExportIcsButton } from "./export-ics-button";
 import { ScheduleListView } from "./schedule-list-view";
 import { ViewToggle, type ScheduleView } from "./view-toggle";
 import { TimeGrid } from "./time-grid";
 
-const TODAY_ISO = "2026-08-18T00:00:00+07:00";
+const TODAY_ISO = new Date().toISOString();
 
 function mondayOf(iso: string) {
   const date = new Date(iso);
@@ -31,10 +33,10 @@ export function LecturerSchedule() {
   const [view, setView] = useState<ScheduleView>("list");
   const [weekStart, setWeekStart] = useState(() => mondayOf(TODAY_ISO));
 
-  const upcomingCount = useMemo(
-    () => lecturerSessions.filter((s) => s.status === "SCHEDULED" || s.status === "ONGOING").length,
-    []
-  );
+  const { data, isLoading, isError } = useLecturerSessions();
+  const sessions = useMemo(() => (data ?? []).map(toLecturerSession), [data]);
+
+  const upcomingCount = useMemo(() => sessions.filter((s) => s.status === "SCHEDULED").length, [sessions]);
 
   const weekEnd = addDays(weekStart, 6);
   const isCurrentWeek = weekStart === mondayOf(TODAY_ISO);
@@ -82,15 +84,27 @@ export function LecturerSchedule() {
               </button>
             </div>
           )}
-          <ExportIcsButton sessions={lecturerSessions} />
+          <ExportIcsButton sessions={sessions} />
         </div>
       </div>
 
       <div className={cn("mt-6 min-h-0 flex-1", view === "list" ? "overflow-y-auto" : "overflow-hidden")}>
-        {view === "list" ? (
-          <ScheduleListView sessions={lecturerSessions} todayIso={TODAY_ISO} />
-        ) : (
-          <TimeGrid weekStartIso={weekStart} sessions={lecturerSessions} todayIso={TODAY_ISO} />
+        {isLoading && (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        )}
+        {isError && (
+          <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
+            <WifiOff className="size-4 shrink-0" />
+            Không tải được lịch. Thử tải lại trang.
+          </div>
+        )}
+        {!isLoading && !isError && view === "list" && <ScheduleListView sessions={sessions} todayIso={TODAY_ISO} />}
+        {!isLoading && !isError && view === "week" && (
+          <TimeGrid weekStartIso={weekStart} sessions={sessions} todayIso={TODAY_ISO} />
         )}
       </div>
     </div>

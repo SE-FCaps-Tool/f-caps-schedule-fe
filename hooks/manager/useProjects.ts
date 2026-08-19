@@ -2,63 +2,63 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { fetchProjects, type ProjectCreatePayload, type ProjectUpdatePayload } from "@/lib/api/services/fetchProjects";
+import { fetchProjects, type ProjectCreatePayload, type ProjectListParams } from "@/lib/api/services/fetchProjects";
 import { managerKeys } from "@/lib/api/managerQueryKeys";
-import { detailCode, friendlyErrorMessage } from "@/lib/api/errorDetail";
+import { friendlyErrorMessage } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
 
-/** GET /projects?semester_id= (xem docs/manager-api.md §3/§8) */
-export function useProjects(semesterId?: number | null) {
+/** GET /semesters/:semesterId/projects — spec §16/§46 */
+export function useProjects(semesterId?: number | null, params?: ProjectListParams) {
   return useQuery({
-    queryKey: managerKeys.projects(semesterId),
-    queryFn: () => fetchProjects.list(semesterId),
+    queryKey: [...managerKeys.projects(semesterId), params ?? null] as const,
+    queryFn: () => fetchProjects.list(String(semesterId), params),
+    enabled: semesterId != null,
     staleTime: 30 * 1000,
   });
 }
 
-export function useCreateProject() {
+/** POST /semesters/:semesterId/projects — spec §17/§47 */
+export function useCreateProject(semesterId?: number | null) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: ProjectCreatePayload) => fetchProjects.create(payload),
+    mutationFn: (payload: ProjectCreatePayload) => fetchProjects.create(String(semesterId), payload),
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ["manager", "projects"] });
       toast.success(`Đã tạo đề tài ${data.code}`);
     },
     onError: (error: ApiError) => {
-      if (error.code === 409 && detailCode(error) === undefined) {
-        toast.error("Mã đề tài đã tồn tại trong học kỳ này");
-        return;
-      }
       toast.error(friendlyErrorMessage(error, "Không tạo được đề tài"));
     },
   });
 }
 
-/** PATCH /projects/{project_id}?semester_id= — manager-api.md §5/§10.3 */
-export function useUpdateProject() {
-  const queryClient = useQueryClient();
+/** GET /projects/:projectId — spec §18 */
+export function useProjectDetail(projectId: string | null) {
+  return useQuery({
+    queryKey: ["manager", "project", projectId] as const,
+    queryFn: () => fetchProjects.getById(projectId as string),
+    enabled: projectId !== null,
+    staleTime: 15 * 1000,
+  });
+}
 
-  return useMutation({
-    mutationFn: ({
-      projectId,
-      payload,
-      semesterId,
-    }: {
-      projectId: number;
-      payload: ProjectUpdatePayload;
-      semesterId?: number | null;
-    }) => fetchProjects.update(projectId, payload, semesterId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["manager", "projects"] });
-      toast.success("Đã cập nhật đề tài");
-    },
-    onError: (error: ApiError) => {
-      if (error.code === 409 && detailCode(error) === undefined) {
-        toast.error("Mã đề tài đã tồn tại trong học kỳ này");
-        return;
-      }
-      toast.error(friendlyErrorMessage(error, "Không cập nhật được đề tài"));
-    },
+/** GET /projects/:projectId/progression — spec §18/§75 */
+export function useProjectProgression(projectId: string | null) {
+  return useQuery({
+    queryKey: ["manager", "project", projectId, "progression"] as const,
+    queryFn: () => fetchProjects.progression(projectId as string),
+    enabled: projectId !== null,
+    staleTime: 15 * 1000,
+  });
+}
+
+/** GET /projects/:projectId/results — spec §18 */
+export function useProjectResults(projectId: string | null) {
+  return useQuery({
+    queryKey: ["manager", "project", projectId, "results"] as const,
+    queryFn: () => fetchProjects.results(projectId as string),
+    enabled: projectId !== null,
+    staleTime: 15 * 1000,
   });
 }

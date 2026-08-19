@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarCheck, CalendarX2, Check, MoreHorizontal, Pin } from "lucide-react";
+import { CalendarX2, Check, ClipboardCheck, FolderKanban, MessageSquareText, MoreHorizontal, PencilLine, Pin, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,15 +15,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useTransitionSemester } from "@/hooks/useSemesters";
+import { useSetCurrentSemester, useTransitionSemester } from "@/hooks/useSemesters";
 import { ReasonDialog } from "@/components/shared/reason-dialog";
-import type { SemesterApiItem, SemesterStatus } from "@/lib/api/services/fetchSemesters";
+import { EditSemesterDialog } from "./edit-semester-dialog";
+import type { SemesterApiItem } from "@/lib/api/services/fetchSemesters";
 import { SEMESTER_STATUS_DOT, SEMESTER_STATUS_LABEL } from "./status";
-
-const NEXT_STATUS: Partial<Record<SemesterStatus, SemesterStatus>> = {
-  UPCOMING: "ACTIVE",
-  ACTIVE: "CLOSED",
-};
 
 interface SemestersTableProps {
   semesters: SemesterApiItem[];
@@ -32,20 +29,36 @@ interface SemestersTableProps {
   onSetContext?: (semester: SemesterApiItem) => void;
 }
 
+function StatChip({ icon: Icon, value, label }: { icon: typeof FolderKanban; value: number; label: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
+            <Icon className="size-3.5" aria-hidden />
+            {value}
+          </span>
+        }
+      />
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function SemestersTable({ semesters, currentContextId, onSetContext }: SemestersTableProps) {
-  const [pending, setPending] = useState<SemesterApiItem | null>(null);
+  const [closingTarget, setClosingTarget] = useState<SemesterApiItem | null>(null);
+  const [editingTarget, setEditingTarget] = useState<SemesterApiItem | null>(null);
   const transition = useTransitionSemester();
+  const setCurrent = useSetCurrentSemester();
 
   if (semesters.length === 0) {
     return <p className="py-10 text-center text-sm text-muted-foreground">Chưa có học kỳ nào khớp tìm kiếm.</p>;
   }
 
-  const nextStatus = pending ? NEXT_STATUS[pending.status] : undefined;
-
-  function handleConfirm(reason: string) {
-    if (!pending || !nextStatus) return;
-    transition.mutate({ id: pending.id, payload: { target_status: nextStatus, reason } });
-    setPending(null);
+  function handleConfirmClose(reason: string) {
+    if (!closingTarget) return;
+    transition.mutate({ id: closingTarget.id, payload: { target_status: "CLOSED", reason } });
+    setClosingTarget(null);
   }
 
   return (
@@ -57,6 +70,7 @@ export function SemestersTable({ semesters, currentContextId, onSetContext }: Se
               <TableHead className="pl-4">Mã học kỳ</TableHead>
               <TableHead>Tên học kỳ</TableHead>
               <TableHead>Thời gian</TableHead>
+              <TableHead>Số liệu</TableHead>
               <TableHead>Trạng thái</TableHead>
               <TableHead className="pr-4 text-right">
                 <span className="sr-only">Hành động</span>
@@ -65,7 +79,6 @@ export function SemestersTable({ semesters, currentContextId, onSetContext }: Se
           </TableHeader>
           <TableBody>
             {semesters.map((semester) => {
-              const next = NEXT_STATUS[semester.status];
               const isCurrentContext = onSetContext && semester.code === currentContextId;
               return (
                 <TableRow key={semester.id}>
@@ -80,9 +93,29 @@ export function SemestersTable({ semesters, currentContextId, onSetContext }: Se
                       )}
                     </span>
                   </TableCell>
-                  <TableCell className="font-medium">{semester.name}</TableCell>
+                  <TableCell>
+                    <span className="flex items-center gap-1.5 font-medium">
+                      {semester.name}
+                      {semester.note && (
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={<MessageSquareText className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />}
+                          />
+                          <TooltipContent>{semester.note}</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </span>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{semester.academic_year}</p>
+                  </TableCell>
                   <TableCell className="text-muted-foreground tabular-nums">
                     {formatDate(semester.start_date, "DD/MM/YYYY")} – {formatDate(semester.end_date, "DD/MM/YYYY")}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <StatChip icon={FolderKanban} value={semester.project_count} label="Đề tài" />
+                      <StatChip icon={Users2} value={semester.group_count} label="Nhóm" />
+                      <StatChip icon={ClipboardCheck} value={semester.round_count} label="Đợt đánh giá" />
+                    </div>
                   </TableCell>
                   <TableCell>
                     <span className="inline-flex items-center gap-1.5 text-sm">
@@ -91,37 +124,43 @@ export function SemestersTable({ semesters, currentContextId, onSetContext }: Se
                     </span>
                   </TableCell>
                   <TableCell className="pr-4 text-right">
-                    {next || onSetContext ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <Button variant="ghost" size="icon-sm" aria-label="Hành động">
-                              <MoreHorizontal />
-                            </Button>
-                          }
-                        />
-                        <DropdownMenuContent align="end" className="w-56">
-                          {onSetContext && (
-                            <>
-                              <DropdownMenuItem
-                                disabled={semester.code === currentContextId}
-                                onClick={() => onSetContext(semester)}
-                              >
-                                <Pin />
-                                Chọn làm bối cảnh làm việc
-                              </DropdownMenuItem>
-                              {next && <DropdownMenuSeparator />}
-                            </>
-                          )}
-                          {next && (
-                            <DropdownMenuItem onClick={() => setPending(semester)}>
-                              {next === "ACTIVE" ? <CalendarCheck /> : <CalendarX2 />}
-                              {next === "ACTIVE" ? "Mở học kỳ (ACTIVE)" : "Đóng học kỳ (CLOSED)"}
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : null}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button variant="ghost" size="icon-sm" aria-label="Hành động">
+                            <MoreHorizontal />
+                          </Button>
+                        }
+                      />
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={() => setEditingTarget(semester)}>
+                          <PencilLine />
+                          Chỉnh sửa
+                        </DropdownMenuItem>
+                        {onSetContext && (
+                          <DropdownMenuItem
+                            disabled={semester.code === currentContextId}
+                            onClick={() => onSetContext(semester)}
+                          >
+                            <Pin />
+                            Chọn làm bối cảnh làm việc
+                          </DropdownMenuItem>
+                        )}
+                        {(semester.status === "ACTIVE" || semester.status === "CLOSED") && <DropdownMenuSeparator />}
+                        {semester.status === "CLOSED" && (
+                          <DropdownMenuItem disabled={setCurrent.isPending} onClick={() => setCurrent.mutate(semester.id)}>
+                            <Check />
+                            Đặt làm học kỳ hiện tại
+                          </DropdownMenuItem>
+                        )}
+                        {semester.status === "ACTIVE" && (
+                          <DropdownMenuItem onClick={() => setClosingTarget(semester)}>
+                            <CalendarX2 />
+                            Đóng học kỳ
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               );
@@ -131,14 +170,16 @@ export function SemestersTable({ semesters, currentContextId, onSetContext }: Se
       </div>
 
       <ReasonDialog
-        open={pending !== null}
-        onOpenChange={(open) => !open && setPending(null)}
-        title={nextStatus === "ACTIVE" ? "Mở học kỳ" : "Đóng học kỳ"}
-        description={`Chuyển "${pending?.name ?? ""}" từ ${pending ? SEMESTER_STATUS_LABEL[pending.status] : ""} sang ${nextStatus ? SEMESTER_STATUS_LABEL[nextStatus] : ""}. Lý do sẽ được ghi vào audit log.`}
-        destructive={nextStatus === "CLOSED"}
-        confirmLabel={nextStatus === "ACTIVE" ? "Mở học kỳ" : "Đóng học kỳ"}
-        onConfirm={handleConfirm}
+        open={closingTarget !== null}
+        onOpenChange={(open) => !open && setClosingTarget(null)}
+        title="Đóng học kỳ"
+        description={`Chuyển "${closingTarget?.name ?? ""}" từ Đang hoạt động sang Đã đóng. Lý do sẽ được ghi vào audit log.`}
+        destructive
+        confirmLabel="Đóng học kỳ"
+        onConfirm={handleConfirmClose}
       />
+
+      <EditSemesterDialog semester={editingTarget} onOpenChange={(open) => !open && setEditingTarget(null)} />
     </>
   );
 }

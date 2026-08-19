@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useCreateSemester } from "@/hooks/useSemesters";
 
@@ -158,6 +159,7 @@ export function AddSemesterDialog() {
   const [startMonth, setStartMonth] = useState<number | null>(null);
   const [endDay, setEndDay] = useState<number | null>(null);
   const [endMonth, setEndMonth] = useState<number | null>(null);
+  const [note, setNote] = useState("");
 
   const reduceMotion = useReducedMotion();
   const { mutate, isPending } = useCreateSemester();
@@ -191,6 +193,7 @@ export function AddSemesterDialog() {
     setStartMonth(null);
     setEndDay(null);
     setEndMonth(null);
+    setNote("");
   }
 
   function goTo(next: 1 | 2 | 3) {
@@ -211,7 +214,7 @@ export function AddSemesterDialog() {
   function handleSave() {
     if (!canSave || !startDate || !endDate) return;
     mutate(
-      { code, name, start_date: startDate, end_date: endDate },
+      { code, name, start_date: startDate, end_date: endDate, note: note.trim() || undefined },
       {
         onSuccess: () => {
           setOpen(false);
@@ -249,7 +252,8 @@ export function AddSemesterDialog() {
             <DialogTitle>Tạo học kỳ</DialogTitle>
           </div>
           <DialogDescription>
-            Học kỳ mới luôn được tạo với trạng thái UPCOMING. Thời lượng phải từ {MIN_DURATION_DAYS}–{MAX_DURATION_DAYS} ngày.
+            Học kỳ mới luôn được tạo với trạng thái ACTIVE — chỉ được 1 học kỳ ACTIVE cùng lúc. Thời lượng phải từ{" "}
+            {MIN_DURATION_DAYS}–{MAX_DURATION_DAYS} ngày.
           </DialogDescription>
           <div className="flex items-center gap-1.5 pt-1" aria-hidden>
             {STEP_LABELS.map((label, i) => (
@@ -379,6 +383,17 @@ export function AddSemesterDialog() {
                       : `Thời lượng: ${days} ngày — phải từ ${MIN_DURATION_DAYS} đến ${MAX_DURATION_DAYS} ngày`}
                   </p>
                 )}
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="semester-note">Ghi chú (tùy chọn)</Label>
+                  <Textarea
+                    id="semester-note"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Ví dụ: Capstone semester"
+                    className="min-h-16"
+                  />
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

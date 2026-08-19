@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   Clock,
-  ExternalLink,
   ListChecks,
   Mail,
   MoreHorizontal,
@@ -35,40 +34,121 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { formatDate, formatDateTime, formatTimeRange } from "@/lib/utils/formatDate";
+import { formatDate, formatTimeRange } from "@/lib/utils/formatDate";
+import { toast } from "sonner";
 import { StatusDot, type StatusTone } from "../../../_shared/status-dot";
-import { ROUND_STATUS_META, ROUND_TYPE_LABEL, SCHEDULE_VERSION_STATUS_META, INVITATION_STATUS_META } from "../../../_shared/labels";
+import { ROUND_STATUS_META, ROUND_TYPE_LABEL, ROUND_SCHEDULE_VERSION_STATUS_META, INVITATION_STATUS_META } from "../../../_shared/labels";
 import { useSemesterContext } from "../../../_shared/semester-context";
 import {
-  useRound,
+  useRoundDetail,
   useRoundInvitations,
-  useRoundGroupRoster,
+  useEligibleProjects,
+  useRegistrationSummary,
   useRoundMyAvailability,
-  useTransitionRound,
+  useOpenRoundRegistration,
+  useCloseRoundRegistration,
   useInviteLecturers,
-  useSubmitLecturerAvailability,
-  useResendInvitation,
-  useUpdateRoundConfig,
+  useRemindInvitation,
 } from "@/hooks/manager/useRounds";
-import { useScheduleVersions, useRunSchedule, useActivateVersion, usePublishVersion } from "@/hooks/manager/useScheduling";
+import {
+  useSchedulingReadiness,
+  useRoundScheduleVersions,
+  useGenerateSchedule,
+  useSetActiveScheduleVersion,
+  useDiscardScheduleVersion,
+  usePublishReadiness,
+  usePublishRound,
+} from "@/hooks/manager/useScheduling";
 import { useLecturers } from "@/hooks/manager/useLecturers";
-import type { RoundStatus, RoundConfigUpdatePayload } from "@/lib/api/services/fetchRounds";
-import type { RoundInvitationRow } from "@/lib/api/services/fetchRounds";
+import { useGroups } from "@/hooks/manager/useGroups";
+import type { RoomType, RoundStatus, RoundInvitation } from "@/lib/api/services/fetchRounds";
+import type { GroupListItem } from "@/lib/api/services/fetchGroups";
+import type { PublishReadiness } from "@/lib/api/services/fetchScheduling";
 
-const LOAD_LABEL = { HIGH: "Cao", MEDIUM: "Trung bình", LOW: "Thấp" } as const;
-
-const NEXT_ROUND_STATUS: Partial<Record<RoundStatus, { target: RoundStatus; label: string }>> = {
-  DRAFT: { target: "OPEN_REGISTRATION", label: "Mở đăng ký" },
-  OPEN_REGISTRATION: { target: "REGISTRATION_CLOSED", label: "Đóng đăng ký" },
-  REGISTRATION_CLOSED: { target: "SCHEDULING", label: "Chuyển sang xếp lịch" },
-  SCHEDULED: { target: "PUBLISHED", label: "Công bố lịch" },
-  COMPLETED: { target: "LOCKED", label: "Khóa đợt" },
+const ROOM_TYPE_LABEL: Record<RoomType, string> = {
+  NORMAL: "Phòng thường",
+  SEMINAR: "Seminar",
+  LAB: "Lab",
 };
+
+/**
+ * Trạng thái mà spec chưa có action endpoint cụ thể (thuộc Phase 8) — chỉ hiển thị, chưa bấm được.
+ * REGISTRATION_CLOSED không còn ở đây: xếp lịch giờ thao tác trực tiếp trong tab "Xếp lịch"
+ * (Generate + Set Active theo spec §58/§64), không có transition riêng để "bắt đầu xếp lịch".
+ * SCHEDULED cũng không còn ở đây: Công bố lịch giờ là nút thật, gate theo publish-readiness (§29/§69/§70).
+ */
+const FUTURE_PHASE_LABEL: Partial<Record<RoundStatus, string>> = {
+  COMPLETED: "Khóa đợt",
+};
+
+function notImplemented(action: string) {
+  toast.info(`${action} — chưa có trong spec BE, cần chốt endpoint`);
+}
+
+const PUBLISH_CHECK_LABEL: Record<keyof PublishReadiness["checks"], string> = {
+  activeVersion: "Có phương án lịch đang kích hoạt",
+  allSessionsHaveTimeslot: "Mọi phiên đã có timeslot",
+  allSessionsHaveCouncil: "Mọi phiên đã có hội đồng (council)",
+  allSessionsHaveRoom: "Mọi phiên đã được gán phòng",
+  roomConflicts: "Không có xung đột phòng",
+};
+
+function PublishDialog({
+  open,
+  onOpenChange,
+  roundId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  roundId: string;
+}) {
+  const { data: readiness, isLoading } = usePublishReadiness(open ? roundId : null);
+  const publishRound = usePublishRound();
+
+  function handlePublish() {
+    publishRound.mutate(roundId, { onSuccess: () => onOpenChange(false) });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Công bố lịch</DialogTitle>
+          <DialogDescription>
+            Sau khi công bố, lịch sẽ hiển thị cho giảng viên và sinh viên; mọi thay đổi sau đó phải qua các thao tác
+            post-publish (đổi phòng, thay reviewer, hoãn buổi).
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-2 py-2">
+          {isLoading && <Skeleton className="h-24 w-full" />}
+          {readiness && (
+            <ul className="space-y-1.5 text-sm">
+              {(Object.keys(PUBLISH_CHECK_LABEL) as (keyof PublishReadiness["checks"])[]).map((key) => {
+                const value = readiness.checks[key];
+                const passed = key === "roomConflicts" ? value === 0 : Boolean(value);
+                return (
+                  <li key={key} className="flex items-center justify-between gap-3">
+                    <span className={passed ? "text-muted-foreground" : "text-destructive"}>{PUBLISH_CHECK_LABEL[key]}</span>
+                    <StatusDot tone={passed ? "emerald" : "red"} label={passed ? "Đạt" : key === "roomConflicts" ? String(value) : "Chưa đạt"} />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button type="button" disabled={!readiness?.ready || publishRound.isPending} onClick={handlePublish}>
+            {publishRound.isPending ? "Đang công bố..." : "Xác nhận công bố"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function InviteLecturersDialog({
   open,
@@ -78,14 +158,14 @@ function InviteLecturersDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  roundId: number;
-  invitedIds: Set<number>;
+  roundId: string;
+  invitedIds: Set<string>;
 }) {
   const { data: lecturers } = useLecturers();
   const inviteLecturers = useInviteLecturers();
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  function toggle(id: number) {
+  function toggle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -98,7 +178,7 @@ function InviteLecturersDialog({
     e.preventDefault();
     if (selected.size === 0) return;
     inviteLecturers.mutate(
-      { roundId, payload: { lecturer_ids: Array.from(selected) } },
+      { roundId, payload: { lecturerIds: Array.from(selected) } },
       {
         onSuccess: () => {
           setSelected(new Set());
@@ -108,7 +188,7 @@ function InviteLecturersDialog({
     );
   }
 
-  const candidates = (lecturers ?? []).filter((l) => !invitedIds.has(l.id));
+  const candidates = (lecturers ?? []).filter((l) => !invitedIds.has(String(l.id)));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -128,7 +208,7 @@ function InviteLecturersDialog({
                 key={lecturer.id}
                 className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
               >
-                <Checkbox checked={selected.has(lecturer.id)} onCheckedChange={() => toggle(lecturer.id)} />
+                <Checkbox checked={selected.has(String(lecturer.id))} onCheckedChange={() => toggle(String(lecturer.id))} />
                 <span className="font-medium">{lecturer.lecturer_code}</span>
                 <span className="text-muted-foreground">— {lecturer.display_name}</span>
               </label>
@@ -138,200 +218,6 @@ function InviteLecturersDialog({
           <DialogFooter>
             <Button type="submit" disabled={inviteLecturers.isPending || selected.size === 0}>
               {inviteLecturers.isPending ? "Đang gửi..." : `Mời ${selected.size > 0 ? selected.size : ""} giảng viên`}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function SubmitAvailabilityDialog({
-  open,
-  onOpenChange,
-  roundId,
-  invitations,
-  timeslots,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  roundId: number;
-  invitations: RoundInvitationRow[];
-  timeslots: { id: number; start_at: string; end_at: string; day_date: string }[];
-}) {
-  const submitAvailability = useSubmitLecturerAvailability();
-  const [lecturerId, setLecturerId] = useState<string>("");
-  const [selectedSlots, setSelectedSlots] = useState<Set<number>>(new Set());
-
-  function toggleSlot(id: number) {
-    setSelectedSlots((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!lecturerId) return;
-    submitAvailability.mutate(
-      {
-        roundId,
-        lecturerId: Number(lecturerId),
-        payload: { selected_timeslot_ids: Array.from(selectedSlots) },
-      },
-      {
-        onSuccess: () => {
-          setLecturerId("");
-          setSelectedSlots(new Set());
-          onOpenChange(false);
-        },
-      }
-    );
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Nhập lịch rảnh hộ giảng viên</DialogTitle>
-            <DialogDescription>Dùng khi giảng viên quên tự đăng ký lịch rảnh.</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-1.5">
-              <Label>Giảng viên</Label>
-              <Select value={lecturerId} onValueChange={(v) => v && setLecturerId(v)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chọn giảng viên">
-                    {(v: string) => {
-                      const l = invitations.find((l) => String(l.lecturer_id) === v);
-                      return l ? `${l.lecturer_code} — ${l.display_name}` : "Chọn giảng viên";
-                    }}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {invitations.map((l) => (
-                    <SelectItem key={l.lecturer_id} value={String(l.lecturer_id)}>
-                      {l.lecturer_code} — {l.display_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Timeslot rảnh</Label>
-              <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border border-border p-2">
-                {timeslots.length === 0 && (
-                  <p className="py-4 text-center text-sm text-muted-foreground">Chưa có timeslot.</p>
-                )}
-                {timeslots.map((slot) => (
-                  <label
-                    key={slot.id}
-                    className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
-                  >
-                    <Checkbox checked={selectedSlots.has(slot.id)} onCheckedChange={() => toggleSlot(slot.id)} />
-                    <span className="tabular-nums">
-                      {formatDate(slot.day_date, "DD/MM")} · {formatTimeRange(slot.start_at, slot.end_at)}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button type="submit" disabled={submitAvailability.isPending || !lecturerId}>
-              {submitAvailability.isPending ? "Đang lưu..." : "Lưu lịch rảnh"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function EditRoundConfigDialog({
-  open,
-  onOpenChange,
-  roundId,
-  semesterId,
-  round,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  roundId: number;
-  semesterId: number | undefined;
-  round: {
-    end_date: string;
-    reviewer_count: number;
-    max_groups_per_timeslot: number;
-    max_minutes_per_day: number;
-  };
-}) {
-  const updateConfig = useUpdateRoundConfig();
-  const [endDate, setEndDate] = useState(round.end_date);
-  const [reviewerCount, setReviewerCount] = useState(String(round.reviewer_count));
-  const [maxGroupsPerTimeslot, setMaxGroupsPerTimeslot] = useState(String(round.max_groups_per_timeslot));
-  const [maxMinutesPerDay, setMaxMinutesPerDay] = useState(String(round.max_minutes_per_day));
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const payload: RoundConfigUpdatePayload = {
-      end_date: endDate,
-      reviewer_count: Number(reviewerCount),
-      max_groups_per_timeslot: Number(maxGroupsPerTimeslot),
-      max_minutes_per_day: Number(maxMinutesPerDay),
-    };
-    updateConfig.mutate({ roundId, payload, semesterId }, { onSuccess: () => onOpenChange(false) });
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Chỉnh sửa cấu hình</DialogTitle>
-            <DialogDescription>Chỉ áp dụng khi đợt còn ở trạng thái Nháp hoặc Đang mở đăng ký.</DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-2 gap-3 py-4">
-            <div className="space-y-1.5">
-              <Label>Ngày kết thúc</Label>
-              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Số reviewer / buổi</Label>
-              <Input type="number" min={1} value={reviewerCount} onChange={(e) => setReviewerCount(e.target.value)} required />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Nhóm tối đa / timeslot</Label>
-              <Input
-                type="number"
-                min={1}
-                value={maxGroupsPerTimeslot}
-                onChange={(e) => setMaxGroupsPerTimeslot(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Phút tối đa / ngày</Label>
-              <Input
-                type="number"
-                min={1}
-                value={maxMinutesPerDay}
-                onChange={(e) => setMaxMinutesPerDay(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button type="submit" disabled={updateConfig.isPending}>
-              {updateConfig.isPending ? "Đang lưu..." : "Lưu cấu hình"}
             </Button>
           </DialogFooter>
         </form>
@@ -470,33 +356,39 @@ function ErrorBlock({ label }: { label: string }) {
   );
 }
 
-export function RoundDetailPage({ roundId }: { roundId: number }) {
+export function RoundDetailPage({ roundId }: { roundId: string }) {
   const { currentSemesterId, currentSemester } = useSemesterContext();
   const semesterId = currentSemester?.id;
-  const [activeLecturer, setActiveLecturer] = useState<RoundInvitationRow | null>(null);
+  // Calendar/Room (Phase 5 — chưa migrate, cần Room tồn tại trước) vẫn dùng id số của backend cũ.
+  const legacyRoundId = Number(roundId);
+  const [activeInvitation, setActiveInvitation] = useState<RoundInvitation | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [availabilityOpen, setAvailabilityOpen] = useState(false);
-  const [editConfigOpen, setEditConfigOpen] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
 
-  const { data: round, isLoading: roundLoading, isError: roundError } = useRound(roundId, semesterId);
-  const { data: invitations, isLoading: invitationsLoading, isError: invitationsError } = useRoundInvitations(roundId, semesterId);
-  const { data: groupRoster, isLoading: groupsLoading, isError: groupsError } = useRoundGroupRoster(roundId, semesterId);
-  const { data: availability } = useRoundMyAvailability(roundId);
-  const { data: versions, isLoading: versionsLoading, isError: versionsError } = useScheduleVersions(roundId, semesterId);
+  const { data: round, isLoading: roundLoading, isError: roundError } = useRoundDetail(roundId);
+  const { data: invitations, isLoading: invitationsLoading, isError: invitationsError } = useRoundInvitations(roundId);
+  const { data: eligibleProjects, isLoading: groupsLoading, isError: groupsError } = useEligibleProjects(roundId);
+  const { data: groupsResult } = useGroups(semesterId);
+  const { data: registrationSummary } = useRegistrationSummary(roundId);
+  const { data: availability } = useRoundMyAvailability(legacyRoundId);
+  const { data: readiness } = useSchedulingReadiness(roundId);
+  const { data: roundVersions, isLoading: roundVersionsLoading, isError: roundVersionsError } = useRoundScheduleVersions(roundId);
 
-  const transitionRound = useTransitionRound();
-  const runSchedule = useRunSchedule();
-  const activateVersion = useActivateVersion();
-  const publishVersion = usePublishVersion();
-  const resendInvitation = useResendInvitation();
+  const openRegistration = useOpenRoundRegistration();
+  const closeRegistration = useCloseRoundRegistration();
+  const generateSchedule = useGenerateSchedule();
+  const setActiveVersion = useSetActiveScheduleVersion();
+  const discardVersion = useDiscardScheduleVersion();
+  const remindInvitation = useRemindInvitation();
 
   const timeslots = availability?.timeslots ?? [];
-  const acceptedCount = invitations?.filter((l) => l.invitation_status === "ACCEPTED").length ?? 0;
-  const submittedCount = invitations?.filter((l) => l.available_slot_count > 0).length ?? 0;
-  const missingSubmission = invitations?.filter((l) => l.invitation_status === "ACCEPTED" && l.available_slot_count === 0) ?? [];
-  const eligibleGroups = groupRoster?.filter((g) => g.eligible).length ?? 0;
+  const missingSubmission = invitations?.filter((l) => l.status === "ACCEPTED" && l.availabilitySlotCount === 0) ?? [];
 
-  const activeVersion = useMemo(() => versions?.find((v) => v.status === "PUBLISHED"), [versions]);
+  const groupById = useMemo(() => {
+    const map = new Map<string, GroupListItem>();
+    for (const g of groupsResult?.data ?? []) map.set(g.id, g);
+    return map;
+  }, [groupsResult]);
 
   if (roundLoading) {
     return (
@@ -515,8 +407,9 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
   }
 
   const statusMeta = ROUND_STATUS_META[round.status];
-  const name = `${ROUND_TYPE_LABEL[round.type]} — ${currentSemesterId}`;
-  const nextStatus = NEXT_ROUND_STATUS[round.status];
+  const name = round.name || `${ROUND_TYPE_LABEL[round.type]} — ${currentSemesterId}`;
+  const futurePhaseLabel = FUTURE_PHASE_LABEL[round.status];
+  const roundTimeslots = round.days.flatMap((d) => d.slots.map((s) => ({ ...s, date: d.date })));
 
   function isLecturerAssignedToSlot(lecturerId: number, timeslotId: number) {
     return availability?.selected_by_lecturer?.[String(lecturerId)]?.includes(timeslotId) ?? false;
@@ -539,15 +432,24 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
             <StatusDot tone={statusMeta.tone} label={statusMeta.label} />
           </div>
         </div>
-        {nextStatus && (
-          <Button
-            size="sm"
-            disabled={transitionRound.isPending}
-            onClick={() =>
-              transitionRound.mutate({ roundId, payload: { target_status: nextStatus.target } })
-            }
-          >
-            {nextStatus.label}
+        {round.status === "DRAFT" && (
+          <Button size="sm" disabled={openRegistration.isPending} onClick={() => openRegistration.mutate(roundId)}>
+            Mở đăng ký
+          </Button>
+        )}
+        {round.status === "OPEN_REGISTRATION" && (
+          <Button size="sm" disabled={closeRegistration.isPending} onClick={() => closeRegistration.mutate(roundId)}>
+            Đóng đăng ký
+          </Button>
+        )}
+        {round.status === "SCHEDULED" && (
+          <Button size="sm" onClick={() => setPublishOpen(true)}>
+            Công bố lịch
+          </Button>
+        )}
+        {futurePhaseLabel && (
+          <Button size="sm" variant="outline" onClick={() => notImplemented(futurePhaseLabel)}>
+            {futurePhaseLabel}
           </Button>
         )}
       </div>
@@ -563,18 +465,38 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
 
         <TabsContent value="overview" className="mt-5">
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            <StatBlock label="Thời lượng" value={`${round.session_duration_minutes} phút`} icon={Clock} tone="sky" />
-            <StatBlock label="Reviewer / buổi" value={String(round.reviewer_count)} icon={Users} tone="sky" />
-            <StatNumber label="Nhóm đủ điều kiện" value={groupRoster ? eligibleGroups : null} icon={CheckCircle2} tone="emerald" />
+            <StatBlock label="Thời lượng" value={`${round.durationMinutes} phút`} icon={Clock} tone="sky" />
+            <StatBlock label="Reviewer / buổi" value={String(round.reviewerCount)} icon={Users} tone="sky" />
+            <StatNumber
+              label="Nhóm đủ điều kiện"
+              value={registrationSummary ? registrationSummary.groups?.eligible : null}
+              icon={CheckCircle2}
+              tone="emerald"
+            />
             <StatBlock
               label="Hạn đăng ký"
-              value={round.registration_deadline ? formatDate(round.registration_deadline) : "—"}
+              value={round.registrationDeadline ? formatDate(round.registrationDeadline) : "—"}
               icon={CalendarClock}
               tone="amber"
             />
-            <StatNumber label="Giảng viên được mời" value={invitations ? invitations.length : null} icon={UserPlus} tone="violet" />
-            <StatNumber label="Đã chấp nhận" value={invitations ? acceptedCount : null} icon={UserCheck} tone="emerald" />
-            <StatNumber label="Đã gửi lịch rảnh" value={invitations ? submittedCount : null} icon={CalendarCheck} tone="sky" />
+            <StatNumber
+              label="Giảng viên được mời"
+              value={registrationSummary ? registrationSummary.lecturers?.invited : null}
+              icon={UserPlus}
+              tone="violet"
+            />
+            <StatNumber
+              label="Đã chấp nhận"
+              value={registrationSummary ? registrationSummary.lecturers?.accepted : null}
+              icon={UserCheck}
+              tone="emerald"
+            />
+            <StatNumber
+              label="Đã gửi lịch rảnh"
+              value={registrationSummary ? registrationSummary.lecturers?.availabilitySubmitted : null}
+              icon={CalendarCheck}
+              tone="sky"
+            />
           </div>
 
           {missingSubmission.length > 0 && (
@@ -590,13 +512,8 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
             <Button
               variant="outline"
               size="sm"
-              disabled={round.status !== "DRAFT" && round.status !== "OPEN_REGISTRATION"}
-              title={
-                round.status !== "DRAFT" && round.status !== "OPEN_REGISTRATION"
-                  ? "Chỉ sửa được khi đợt còn Nháp hoặc Đang mở đăng ký"
-                  : undefined
-              }
-              onClick={() => setEditConfigOpen(true)}
+              title="Spec chưa có endpoint sửa cấu hình sau khi tạo"
+              onClick={() => notImplemented("Chỉnh sửa cấu hình")}
             >
               <PencilLine />
               Chỉnh sửa
@@ -604,31 +521,42 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
           </div>
 
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            <StatBlock label="Thời lượng" value={`${round.session_duration_minutes} phút`} icon={Clock} tone="sky" />
-            <StatBlock label="Số reviewer" value={String(round.reviewer_count)} icon={Users} tone="sky" />
+            <StatBlock label="Thời lượng" value={`${round.durationMinutes} phút`} icon={Clock} tone="sky" />
+            <StatBlock label="Số reviewer" value={String(round.reviewerCount)} icon={Users} tone="sky" />
             <StatBlock
               label="Nhóm tự chọn lịch"
-              value={round.group_selection_mode ? "Bật" : "Tắt"}
+              value={round.groupSelectionMode ? "Bật" : "Tắt"}
               icon={ListChecks}
-              tone={round.group_selection_mode ? "emerald" : "neutral"}
+              tone={round.groupSelectionMode ? "emerald" : "neutral"}
             />
             <StatBlock
               label="Chỉ định Result Owner"
-              value={round.result_owner_mode ? "Bật" : "Tắt"}
+              value={round.resultOwnerMode ? "Bật" : "Tắt"}
               icon={Award}
-              tone={round.result_owner_mode ? "emerald" : "neutral"}
+              tone={round.resultOwnerMode ? "emerald" : "neutral"}
             />
           </div>
 
           <div>
+            <p className="text-sm font-medium">Loại phòng cho phép</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {round.roomTypes?.map((rt) => (
+                <span key={rt} className="rounded-md border border-border px-2.5 py-1 text-xs">
+                  {ROOM_TYPE_LABEL[rt]}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div>
             <p className="text-sm font-medium">Timeslot</p>
-            {timeslots.length === 0 ? (
+            {roundTimeslots?.length === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground">Chưa tạo timeslot.</p>
             ) : (
               <div className="mt-2 flex flex-wrap gap-2">
-                {timeslots.map((slot) => (
-                  <span key={slot.id} className={cn("rounded-md border border-border px-2.5 py-1 text-xs tabular-nums")}>
-                    {formatDate(slot.day_date, "DD/MM")} · {formatTimeRange(slot.start_at, slot.end_at)}
+                {roundTimeslots?.map((slot, index) => (
+                  <span key={`${slot.date}-${index}`} className={cn("rounded-md border border-border px-2.5 py-1 text-xs tabular-nums")}>
+                    {formatDate(slot.date, "DD/MM")} · {slot.startTime}–{slot.endTime}
                   </span>
                 ))}
               </div>
@@ -638,10 +566,6 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
 
         <TabsContent value="lecturers" className="mt-5">
           <div className="mb-4 flex items-center justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => setAvailabilityOpen(true)} disabled={!invitations || invitations.length === 0}>
-              <PencilLine />
-              Nhập hộ
-            </Button>
             <Button size="sm" onClick={() => setInviteOpen(true)}>
               <UserPlus />
               Mời giảng viên
@@ -661,7 +585,6 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
                     <TableHead className="pl-4">Giảng viên</TableHead>
                     <TableHead>Lời mời</TableHead>
                     <TableHead className="text-right">Lịch rảnh</TableHead>
-                    <TableHead>Mức tải</TableHead>
                     <TableHead className="text-right">Hạn mức</TableHead>
                     <TableHead className="text-right">Đã dùng</TableHead>
                     <TableHead className="pr-4 text-right">
@@ -670,40 +593,37 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {invitations.map((lecturer, index) => {
-                    const invitationMeta = INVITATION_STATUS_META[lecturer.invitation_status] ?? INVITATION_STATUS_META.PENDING;
+                  {invitations.map((invitation, index) => {
+                    const invitationMeta = INVITATION_STATUS_META[invitation.status] ?? INVITATION_STATUS_META.PENDING;
                     return (
                       <TableRow
-                        key={lecturer.lecturer_id}
+                        key={invitation.id}
                         className={cn("cursor-pointer", ROW_REVEAL_CLASS)}
                         style={rowRevealStyle(index)}
-                        onClick={() => setActiveLecturer(lecturer)}
+                        onClick={() => setActiveInvitation(invitation)}
                       >
                         <TableCell className="pl-4">
-                          <span className="font-medium">{lecturer.lecturer_code}</span>{" "}
-                          <span className="text-muted-foreground">— {lecturer.display_name}</span>
+                          <span className="font-medium">{invitation.lecturer.code}</span>{" "}
+                          <span className="text-muted-foreground">— {invitation.lecturer.fullName}</span>
                         </TableCell>
                         <TableCell>
-                          <StatusDot tone={invitationMeta.tone} label={invitationMeta.label} pulse={lecturer.invitation_status === "PENDING"} />
+                          <StatusDot tone={invitationMeta.tone} label={invitationMeta.label} pulse={invitation.status === "PENDING"} />
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {lecturer.available_slot_count > 0 ? `${lecturer.available_slot_count} slot` : "Chưa có"}
+                          {invitation.availabilitySlotCount > 0 ? `${invitation.availabilitySlotCount} slot` : "Chưa có"}
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {lecturer.load_preference ? LOAD_LABEL[lecturer.load_preference] : "—"}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">{lecturer.semester_quota}</TableCell>
-                        <TableCell className="text-right tabular-nums">{lecturer.used_quota}</TableCell>
+                        <TableCell className="text-right tabular-nums">{invitation.semesterQuota}</TableCell>
+                        <TableCell className="text-right tabular-nums">{invitation.usedQuota}</TableCell>
                         <TableCell className="pr-4 text-right">
                           <Button
                             variant="ghost"
                             size="icon-sm"
                             aria-label="Gửi nhắc nhở"
                             title="Gửi nhắc nhở"
-                            disabled={resendInvitation.isPending}
+                            disabled={remindInvitation.isPending}
                             onClick={(e) => {
                               e.stopPropagation();
-                              resendInvitation.mutate({ roundId, lecturerId: lecturer.lecturer_id, semesterId });
+                              remindInvitation.mutate({ roundId, invitationId: invitation.id });
                             }}
                           >
                             <Mail />
@@ -721,35 +641,44 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
         <TabsContent value="groups" className="mt-5">
           {groupsLoading && <LoadingBlock />}
           {groupsError && <ErrorBlock label="Không tải được danh sách nhóm." />}
-          {groupRoster && groupRoster.length === 0 && (
-            <p className="py-10 text-center text-sm text-muted-foreground">Chưa có nhóm đủ điều kiện cho đợt này.</p>
+          {eligibleProjects && eligibleProjects.length === 0 && (
+            <p className="py-10 text-center text-sm text-muted-foreground">Chưa có nhóm/đề tài nào cho đợt này.</p>
           )}
-          {groupRoster && groupRoster.length > 0 && (
+          {eligibleProjects && eligibleProjects.length > 0 && (
             <div className="overflow-hidden rounded-lg border border-border">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="pl-4">Nhóm</TableHead>
-                    <TableHead>Đủ điều kiện</TableHead>
                     <TableHead>Leader</TableHead>
-                    <TableHead className="text-right">Slot đã chọn</TableHead>
-                    <TableHead className="pr-4">Trạng thái</TableHead>
+                    <TableHead className="text-right">Thành viên</TableHead>
+                    <TableHead>Cảnh báo</TableHead>
+                    <TableHead className="pr-4">Đủ điều kiện</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {groupRoster.map((group, index) => (
-                    <TableRow key={group.group_id} className={ROW_REVEAL_CLASS} style={rowRevealStyle(index)}>
-                      <TableCell className="pl-4 font-mono text-xs font-medium">{group.group_code}</TableCell>
-                      <TableCell>
-                        <StatusDot tone={group.eligible ? "emerald" : "red"} label={group.eligible ? "Đủ" : "Chưa đủ"} />
-                      </TableCell>
-                      <TableCell className={group.leader_name ? "text-muted-foreground" : "font-medium text-amber-600 dark:text-amber-400"}>
-                        {group.leader_name ?? "Chưa có"}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{group.selected_slot_count}</TableCell>
-                      <TableCell className="pr-4 text-muted-foreground">{group.status}</TableCell>
-                    </TableRow>
-                  ))}
+                  {eligibleProjects.map((row, index) => {
+                    const group = groupById.get(row.groupId);
+                    return (
+                      <TableRow key={row.projectId} className={ROW_REVEAL_CLASS} style={rowRevealStyle(index)}>
+                        <TableCell className="pl-4 font-mono text-xs font-medium">{group?.code ?? row.groupId}</TableCell>
+                        <TableCell className={group?.leader ? "text-muted-foreground" : "font-medium text-amber-600 dark:text-amber-400"}>
+                          {group?.leader?.fullName ?? "Chưa có"}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{group?.memberCount ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {row.blockingReasons.length > 0
+                            ? row.blockingReasons.join(", ")
+                            : row.warnings.length > 0
+                              ? row.warnings.map((w) => w.message).join(", ")
+                              : "—"}
+                        </TableCell>
+                        <TableCell className="pr-4">
+                          <StatusDot tone={row.eligible ? "emerald" : "red"} label={row.eligible ? "Đủ" : "Chưa đủ"} />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -757,43 +686,60 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
         </TabsContent>
 
         <TabsContent value="scheduling" className="mt-5">
-          {versionsLoading && <LoadingBlock />}
-          {versionsError && <ErrorBlock label="Không tải được các phương án lịch." />}
+          {readiness && !readiness.ready && (
+            <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
+              <p className="font-medium text-amber-700 dark:text-amber-400">Chưa đủ điều kiện chạy xếp lịch</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-amber-700 dark:text-amber-400">
+                {readiness.blockingIssues?.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {readiness && readiness.warnings?.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
+              {readiness.warnings.map((w) => (
+                <span key={w.code} className="rounded-md border border-border px-2 py-1">
+                  {w.code}: {w.count}
+                </span>
+              ))}
+            </div>
+          )}
 
-          {versions && versions.length === 0 && (
+          {roundVersionsLoading && <LoadingBlock />}
+          {roundVersionsError && <ErrorBlock label="Không tải được các phương án lịch." />}
+
+          {roundVersions && roundVersions.length === 0 && (
             <div className="rounded-xl border border-border p-5">
               <p className="text-sm font-medium">Chưa chạy xếp lịch cho đợt này</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {groupRoster ? eligibleGroups : "…"} nhóm đủ điều kiện · {invitations ? invitations.length : "…"} giảng viên
+                {readiness ? readiness.counts?.eligibleProjects : "…"} nhóm đủ điều kiện ·{" "}
+                {readiness ? readiness.counts?.availableLecturers : "…"} giảng viên rảnh
               </p>
               <Button
                 className="mt-4"
                 size="sm"
-                disabled={runSchedule.isPending}
-                onClick={() => runSchedule.mutate({ roundId, semesterId })}
+                disabled={generateSchedule.isPending || !readiness?.ready}
+                onClick={() => generateSchedule.mutate(roundId)}
               >
                 <Sparkles />
-                {runSchedule.isPending ? "Đang chạy..." : "Chạy xếp lịch"}
+                {generateSchedule.isPending ? "Đang chạy..." : "Chạy xếp lịch"}
               </Button>
             </div>
           )}
 
-          {versions && versions.length > 0 && (
+          {roundVersions && roundVersions.length > 0 && (
             <>
               <div className="mb-4 flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{versions.length} phương án đã tạo</p>
-                <div className="flex items-center gap-2">
-                  <Link href={`/manager/calendar?round=${roundId}`}>
-                    <Button variant="outline" size="sm">
-                      <ExternalLink />
-                      Mở trên Lịch đánh giá
-                    </Button>
-                  </Link>
-                  <Button size="sm" disabled={runSchedule.isPending} onClick={() => runSchedule.mutate({ roundId, semesterId })}>
-                    <Sparkles />
-                    {runSchedule.isPending ? "Đang chạy..." : "Chạy lại"}
-                  </Button>
-                </div>
+                <p className="text-sm text-muted-foreground">{roundVersions.length} phương án đã tạo</p>
+                <Button
+                  size="sm"
+                  disabled={generateSchedule.isPending || !readiness?.ready}
+                  onClick={() => generateSchedule.mutate(roundId)}
+                >
+                  <Sparkles />
+                  {generateSchedule.isPending ? "Đang chạy..." : "Chạy lại"}
+                </Button>
               </div>
 
               <div className="overflow-hidden rounded-lg border border-border">
@@ -801,7 +747,8 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="pl-4">Phương án</TableHead>
-                      <TableHead>Tạo lúc</TableHead>
+                      <TableHead className="text-right">Đã xếp</TableHead>
+                      <TableHead className="text-right">Chưa xếp</TableHead>
                       <TableHead className="text-right">Điểm</TableHead>
                       <TableHead>Trạng thái</TableHead>
                       <TableHead className="pr-4 text-right">
@@ -810,14 +757,15 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {versions.map((version, index) => {
-                      const versionStatusMeta = SCHEDULE_VERSION_STATUS_META[version.status];
+                    {roundVersions.map((version, index) => {
+                      const versionStatusMeta = ROUND_SCHEDULE_VERSION_STATUS_META[version.status];
                       return (
                         <TableRow key={version.id} className={ROW_REVEAL_CLASS} style={rowRevealStyle(index)}>
-                          <TableCell className="pl-4 font-mono text-xs font-medium">V{version.version_no}</TableCell>
-                          <TableCell className="text-muted-foreground tabular-nums">{formatDateTime(version.created_at)}</TableCell>
+                          <TableCell className="pl-4 font-mono text-xs font-medium">V{version.versionNumber}</TableCell>
+                          <TableCell className="text-right tabular-nums">{version.scheduledCount}</TableCell>
+                          <TableCell className="text-right tabular-nums">{version.unscheduledCount}</TableCell>
                           <TableCell className="text-right font-medium tabular-nums">
-                            {version.total_score != null ? version.total_score.toFixed(1) : "—"}
+                            {version.overallScore != null ? version.overallScore.toFixed(1) : "—"}
                           </TableCell>
                           <TableCell>
                             <StatusDot tone={versionStatusMeta.tone} label={versionStatusMeta.label} />
@@ -833,17 +781,23 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
                               />
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem
-                                  disabled={version.status !== "VALID"}
-                                  onClick={() => activateVersion.mutate({ versionId: version.id, roundId, semesterId })}
+                                  disabled={version.status !== "DRAFT"}
+                                  onClick={() => setActiveVersion.mutate({ roundId, versionId: version.id })}
                                 >
                                   Kích hoạt
                                 </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  disabled={version.status !== "DRAFT"}
+                                  onClick={() => discardVersion.mutate({ roundId, versionId: version.id })}
+                                >
+                                  Loại bỏ
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  disabled={!(activeVersion === undefined && version.activated_at)}
-                                  onClick={() => publishVersion.mutate({ roundId, versionId: version.id, semesterId })}
+                                  disabled={version.status !== "ACTIVE"}
+                                  render={<Link href={`/manager/rounds/${roundId}/room-assignment`} />}
                                 >
-                                  Công bố lịch
+                                  Gán phòng
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -859,28 +813,25 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
         </TabsContent>
       </Tabs>
 
-      <Sheet open={activeLecturer !== null} onOpenChange={(open) => !open && setActiveLecturer(null)}>
+      <Sheet open={activeInvitation !== null} onOpenChange={(open) => !open && setActiveInvitation(null)}>
         <SheetContent>
-          {activeLecturer && (
+          {activeInvitation && (
             <>
               <SheetHeader>
                 <SheetTitle>
-                  {activeLecturer.lecturer_code} — {activeLecturer.display_name}
+                  {activeInvitation.lecturer.code} — {activeInvitation.lecturer.fullName}
                 </SheetTitle>
                 <SheetDescription>
                   <StatusDot
-                    tone={(INVITATION_STATUS_META[activeLecturer.invitation_status] ?? INVITATION_STATUS_META.PENDING).tone}
-                    label={(INVITATION_STATUS_META[activeLecturer.invitation_status] ?? INVITATION_STATUS_META.PENDING).label}
+                    tone={(INVITATION_STATUS_META[activeInvitation.status] ?? INVITATION_STATUS_META.PENDING).tone}
+                    label={(INVITATION_STATUS_META[activeInvitation.status] ?? INVITATION_STATUS_META.PENDING).label}
                   />
                 </SheetDescription>
               </SheetHeader>
               <div className="space-y-5 px-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <StatBlock
-                    label="Mức tải mong muốn"
-                    value={activeLecturer.load_preference ? LOAD_LABEL[activeLecturer.load_preference] : "—"}
-                  />
-                  <StatBlock label="Hạn mức đã dùng" value={`${activeLecturer.used_quota} / ${activeLecturer.semester_quota}`} />
+                  <StatBlock label="Lịch rảnh đã nộp" value={`${activeInvitation.availabilitySlotCount} slot`} />
+                  <StatBlock label="Hạn mức đã dùng" value={`${activeInvitation.usedQuota} / ${activeInvitation.semesterQuota}`} />
                 </div>
                 <div>
                   <p className="text-sm font-medium">Lịch rảnh</p>
@@ -889,7 +840,7 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
                   ) : (
                     <div className="mt-2 space-y-1.5">
                       {timeslots.map((slot) => {
-                        const assigned = isLecturerAssignedToSlot(activeLecturer.lecturer_id, slot.id);
+                        const assigned = isLecturerAssignedToSlot(Number(activeInvitation.lecturer.id), slot.id);
                         return (
                           <div
                             key={slot.id}
@@ -915,27 +866,9 @@ export function RoundDetailPage({ roundId }: { roundId: number }) {
         open={inviteOpen}
         onOpenChange={setInviteOpen}
         roundId={roundId}
-        invitedIds={new Set((invitations ?? []).map((l) => l.lecturer_id))}
+        invitedIds={new Set((invitations ?? []).map((l) => l.lecturer.id))}
       />
-      <SubmitAvailabilityDialog
-        open={availabilityOpen}
-        onOpenChange={setAvailabilityOpen}
-        roundId={roundId}
-        invitations={invitations ?? []}
-        timeslots={timeslots}
-      />
-      <EditRoundConfigDialog
-        open={editConfigOpen}
-        onOpenChange={setEditConfigOpen}
-        roundId={roundId}
-        semesterId={semesterId}
-        round={{
-          end_date: round.end_date,
-          reviewer_count: round.reviewer_count,
-          max_groups_per_timeslot: round.max_groups_per_timeslot,
-          max_minutes_per_day: round.max_minutes_per_day,
-        }}
-      />
+      <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} roundId={roundId} />
     </div>
   );
 }

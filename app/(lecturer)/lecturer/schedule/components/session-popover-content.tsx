@@ -1,7 +1,7 @@
 import { DoorOpen, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatTimeRange } from "@/lib/utils/formatDate";
-import { ROUND_TYPE_LABEL, type LecturerSession } from "./mock-data";
+import { ROUND_TYPE_LABEL, MY_ROLE_LABEL, type LecturerSession } from "./types";
 import { STATUS_META, toneBadgeClass } from "./tone";
 
 export function SessionPopoverContent({ session }: { session: LecturerSession }) {
@@ -27,7 +27,7 @@ export function SessionPopoverContent({ session }: { session: LecturerSession })
       <div className="space-y-1.5 border-t border-border pt-2 text-xs text-muted-foreground">
         <p className="flex items-center gap-1.5">
           <DoorOpen className="size-3.5 shrink-0" />
-          {session.isOnline ? session.room : `Phòng ${session.room}`} · {session.myRole}
+          Phòng {session.room} · {MY_ROLE_LABEL[session.myRole]}
         </p>
         <p className="flex items-start gap-1.5">
           <Users2 className="mt-0.5 size-3.5 shrink-0" />

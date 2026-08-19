@@ -5,156 +5,99 @@ import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DEFENSE_LEVELS, JOURNEY_STATUS_META, type RoundResult, type SupervisedGroup } from "./mock-data";
+import type { ReviewResult, DefenseResult } from "@/lib/api/services/fetchResults";
+import type { SupervisedProject } from "@/lib/api/services/fetchLecturerPortal";
+import {
+  ROUND_TYPE_LABEL,
+  PROJECT_STATUS_META,
+  REVIEW_RESULT_META,
+  DEFENSE_RESULT_META,
+  REMEDIATION_STATUS_META,
+} from "../../_shared/labels";
 import { toneBadgeClass } from "./tone";
-import { AssignLeaderPopover } from "./assign-leader-popover";
 
 const colDivider = "border-r border-border";
 
-function findRound(rounds: RoundResult[], type: RoundResult["roundType"]) {
-  return rounds.find((r) => r.roundType === type);
-}
-
-function findNextRound(rounds: RoundResult[]) {
-  return rounds.find((r) => r.roundType === "DEFENSE_1_2" || r.roundType === "DEFENSE_2");
-}
-
-function ReviewCell({ round }: { round?: RoundResult }) {
-  if (!round || round.phaseStatus === "locked") {
-    return (
-      <>
-        <TableCell className={cn(colDivider, "text-center text-sm text-muted-foreground/50 tabular-nums")}>—</TableCell>
-        <TableCell className={cn(colDivider, "text-center text-sm text-muted-foreground/50")}>—</TableCell>
-      </>
-    );
+function LatestResultCell({ result }: { result: SupervisedProject["latestResult"] }) {
+  if (!result) {
+    return <TableCell className={cn(colDivider, "text-center text-sm text-muted-foreground/50")}>—</TableCell>;
   }
-  const tone = round.reviewOutcome === "Không đạt" ? "red" : round.reviewOutcome === "Cần sửa" ? "amber" : "emerald";
+  const meta =
+    result.kind === "REVIEW"
+      ? REVIEW_RESULT_META[result.value as ReviewResult]
+      : DEFENSE_RESULT_META[result.value as DefenseResult];
   return (
-    <>
-      <TableCell className={cn(colDivider, "text-center text-sm text-muted-foreground tabular-nums")}>
-        {round.date ? formatDate(round.date, "DD/MM") : "—"}
-      </TableCell>
-      <TableCell className={cn(colDivider, "text-center")}>
-        {round.phaseStatus === "completed" && round.reviewOutcome ? (
-          <span className={cn("rounded-full px-2.5 py-1 text-sm font-semibold text-nowrap", toneBadgeClass[tone])}>
-            {round.reviewOutcome}
-          </span>
-        ) : (
-          <span className="text-sm text-primary">Sắp tới</span>
-        )}
-      </TableCell>
-    </>
+    <TableCell className={colDivider}>
+      <span className={cn("rounded-full px-2.5 py-1 text-sm font-semibold text-nowrap", toneBadgeClass[meta.tone])}>
+        {meta.label}
+      </span>
+      <span className="mt-0.5 block text-xs text-muted-foreground">
+        {ROUND_TYPE_LABEL[result.roundType]} · {formatDate(result.date, "DD/MM")}
+      </span>
+    </TableCell>
   );
 }
 
-function DefenseCell({ round }: { round?: RoundResult }) {
-  if (!round || round.phaseStatus === "locked") {
-    return (
-      <>
-        <TableCell className={cn(colDivider, "text-center text-sm text-muted-foreground/50 tabular-nums")}>—</TableCell>
-        <TableCell className={cn(colDivider, "text-center text-sm text-muted-foreground/50")}>—</TableCell>
-      </>
-    );
-  }
-  const meta = round.defenseLevel ? DEFENSE_LEVELS[round.defenseLevel] : undefined;
-  return (
-    <>
-      <TableCell className={cn(colDivider, "text-center text-sm text-muted-foreground tabular-nums")}>
-        {round.date ? formatDate(round.date, "DD/MM") : "—"}
-      </TableCell>
-      <TableCell className={cn(colDivider, "text-center")}>
-        {round.phaseStatus === "completed" && meta ? (
-          <span className={cn("rounded-full px-2.5 py-1 text-sm font-semibold text-nowrap", toneBadgeClass[meta.tone])}>
-            {meta.label}
-          </span>
-        ) : (
-          <span className="text-sm text-primary">Sắp tới</span>
-        )}
-      </TableCell>
-    </>
-  );
-}
-
-export function GroupsTable({
-  groups,
-  onAssignLeader,
-}: {
-  groups: SupervisedGroup[];
-  onAssignLeader: (groupId: string, memberId: string) => void;
-}) {
+export function GroupsTable({ projects }: { projects: SupervisedProject[] }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border">
-      <Table className="min-w-5xl border-collapse">
+      <Table className="min-w-4xl border-collapse">
         <TableHeader>
           <TableRow className="bg-muted/40 hover:bg-muted/40">
-            <TableHead rowSpan={2} className={cn(colDivider, "h-auto text-center align-middle text-sm whitespace-normal")}>
-              Nhóm
-            </TableHead>
-            <TableHead rowSpan={2} className={cn(colDivider, "h-auto text-center align-middle text-sm whitespace-normal")}>
-              Đề tài
-            </TableHead>
-            <TableHead colSpan={2} className={cn(colDivider, "text-center text-sm")}>
-              Review 1
-            </TableHead>
-            <TableHead colSpan={2} className={cn(colDivider, "text-center text-sm")}>
-              Review 2
-            </TableHead>
-            <TableHead colSpan={2} className={cn(colDivider, "text-center text-sm")}>
-              Defense 1.1
-            </TableHead>
-            <TableHead rowSpan={2} className={cn(colDivider, "h-auto text-center align-middle text-sm whitespace-normal")}>
-              Đợt tiếp theo
-            </TableHead>
-            <TableHead rowSpan={2} className={cn(colDivider, "h-auto text-center align-middle text-sm whitespace-normal")}>
-              Trạng thái
-            </TableHead>
-            <TableHead rowSpan={2} className="h-auto text-center align-middle text-sm whitespace-normal">
-              Trưởng nhóm
-            </TableHead>
-          </TableRow>
-          <TableRow className="bg-muted/40 hover:bg-muted/40">
-            <TableHead className={cn(colDivider, "text-center text-xs font-medium text-muted-foreground")}>Ngày</TableHead>
-            <TableHead className={cn(colDivider, "text-center text-xs font-medium text-muted-foreground")}>Kết quả</TableHead>
-            <TableHead className={cn(colDivider, "text-center text-xs font-medium text-muted-foreground")}>Ngày</TableHead>
-            <TableHead className={cn(colDivider, "text-center text-xs font-medium text-muted-foreground")}>Kết quả</TableHead>
-            <TableHead className={cn(colDivider, "text-center text-xs font-medium text-muted-foreground")}>Ngày</TableHead>
-            <TableHead className={cn(colDivider, "text-center text-xs font-medium text-muted-foreground")}>Kết luận</TableHead>
+            <TableHead className={cn(colDivider, "text-sm")}>Nhóm / Đề tài</TableHead>
+            <TableHead className={cn(colDivider, "text-sm")}>Trưởng nhóm</TableHead>
+            <TableHead className={cn(colDivider, "text-center text-sm")}>Trạng thái</TableHead>
+            <TableHead className={cn(colDivider, "text-sm")}>Đợt tiếp theo</TableHead>
+            <TableHead className={cn(colDivider, "text-sm")}>Kết quả gần nhất</TableHead>
+            <TableHead className="text-sm">Khắc phục</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {groups.map((group) => {
-            const statusMeta = JOURNEY_STATUS_META[group.currentStatus];
-            const review1 = findRound(group.rounds, "REVIEW_1");
-            const review2 = findRound(group.rounds, "REVIEW_2");
-            const defense11 = findRound(group.rounds, "DEFENSE_1_1");
-            const nextRound = findNextRound(group.rounds);
-            const leader = group.members.find((m) => m.isLeader);
+          {projects.map((project) => {
+            const statusMeta = PROJECT_STATUS_META[project.projectStatus];
+            const leader = project.group.leader;
 
             return (
-              <TableRow key={group.id}>
+              <TableRow key={project.id}>
                 <TableCell className={colDivider}>
                   <div className="flex items-baseline gap-2">
-                    <span className="font-mono text-sm font-semibold">{group.code}</span>
+                    <span className="font-mono text-sm font-semibold">{project.group.code}</span>
                     <span className="text-[11px] font-medium text-muted-foreground">
-                      {group.myRole === "MAIN" ? "Chính" : "Đồng HD"}
+                      {project.supervisorRole === "MAIN" ? "Chính" : "Đồng HD"}
                     </span>
                   </div>
+                  <p className="mt-0.5 max-w-72 truncate text-sm text-muted-foreground">{project.titleVi}</p>
                 </TableCell>
 
-                <TableCell className={cn(colDivider, "max-w-56 whitespace-normal text-sm text-muted-foreground")}>
-                  {group.titleVi}
-                </TableCell>
-
-                <ReviewCell round={review1} />
-                <ReviewCell round={review2} />
-                <DefenseCell round={defense11} />
-
-                <TableCell className={cn(colDivider, "text-center text-sm whitespace-normal")}>
-                  {nextRound ? (
+                <TableCell className={colDivider}>
+                  {leader ? (
                     <>
-                      <span className="block font-medium text-foreground">{nextRound.label}</span>
-                      <span className="text-muted-foreground tabular-nums">
-                        {nextRound.date ? formatDate(nextRound.date, "DD/MM") : "Chưa xác định"}
+                      <span className="block truncate text-sm font-medium">{leader.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {leader.code} · {project.group.memberCount} thành viên
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      Chưa có trưởng nhóm · {project.group.memberCount} thành viên
+                    </span>
+                  )}
+                </TableCell>
+
+                <TableCell className={cn(colDivider, "text-center")}>
+                  <span className={cn("rounded-full px-2.5 py-1 text-sm font-semibold text-nowrap", toneBadgeClass[statusMeta.tone])}>
+                    {statusMeta.label}
+                  </span>
+                </TableCell>
+
+                <TableCell className={cn(colDivider, "text-sm whitespace-normal")}>
+                  {project.nextEvaluation ? (
+                    <>
+                      <span className="block font-medium text-foreground">
+                        {ROUND_TYPE_LABEL[project.nextEvaluation.roundType]}
+                      </span>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {project.nextEvaluation.date ? formatDate(project.nextEvaluation.date, "DD/MM") : "Chưa xác định"}
                       </span>
                     </>
                   ) : (
@@ -162,46 +105,35 @@ export function GroupsTable({
                   )}
                 </TableCell>
 
-                <TableCell className={colDivider}>
-                  <div className="flex items-center gap-1.5">
-                    <span className={cn("rounded-full px-2.5 py-1 text-sm font-semibold text-nowrap", toneBadgeClass[statusMeta.tone])}>
-                      {statusMeta.label}
-                    </span>
-                    {group.remediation?.status === "pending" && (
-                      <Popover>
-                        <PopoverTrigger
-                          render={
-                            <button
-                              type="button"
-                              aria-label="Xem hạn khắc phục"
-                              className="flex size-6 shrink-0 items-center justify-center rounded-full text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-500/10"
-                            />
-                          }
-                        >
-                          <AlertTriangle className="size-4" />
-                        </PopoverTrigger>
-                        <PopoverContent side="top" align="start" className="w-64 p-3">
-                          <p className="text-sm font-medium">Hạn khắc phục Defense 1.1</p>
-                          <p className="mt-1 text-sm tabular-nums">{formatDate(group.remediation.dueDate, "dddd, DD/MM/YYYY")}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Người xác nhận: {group.remediation.verifier.name} · {group.remediation.verifier.code}
-                          </p>
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                  </div>
-                </TableCell>
+                <LatestResultCell result={project.latestResult} />
 
                 <TableCell>
-                  {leader ? (
-                    <>
-                      <span className="block truncate text-sm font-medium">{leader.fullName}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {group.members.length}/{group.maxMembers} thành viên
-                      </span>
-                    </>
+                  {project.remediation ? (
+                    <Popover>
+                      <PopoverTrigger
+                        render={
+                          <button
+                            type="button"
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+                              toneBadgeClass[REMEDIATION_STATUS_META[project.remediation.status].tone]
+                            )}
+                          />
+                        }
+                      >
+                        <AlertTriangle className="size-3.5" />
+                        {REMEDIATION_STATUS_META[project.remediation.status].label}
+                      </PopoverTrigger>
+                      <PopoverContent side="top" align="start" className="w-64 p-3">
+                        <p className="text-sm font-medium">Hạn khắc phục</p>
+                        <p className="mt-1 text-sm tabular-nums">{formatDate(project.remediation.deadline, "dddd, DD/MM/YYYY")}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Người xác nhận: {project.remediation.verifierName}
+                        </p>
+                      </PopoverContent>
+                    </Popover>
                   ) : (
-                    <AssignLeaderPopover members={group.members} onAssign={(memberId) => onAssignLeader(group.id, memberId)} />
+                    <span className="text-sm text-muted-foreground/50">—</span>
                   )}
                 </TableCell>
               </TableRow>

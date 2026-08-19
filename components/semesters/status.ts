@@ -1,13 +1,15 @@
 import type { SemesterStatus } from "@/lib/api/services/fetchSemesters";
 
 export const SEMESTER_STATUS_LABEL: Record<SemesterStatus, string> = {
-  UPCOMING: "Sắp diễn ra",
+  PLANNING: "Đang chuẩn bị",
   ACTIVE: "Đang hoạt động",
   CLOSED: "Đã đóng",
+  ARCHIVED: "Đã lưu trữ",
 };
 
 export const SEMESTER_STATUS_DOT: Record<SemesterStatus, string> = {
-  UPCOMING: "bg-amber-500",
+  PLANNING: "bg-amber-500",
   ACTIVE: "bg-emerald-500",
   CLOSED: "bg-muted-foreground/60",
+  ARCHIVED: "bg-muted-foreground/30",
 };

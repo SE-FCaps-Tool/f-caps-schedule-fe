@@ -14,13 +14,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateRoom } from "@/hooks/useRooms";
+import type { RoomType } from "@/lib/api/services/fetchRounds";
+import { ROOM_TYPE_LABEL, ROOM_TYPES } from "./labels";
 
 export function AddRoomDialog() {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [capacity, setCapacity] = useState("40");
+  const [type, setType] = useState<RoomType>("NORMAL");
   const { mutate, isPending } = useCreateRoom();
 
   const canSave = code.trim().length > 0 && name.trim().length > 1 && Number(capacity) > 0 && Number(capacity) <= 500;
@@ -28,13 +32,14 @@ export function AddRoomDialog() {
   function handleSave() {
     if (!canSave) return;
     mutate(
-      { code: code.trim(), name: name.trim(), capacity: Number(capacity) },
+      { code: code.trim(), name: name.trim(), capacity: Number(capacity), type },
       {
         onSuccess: () => {
           setOpen(false);
           setCode("");
           setName("");
           setCapacity("40");
+          setType("NORMAL");
         },
       }
     );
@@ -68,6 +73,21 @@ export function AddRoomDialog() {
               value={capacity}
               onChange={(e) => setCapacity(e.target.value)}
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Loại phòng</Label>
+            <Select value={type} onValueChange={(v) => v && setType(v as RoomType)}>
+              <SelectTrigger className="w-full">
+                <SelectValue>{(v: RoomType) => ROOM_TYPE_LABEL[v]}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {ROOM_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {ROOM_TYPE_LABEL[t]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { motion, useReducedMotion, type Variants } from "motion/react";
 import { Building2, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RoomApiItem } from "@/lib/api/services/fetchRooms";
+import { ROOM_STATUS_LABEL, ROOM_TYPE_LABEL } from "./labels";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -16,27 +17,33 @@ const itemVariants: Variants = {
 };
 
 function RoomCard({ room }: { room: RoomApiItem }) {
+  const isActive = room.status ? room.status === "ACTIVE" : true;
+  const statusLabel = room.status ? ROOM_STATUS_LABEL[room.status] : null;
+  const typeLabel = room.type ? ROOM_TYPE_LABEL[room.type] : null;
+
   return (
     <div
       className={cn(
         "flex flex-col gap-4 rounded-xl border border-border p-5 transition-colors",
-        !room.active && "opacity-60"
+        !isActive && "opacity-60"
       )}
     >
       <div className="flex items-start justify-between">
         <span
           className={cn(
             "flex size-11 shrink-0 items-center justify-center rounded-lg",
-            room.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+            isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
           )}
           aria-hidden
         >
           <Building2 className="size-5.5" strokeWidth={1.75} />
         </span>
-        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className={cn("size-1.5 rounded-full", room.active ? "bg-emerald-500" : "bg-muted-foreground/40")} aria-hidden />
-          {room.active ? "Đang dùng" : "Ngừng dùng"}
-        </span>
+        {statusLabel && (
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className={cn("size-1.5 rounded-full", isActive ? "bg-emerald-500" : "bg-muted-foreground/40")} aria-hidden />
+            {statusLabel}
+          </span>
+        )}
       </div>
 
       <div>
@@ -44,6 +51,11 @@ function RoomCard({ room }: { room: RoomApiItem }) {
         <h2 className="mt-0.5 truncate text-base font-semibold tracking-tight" title={room.name}>
           {room.name}
         </h2>
+        {typeLabel && (
+          <span className="mt-1.5 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            {typeLabel}
+          </span>
+        )}
       </div>
 
       <div className="mt-auto flex items-center gap-1.5 border-t border-border pt-3 text-sm text-muted-foreground">

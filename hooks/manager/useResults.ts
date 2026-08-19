@@ -2,7 +2,13 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { fetchResults, type OverdueFailPayload, type ResultPayload } from "@/lib/api/services/fetchResults";
+import {
+  fetchResults,
+  type OverdueFailPayload,
+  type ResultPayload,
+  type SubmitSessionResultPayload,
+  type VerifyRemediationPayload,
+} from "@/lib/api/services/fetchResults";
 import { managerKeys } from "@/lib/api/managerQueryKeys";
 import { detailMessage, friendlyErrorMessage } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
@@ -85,6 +91,45 @@ export function useOverdueFailRemediation() {
         return;
       }
       toast.error(friendlyErrorMessage(error, "Không đánh dấu được FAILED"));
+    },
+  });
+}
+
+/** POST /sessions/:sessionId/result — spec §74. BE tự transition ProjectStatus */
+export function useSubmitSessionResult() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ sessionId, payload }: { sessionId: string; payload: SubmitSessionResultPayload }) =>
+      fetchResults.submitSessionResult(sessionId, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["manager", "project"] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "dashboard"] });
+      toast.success("Đã ghi kết quả");
+    },
+    onError: (error: ApiError) => {
+      if (error.code === 422) {
+        toast.error(detailMessage(error) || "Thiếu hạn khắc phục hoặc người xác minh cho mức LEVEL_2");
+        return;
+      }
+      toast.error(friendlyErrorMessage(error, "Không ghi được kết quả"));
+    },
+  });
+}
+
+/** POST /remediations/:remediationId/verify — spec §76 */
+export function useVerifyRemediation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ remediationId, payload }: { remediationId: string; payload: VerifyRemediationPayload }) =>
+      fetchResults.verifyRemediation(remediationId, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["manager", "project"] });
+      toast.success("Đã xác nhận kết quả khắc phục");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không xác nhận được kết quả khắc phục"));
     },
   });
 }

@@ -2,45 +2,38 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  fetchRounds,
-  type AvailabilitySubmitPayload,
-  type InvitationCreatePayload,
-  type RoundConfigUpdatePayload,
-  type RoundCreatePayload,
-  type RoundDayCreatePayload,
-  type RoundResourcesPayload,
-  type RoundTransitionPayload,
-} from "@/lib/api/services/fetchRounds";
+import { fetchRounds, type InviteLecturersPayload, type RoundCreatePayload } from "@/lib/api/services/fetchRounds";
 import { managerKeys } from "@/lib/api/managerQueryKeys";
 import { friendlyErrorMessage } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
 
-/** GET /rounds?semester_id= (xem docs/manager-api.md §3/§8) */
+/** GET /semesters/:semesterId/rounds — spec §19 */
 export function useRounds(semesterId?: number | null) {
   return useQuery({
     queryKey: managerKeys.rounds(semesterId),
-    queryFn: () => fetchRounds.list(semesterId),
+    queryFn: () => fetchRounds.list(String(semesterId)),
+    enabled: semesterId != null,
     staleTime: 30 * 1000,
   });
 }
 
-function useInvalidateRounds(roundId?: number) {
+function useInvalidateRounds() {
   const queryClient = useQueryClient();
-  return async () => {
+  return async (roundId?: string) => {
     await queryClient.invalidateQueries({ queryKey: ["manager", "rounds"] });
-    if (roundId) await queryClient.invalidateQueries({ queryKey: managerKeys.round(roundId) });
+    if (roundId) await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId] });
   };
 }
 
-export function useCreateRound() {
+/** POST /semesters/:semesterId/rounds — spec §20/§49, days[].slots[] gửi ngay trong request tạo */
+export function useCreateRound(semesterId?: number | null) {
   const invalidate = useInvalidateRounds();
 
   return useMutation({
-    mutationFn: (payload: RoundCreatePayload) => fetchRounds.create(payload),
+    mutationFn: (payload: RoundCreatePayload) => fetchRounds.create(String(semesterId), payload),
     onSuccess: async (data) => {
       await invalidate();
-      toast.success(`Đã tạo đợt đánh giá ${data.type} (DRAFT)`);
+      toast.success(`Đã tạo đợt đánh giá ${data.name} (Nháp)`);
     },
     onError: (error: ApiError) => {
       toast.error(friendlyErrorMessage(error, "Không tạo được đợt đánh giá"));
@@ -48,70 +41,69 @@ export function useCreateRound() {
   });
 }
 
-export function useTransitionRound() {
-  const queryClient = useQueryClient();
+/** POST /rounds/:roundId/actions/open-registration — spec §21/§51 */
+export function useOpenRoundRegistration() {
+  const invalidate = useInvalidateRounds();
 
   return useMutation({
-    mutationFn: ({ roundId, payload }: { roundId: number; payload: RoundTransitionPayload }) =>
-      fetchRounds.transition(roundId, payload),
-    onSuccess: async (_data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: ["manager", "rounds"] });
-      await queryClient.invalidateQueries({ queryKey: managerKeys.round(variables.roundId) });
-      toast.success("Đã chuyển trạng thái đợt đánh giá");
+    mutationFn: (roundId: string) => fetchRounds.openRegistration(roundId),
+    onSuccess: async (_data, roundId) => {
+      await invalidate(roundId);
+      toast.success("Đã mở đăng ký cho đợt đánh giá");
     },
     onError: (error: ApiError) => {
-      toast.error(friendlyErrorMessage(error, "Không chuyển được trạng thái — kiểm tra input còn thiếu (group/timeslot/room/availability)"));
+      toast.error(friendlyErrorMessage(error, "Không mở được đăng ký — kiểm tra timeslot/loại phòng đã cấu hình"));
     },
   });
 }
 
-export function useAddRoundDay() {
-  const queryClient = useQueryClient();
+/** POST /rounds/:roundId/actions/close-registration — spec §21/§52 */
+export function useCloseRoundRegistration() {
+  const invalidate = useInvalidateRounds();
 
   return useMutation({
-    mutationFn: ({ roundId, payload }: { roundId: number; payload: RoundDayCreatePayload }) =>
-      fetchRounds.addDay(roundId, payload),
-    onSuccess: async (_data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: managerKeys.round(variables.roundId) });
-      await queryClient.invalidateQueries({ queryKey: managerKeys.roundMyAvailability(variables.roundId) });
-      toast.success("Đã thêm ngày/slot cho đợt đánh giá");
+    mutationFn: (roundId: string) => fetchRounds.closeRegistration(roundId),
+    onSuccess: async (_data, roundId) => {
+      await invalidate(roundId);
+      toast.success("Đã đóng đăng ký cho đợt đánh giá");
     },
     onError: (error: ApiError) => {
-      if (error.code === 409) {
-        toast.error("Slot bị trùng trong ngày đã chọn");
-        return;
-      }
-      toast.error(friendlyErrorMessage(error, "Không thêm được ngày/slot"));
+      toast.error(friendlyErrorMessage(error, "Không đóng được đăng ký"));
     },
   });
 }
 
-export function useSetRoundResources() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ roundId, payload }: { roundId: number; payload: RoundResourcesPayload }) =>
-      fetchRounds.setResources(roundId, payload),
-    onSuccess: async (_data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: managerKeys.round(variables.roundId) });
-      toast.success("Đã cập nhật nhóm/phòng/timeslot cho đợt đánh giá");
-    },
-    onError: (error: ApiError) => {
-      toast.error(friendlyErrorMessage(error, "Không cập nhật được tài nguyên đợt đánh giá"));
-    },
+/** GET /rounds/:roundId — spec §21/§50 */
+export function useRoundDetail(roundId: string | null) {
+  return useQuery({
+    queryKey: ["manager", "round", roundId] as const,
+    queryFn: () => fetchRounds.getById(roundId as string),
+    enabled: roundId !== null,
+    staleTime: 15 * 1000,
   });
 }
 
+/** GET /rounds/:roundId/invitations — spec §22 */
+export function useRoundInvitations(roundId: string | null) {
+  return useQuery({
+    queryKey: ["manager", "round", roundId, "invitations"] as const,
+    queryFn: () => fetchRounds.invitations(roundId as string),
+    enabled: roundId !== null,
+    staleTime: 15 * 1000,
+  });
+}
+
+/** POST /rounds/:roundId/invitations — spec §22/§53 */
 export function useInviteLecturers() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ roundId, payload }: { roundId: number; payload: InvitationCreatePayload }) =>
+    mutationFn: ({ roundId, payload }: { roundId: string; payload: InviteLecturersPayload }) =>
       fetchRounds.invite(roundId, payload),
-    onSuccess: async (data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: managerKeys.roundRegistration(variables.roundId) });
-      await queryClient.invalidateQueries({ queryKey: [...managerKeys.round(variables.roundId), "invitations"] });
-      toast.success(`Đã gửi lời mời tới ${data.invited_count} giảng viên`);
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ["manager", "round", variables.roundId, "invitations"] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "round", variables.roundId, "registration-summary"] });
+      toast.success(`Đã gửi lời mời tới ${variables.payload.lecturerIds.length} giảng viên`);
     },
     onError: (error: ApiError) => {
       toast.error(friendlyErrorMessage(error, "Không gửi được lời mời"));
@@ -119,71 +111,44 @@ export function useInviteLecturers() {
   });
 }
 
-export function useSubmitLecturerAvailability() {
+/** POST /rounds/:roundId/invitations/:invitationId/remind — spec §22 */
+export function useRemindInvitation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      roundId,
-      lecturerId,
-      payload,
-    }: {
-      roundId: number;
-      lecturerId: number;
-      payload: AvailabilitySubmitPayload;
-    }) => fetchRounds.submitLecturerAvailability(roundId, lecturerId, payload),
+    mutationFn: ({ roundId, invitationId }: { roundId: string; invitationId: string }) =>
+      fetchRounds.remindInvitation(roundId, invitationId),
     onSuccess: async (_data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: managerKeys.roundMyAvailability(variables.roundId) });
-      await queryClient.invalidateQueries({ queryKey: managerKeys.roundRegistration(variables.roundId) });
-      await queryClient.invalidateQueries({ queryKey: [...managerKeys.round(variables.roundId), "invitations"] });
-      toast.success("Đã nhập lịch rảnh cho giảng viên");
+      await queryClient.invalidateQueries({ queryKey: ["manager", "round", variables.roundId, "invitations"] });
+      toast.success("Đã gửi nhắc nhở tới giảng viên");
     },
     onError: (error: ApiError) => {
-      toast.error(friendlyErrorMessage(error, "Không nhập được lịch rảnh"));
+      toast.error(friendlyErrorMessage(error, "Không gửi được nhắc nhở"));
     },
   });
 }
 
-export function useSubmitGroupAvailability() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      roundId,
-      groupId,
-      payload,
-    }: {
-      roundId: number;
-      groupId: number;
-      payload: AvailabilitySubmitPayload;
-    }) => fetchRounds.submitGroupAvailability(roundId, groupId, payload),
-    onSuccess: async (_data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: managerKeys.roundMyAvailability(variables.roundId) });
-      await queryClient.invalidateQueries({ queryKey: managerKeys.roundRegistration(variables.roundId) });
-      await queryClient.invalidateQueries({ queryKey: [...managerKeys.round(variables.roundId), "groups"] });
-      toast.success("Đã nhập lịch rảnh cho nhóm");
-    },
-    onError: (error: ApiError) => {
-      if (error.code === 409) {
-        toast.error("Đợt chưa bật chế độ nhóm tự chọn slot");
-        return;
-      }
-      toast.error(friendlyErrorMessage(error, "Không nhập được lịch rảnh"));
-    },
-  });
-}
-
-/** GET /rounds/{round_id}/registration — chỉ số đếm tổng, xem docs/manager-api.md §8.3/§8.4 */
-export function useRoundRegistration(roundId: number | null) {
+/** GET /rounds/:roundId/eligible-projects — spec §23/§48 */
+export function useEligibleProjects(roundId: string | null) {
   return useQuery({
-    queryKey: managerKeys.roundRegistration(roundId ?? 0),
-    queryFn: () => fetchRounds.registration(roundId as number),
+    queryKey: ["manager", "round", roundId, "eligible-projects"] as const,
+    queryFn: () => fetchRounds.eligibleProjects(roundId as string),
     enabled: roundId !== null,
     staleTime: 15 * 1000,
   });
 }
 
-/** GET /rounds/{round_id}/my-availability — nguồn timeslot cho Calendar */
+/** GET /rounds/:roundId/registration-summary — spec §24 */
+export function useRegistrationSummary(roundId: string | null) {
+  return useQuery({
+    queryKey: ["manager", "round", roundId, "registration-summary"] as const,
+    queryFn: () => fetchRounds.registrationSummary(roundId as string),
+    enabled: roundId !== null,
+    staleTime: 15 * 1000,
+  });
+}
+
+/** GET /rounds/{round_id}/my-availability — nguồn timeslot cho Calendar (Phase 4, chưa migrate) */
 export function useRoundMyAvailability(roundId: number | null) {
   return useQuery({
     queryKey: managerKeys.roundMyAvailability(roundId ?? 0),
@@ -193,84 +158,8 @@ export function useRoundMyAvailability(roundId: number | null) {
   });
 }
 
-/** GET /rounds/{round_id}?semester_id= — resource-scope check theo manager-api.md §5 */
-export function useRound(roundId: number | null, semesterId?: number | null) {
-  return useQuery({
-    queryKey: managerKeys.round(roundId ?? 0),
-    queryFn: () => fetchRounds.getById(roundId as number, semesterId),
-    enabled: roundId !== null,
-    staleTime: 15 * 1000,
-  });
-}
-
-/** GET /rounds/{round_id}/invitations?semester_id= — resource-scope check theo manager-api.md §5 */
-export function useRoundInvitations(roundId: number | null, semesterId?: number | null) {
-  return useQuery({
-    queryKey: [...managerKeys.round(roundId ?? 0), "invitations"] as const,
-    queryFn: () => fetchRounds.invitations(roundId as number, semesterId),
-    enabled: roundId !== null,
-    staleTime: 15 * 1000,
-  });
-}
-
-/** GET /rounds/{round_id}/groups?semester_id= — resource-scope check theo manager-api.md §5 */
-export function useRoundGroupRoster(roundId: number | null, semesterId?: number | null) {
-  return useQuery({
-    queryKey: [...managerKeys.round(roundId ?? 0), "groups"] as const,
-    queryFn: () => fetchRounds.groupRoster(roundId as number, semesterId),
-    enabled: roundId !== null,
-    staleTime: 15 * 1000,
-  });
-}
-
-/** POST /rounds/{round_id}/invitations/{lecturer_id}/resend?semester_id= — manager-api.md §10.5 */
-export function useResendInvitation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      roundId,
-      lecturerId,
-      semesterId,
-    }: {
-      roundId: number;
-      lecturerId: number;
-      semesterId?: number | null;
-    }) => fetchRounds.resendInvitation(roundId, lecturerId, semesterId),
-    onSuccess: async (_data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: [...managerKeys.round(variables.roundId), "invitations"] });
-      toast.success("Đã gửi nhắc nhở tới giảng viên");
-    },
-    onError: (error: ApiError) => {
-      toast.error(friendlyErrorMessage(error, "Không gửi được nhắc nhở"));
-    },
-  });
-}
-
-/**
- * PATCH /rounds/{round_id}?semester_id= — manager-api.md §10.4.
- * Chỉ cho sửa khi round là DRAFT hoặc OPEN_REGISTRATION.
- */
-export function useUpdateRoundConfig() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      roundId,
-      payload,
-      semesterId,
-    }: {
-      roundId: number;
-      payload: RoundConfigUpdatePayload;
-      semesterId?: number | null;
-    }) => fetchRounds.updateConfig(roundId, payload, semesterId),
-    onSuccess: async (_data, variables) => {
-      await queryClient.invalidateQueries({ queryKey: ["manager", "rounds"] });
-      await queryClient.invalidateQueries({ queryKey: managerKeys.round(variables.roundId) });
-      toast.success("Đã cập nhật cấu hình đợt đánh giá");
-    },
-    onError: (error: ApiError) => {
-      toast.error(friendlyErrorMessage(error, "Không cập nhật được cấu hình — chỉ sửa được khi đợt còn Nháp/Đang mở đăng ký"));
-    },
-  });
-}
+// Chưa migrate: spec chưa có PATCH /rounds/:roundId nào (sửa cấu hình sau khi tạo) — bỏ hẳn
+// useUpdateRoundConfig thay vì đoán endpoint; UI "Chỉnh sửa cấu hình" báo notImplemented.
+// Cũng bỏ hẳn "nhập lịch rảnh hộ" (useSubmitLecturerAvailability/useSubmitGroupAvailability cũ)
+// — spec chỉ có PUT /rounds/:roundId/availability/me và .../groups/:groupId/preferences (self-service
+// của Lecturer/Leader), không có endpoint nào cho Manager nhập hộ.

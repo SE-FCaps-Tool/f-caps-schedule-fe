@@ -2,31 +2,31 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { AlertTriangle, CheckCircle2, ChevronDown, Crown, Hourglass, Users2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, Crown, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
-import { DEFENSE_LEVELS, JOURNEY_STATUS_META, type SupervisedGroup } from "./mock-data";
+import type { SupervisedProject } from "@/lib/api/services/fetchLecturerPortal";
+import type { ReviewResult, DefenseResult } from "@/lib/api/services/fetchResults";
+import {
+  ROUND_TYPE_LABEL,
+  PROJECT_STATUS_META,
+  REVIEW_RESULT_META,
+  DEFENSE_RESULT_META,
+  REMEDIATION_STATUS_META,
+} from "../../_shared/labels";
 import { toneBadgeClass, toneDotClass } from "./tone";
-import { RoundProgress, roundTone } from "./round-progress";
-import { AssignLeaderPopover } from "./assign-leader-popover";
 
-const REMEDIATION_STATUS_META = {
-  pending: { label: "Chờ xác nhận", icon: Hourglass, className: "bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300" },
-  passed: { label: "Đạt", icon: CheckCircle2, className: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300" },
-  overdue: { label: "Quá hạn", icon: AlertTriangle, className: "bg-destructive/10 text-destructive" },
-};
-
-export function GroupRow({
-  group,
-  onAssignLeader,
-}: {
-  group: SupervisedGroup;
-  onAssignLeader: (memberId: string) => void;
-}) {
+export function GroupRow({ project }: { project: SupervisedProject }) {
   const [expanded, setExpanded] = useState(false);
   const reduceMotion = useReducedMotion();
-  const statusMeta = JOURNEY_STATUS_META[group.currentStatus];
-  const leader = group.members.find((m) => m.isLeader);
+  const statusMeta = PROJECT_STATUS_META[project.projectStatus];
+  const leader = project.group.leader;
+  const result = project.latestResult;
+  const resultMeta = result
+    ? result.kind === "REVIEW"
+      ? REVIEW_RESULT_META[result.value as ReviewResult]
+      : DEFENSE_RESULT_META[result.value as DefenseResult]
+    : null;
 
   return (
     <div className="border-b border-border first:border-t last:border-b-0">
@@ -40,24 +40,21 @@ export function GroupRow({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <span className="font-mono text-sm font-semibold">{group.code}</span>
+            <span className="font-mono text-sm font-semibold">{project.group.code}</span>
             <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-              {group.myRole === "MAIN" ? "GVHD chính" : "Đồng hướng dẫn"}
+              {project.supervisorRole === "MAIN" ? "GVHD chính" : "Đồng hướng dẫn"}
             </span>
           </div>
-          <p className="mt-0.5 truncate text-sm text-muted-foreground">{group.titleVi}</p>
-          <div className="mt-2 flex items-center gap-3">
-            <RoundProgress rounds={group.rounds} />
-            <span className="text-xs text-muted-foreground">
-              {leader ? (
-                <span className="inline-flex items-center gap-1">
-                  <Crown className="size-3 text-primary" />
-                  {leader.fullName}
-                </span>
-              ) : (
-                "Chưa có trưởng nhóm"
-              )}
-            </span>
+          <p className="mt-0.5 truncate text-sm text-muted-foreground">{project.titleVi}</p>
+          <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+            {leader ? (
+              <span className="inline-flex items-center gap-1">
+                <Crown className="size-3 text-primary" />
+                {leader.name}
+              </span>
+            ) : (
+              "Chưa có trưởng nhóm"
+            )}
           </div>
         </div>
 
@@ -78,77 +75,61 @@ export function GroupRow({
             transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="space-y-4 pb-4 pl-[1.125rem]">
-              <div className="space-y-2">
-                {group.rounds.map((round) => {
-                  const tone = roundTone(round);
-                  const defenseMeta = round.defenseLevel ? DEFENSE_LEVELS[round.defenseLevel] : undefined;
-                  return (
-                    <div key={round.id} className="flex items-center gap-3 text-sm">
-                      <span
-                        className={cn(
-                          "size-2 shrink-0",
-                          round.kind === "defense" ? "rotate-45" : "rounded-full",
-                          round.phaseStatus === "completed" && toneDotClass[tone],
-                          round.phaseStatus === "upcoming" && "bg-primary/40 ring-1 ring-primary",
-                          round.phaseStatus === "locked" && "bg-border"
-                        )}
-                        aria-hidden
-                      />
-                      <span className="w-24 shrink-0 font-medium">{round.label}</span>
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        {round.date ? formatDate(round.date, "DD/MM/YYYY") : "—"}
+            <div className="space-y-3 pb-4 pl-[1.125rem] text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Đợt tiếp theo</span>
+                {project.nextEvaluation ? (
+                  <span className="font-medium">
+                    {ROUND_TYPE_LABEL[project.nextEvaluation.roundType]}
+                    {project.nextEvaluation.date && (
+                      <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">
+                        {formatDate(project.nextEvaluation.date, "DD/MM")}
                       </span>
-                      {round.phaseStatus === "completed" && round.kind === "review" && round.reviewOutcome && (
-                        <span className={cn("ml-auto rounded-full px-2 py-0.5 text-xs font-semibold", toneBadgeClass[tone])}>
-                          {round.reviewOutcome}
-                        </span>
-                      )}
-                      {round.phaseStatus === "completed" && defenseMeta && (
-                        <span className={cn("ml-auto rounded-full px-2 py-0.5 text-xs font-semibold", toneBadgeClass[defenseMeta.tone])}>
-                          {defenseMeta.label}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+                    )}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground/50">—</span>
+                )}
               </div>
 
-              {group.remediation && (
-                <div className="rounded-lg bg-amber-50/60 p-3 dark:bg-amber-500/5">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium">Hạn khắc phục Defense 1.1</p>
-                    {(() => {
-                      const meta = REMEDIATION_STATUS_META[group.remediation.status];
-                      const Icon = meta.icon;
-                      return (
-                        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold", meta.className)}>
-                          <Icon className="size-3.5" />
-                          {meta.label}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                  <p className="mt-1.5 text-sm tabular-nums">{formatDate(group.remediation.dueDate, "dddd, DD/MM/YYYY")}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Người xác nhận: {group.remediation.verifier.name} · {group.remediation.verifier.code}
-                  </p>
+              {result && resultMeta && (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">
+                    Kết quả gần nhất · {ROUND_TYPE_LABEL[result.roundType]}
+                  </span>
+                  <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", toneBadgeClass[resultMeta.tone])}>
+                    {resultMeta.label}
+                  </span>
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <Users2 className="size-4" />
-                  {group.members.length}/{group.maxMembers} thành viên
-                </span>
-                {leader ? (
-                  <span className="flex items-center gap-1.5">
+              {project.remediation && (
+                <div className="rounded-lg bg-amber-50/60 p-3 dark:bg-amber-500/5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium">Hạn khắc phục</p>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+                        toneBadgeClass[REMEDIATION_STATUS_META[project.remediation.status].tone]
+                      )}
+                    >
+                      <AlertTriangle className="size-3.5" />
+                      {REMEDIATION_STATUS_META[project.remediation.status].label}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-sm tabular-nums">{formatDate(project.remediation.deadline, "dddd, DD/MM/YYYY")}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Người xác nhận: {project.remediation.verifierName}</p>
+                </div>
+              )}
+
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Users2 className="size-4" />
+                {project.group.memberCount} thành viên
+                {leader && (
+                  <span className="ml-1 inline-flex items-center gap-1 text-foreground">
                     <Crown className="size-3.5 text-primary" />
-                    <span className="font-medium">{leader.fullName}</span>
-                    <span className="text-xs text-muted-foreground">{leader.studentCode}</span>
+                    {leader.name} <span className="text-xs text-muted-foreground">{leader.code}</span>
                   </span>
-                ) : (
-                  <AssignLeaderPopover members={group.members} onAssign={onAssignLeader} />
                 )}
               </div>
             </div>

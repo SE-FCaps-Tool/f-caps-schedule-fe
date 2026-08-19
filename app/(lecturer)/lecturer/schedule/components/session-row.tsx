@@ -2,14 +2,19 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ChevronDown, DoorOpen, Users2 } from "lucide-react";
+import { ChevronDown, ClipboardCheck, DoorOpen, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatTimeRange } from "@/lib/utils/formatDate";
-import { ROUND_TYPE_LABEL, roundKind, type LecturerSession } from "./mock-data";
+import { ROUND_TYPE_LABEL, roundKind, type LecturerSession } from "./types";
 import { STATUS_META, toneBadgeClass, toneDotClass } from "./tone";
+import { SessionResultDialog } from "./session-result-dialog";
+
+const RESULT_ENTRY_STATUSES: LecturerSession["status"][] = ["SCHEDULED", "COMPLETED"];
 
 export function SessionRow({ session }: { session: LecturerSession }) {
   const [expanded, setExpanded] = useState(false);
+  const [resultOpen, setResultOpen] = useState(false);
+  const canEnterResult = session.myRole === "RESULT_OWNER" && RESULT_ENTRY_STATUSES.includes(session.status);
   const reduceMotion = useReducedMotion();
   const kind = roundKind(session.roundType);
   const statusMeta = STATUS_META[session.status];
@@ -49,7 +54,7 @@ export function SessionRow({ session }: { session: LecturerSession }) {
             <span className="font-mono text-xs text-muted-foreground">{session.groupCode}</span>
           </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {session.isOnline ? session.room : `Phòng ${session.room}`} · {session.myRole === "Result Owner" ? "Result Owner" : "Reviewer"}
+            Phòng {session.room} · {session.myRole === "RESULT_OWNER" ? "Result Owner" : "Reviewer"}
           </p>
         </div>
 
@@ -75,17 +80,31 @@ export function SessionRow({ session }: { session: LecturerSession }) {
               <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <DoorOpen className="size-4" />
-                  {session.isOnline ? session.room : `Phòng ${session.room}`}
+                  Phòng {session.room}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Users2 className="size-4" />
                   Hội đồng: {session.councilMembers.join(", ")}
                 </span>
               </div>
+              {canEnterResult && (
+                <button
+                  type="button"
+                  onClick={() => setResultOpen(true)}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-primary/30 px-3 text-sm font-medium text-primary hover:bg-primary/5"
+                >
+                  <ClipboardCheck className="size-4" />
+                  Nhập kết quả
+                </button>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {canEnterResult && (
+        <SessionResultDialog session={session} open={resultOpen} onOpenChange={setResultOpen} />
+      )}
     </div>
   );
 }

@@ -3,6 +3,101 @@ import apiService from "../core";
 export type ScheduleVersionStatus = "VALID" | "PUBLISHED" | "SUPERSEDED";
 export type SessionStatus = "SCHEDULED" | "ONGOING" | "COMPLETED" | "POSTPONED";
 
+/**
+ * Phần dưới đây theo capstone-fe-be-implementation-spec.md §25/§26/§57/§58/§62-64 (Phase 4 —
+ * Scheduling/CP-SAT). Đặt tên khác các export cũ ở trên (`versions`, `activate`, `run`...) vì
+ * `calendar-page.tsx` (Phase 5, chưa migrate — cần Room tồn tại trước) vẫn đang gọi các hàm cũ
+ * với shape cũ; không đổi tên tại chỗ để tránh vỡ trang đó giữa chừng.
+ */
+
+/** spec §6 — DRAFT → ACTIVE → PUBLISHED, hoặc DISCARDED. Khác VALID/PUBLISHED/SUPERSEDED cũ */
+export type RoundScheduleVersionStatus = "DRAFT" | "ACTIVE" | "PUBLISHED" | "DISCARDED";
+
+export interface SchedulingReadiness {
+  ready: boolean;
+  counts: { eligibleProjects: number; availableLecturers: number; timeslots: number };
+  blockingIssues: string[];
+  warnings: { code: string; count: number }[];
+}
+
+/** spec §62 — lý do một Group không xếp được lịch trong lần chạy solver gần nhất */
+export type UnscheduledReason =
+  | "NO_VALID_TIMESLOT"
+  | "NO_ENOUGH_ELIGIBLE_REVIEWERS"
+  | "SUPERVISOR_CONFLICT"
+  | "COI_CONFLICT"
+  | "LECTURER_AVAILABILITY_TOO_LOW"
+  | "GROUP_PREFERENCE_TOO_NARROW"
+  | "QUOTA_EXCEEDED"
+  | "TIMESLOT_CAPACITY_REACHED"
+  | "CONTINUITY_CONSTRAINT_FAILED";
+
+export interface ScheduleScores {
+  workload: number;
+  continuity: number;
+  compactness: number;
+}
+
+export interface GenerateScheduleResult {
+  versionId: string;
+  versionNumber: number;
+  status: RoundScheduleVersionStatus;
+  scheduledCount: number;
+  unscheduledCount: number;
+  overallScore: number;
+  scores: ScheduleScores;
+}
+
+export interface RoundScheduleVersionItem {
+  id: string;
+  versionNumber: number;
+  status: RoundScheduleVersionStatus;
+  scheduledCount: number;
+  unscheduledCount: number;
+  overallScore: number | null;
+  createdAt: string;
+}
+
+/** spec §29/§69 — Publish */
+export interface PublishReadiness {
+  ready: boolean;
+  checks: {
+    activeVersion: boolean;
+    allSessionsHaveTimeslot: boolean;
+    allSessionsHaveCouncil: boolean;
+    allSessionsHaveRoom: boolean;
+    roomConflicts: number;
+  };
+}
+
+/** spec §71 — Post-publish, đổi phòng cho một Session cụ thể (khác Room Assignment hàng loạt ở Phase 5) */
+export interface ChangeRoomPayload {
+  roomId: string;
+  reason: string;
+}
+
+/** spec §72 — Council cũ giữ nguyên (immutable), tạo Council mới rồi gán lại session.councilId */
+export interface ReplaceReviewerPayload {
+  oldLecturerId: string;
+  newLecturerId: string;
+  reason: string;
+}
+
+/** spec §73 — Session gốc chỉ chuyển POSTPONED, không sửa giờ/phòng */
+export interface PostponeRoundSessionPayload {
+  reason: string;
+}
+
+/**
+ * spec §73 — tạo Session bù, `makeupOfSessionId` trỏ về bản gốc. Spec không có JSON mẫu cho
+ * payload này; field bên dưới là suy đoán hợp lý (cần lịch mới), đã ghi vào phases doc để hỏi BE.
+ */
+export interface CreateMakeupSessionPayload {
+  date: string;
+  timeslotId: string;
+  roomId?: string;
+}
+
 export interface ScheduleRunPayload {
   random_seed?: number;
   time_limit_seconds?: number;
@@ -335,5 +430,74 @@ export const fetchScheduling = {
       payload
     );
     return response.data;
+  },
+
+  /** GET /rounds/:roundId/scheduling-readiness — spec §25/§57 */
+  readiness: async (roundId: string): Promise<SchedulingReadiness> => {
+    const response = await apiService.get<{ data: SchedulingReadiness }>(
+      `api/v1/rounds/${roundId}/scheduling-readiness`
+    );
+    return response.data.data;
+  },
+
+  /** POST /rounds/:roundId/schedules/generate — spec §58. Không fail toàn bộ khi partial (spec §62) */
+  generate: async (roundId: string): Promise<GenerateScheduleResult> => {
+    const response = await apiService.post<{ data: GenerateScheduleResult }>(
+      `api/v1/rounds/${roundId}/schedules/generate`,
+      {}
+    );
+    return response.data.data;
+  },
+
+  /** GET /rounds/:roundId/schedules — spec §26 */
+  roundScheduleVersions: async (roundId: string): Promise<RoundScheduleVersionItem[]> => {
+    const response = await apiService.get<{ data: RoundScheduleVersionItem[] }>(
+      `api/v1/rounds/${roundId}/schedules`
+    );
+    return response.data.data;
+  },
+
+  /** POST /rounds/:roundId/schedules/:versionId/actions/set-active — spec §26/§64 */
+  setActiveVersion: async (roundId: string, versionId: string): Promise<void> => {
+    await apiService.post(`api/v1/rounds/${roundId}/schedules/${versionId}/actions/set-active`);
+  },
+
+  /** POST /rounds/:roundId/schedules/:versionId/actions/discard — spec §26 */
+  discardVersion: async (roundId: string, versionId: string): Promise<void> => {
+    await apiService.post(`api/v1/rounds/${roundId}/schedules/${versionId}/actions/discard`);
+  },
+
+  /** GET /rounds/:roundId/publish-readiness — spec §29/§69 */
+  publishReadiness: async (roundId: string): Promise<PublishReadiness> => {
+    const response = await apiService.get<{ data: PublishReadiness }>(`api/v1/rounds/${roundId}/publish-readiness`);
+    return response.data.data;
+  },
+
+  /**
+   * POST /rounds/:roundId/actions/publish — spec §29/§70.
+   * Round SCHEDULED→PUBLISHED, Version ACTIVE→PUBLISHED, Session PLANNED→SCHEDULED.
+   */
+  publishRound: async (roundId: string): Promise<void> => {
+    await apiService.post(`api/v1/rounds/${roundId}/actions/publish`);
+  },
+
+  /** POST /sessions/:sessionId/actions/change-room — spec §71 */
+  changeSessionRoom: async (sessionId: string, payload: ChangeRoomPayload): Promise<void> => {
+    await apiService.post(`api/v1/sessions/${sessionId}/actions/change-room`, payload);
+  },
+
+  /** POST /sessions/:sessionId/actions/replace-reviewer — spec §72 */
+  replaceSessionReviewer: async (sessionId: string, payload: ReplaceReviewerPayload): Promise<void> => {
+    await apiService.post(`api/v1/sessions/${sessionId}/actions/replace-reviewer`, payload);
+  },
+
+  /** POST /sessions/:sessionId/actions/postpone — spec §73 */
+  postponeRoundSession: async (sessionId: string, payload: PostponeRoundSessionPayload): Promise<void> => {
+    await apiService.post(`api/v1/sessions/${sessionId}/actions/postpone`, payload);
+  },
+
+  /** POST /sessions/:sessionId/makeup — spec §73 */
+  createMakeupSession: async (sessionId: string, payload: CreateMakeupSessionPayload): Promise<void> => {
+    await apiService.post(`api/v1/sessions/${sessionId}/makeup`, payload);
   },
 };

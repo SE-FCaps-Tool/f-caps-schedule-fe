@@ -24,6 +24,10 @@ import {
   User,
   UserCog,
   Building2,
+  Mail,
+  CalendarCheck,
+  CalendarDays,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -108,9 +112,11 @@ const NAV_CONFIG: Record<UserRole, { areaLabel: string; groups: NavGroup[] }> = 
       {
         items: [
           { label: "Tổng quan", href: "/lecturer/dashboard", icon: LayoutDashboard },
+          { label: "Lời mời", href: "/lecturer/invitations", icon: Mail },
+          { label: "Đăng ký lịch rảnh", href: "/lecturer/availability", icon: CalendarCheck },
           { label: "Lịch của tôi", href: "/lecturer/schedule", icon: CalendarClock },
           { label: "Nhóm hướng dẫn", href: "/lecturer/supervised-groups", icon: Users2 },
-          { label: "Nhập kết quả", href: "/lecturer/results", icon: ClipboardList },
+          { label: "Khắc phục", href: "/lecturer/results", icon: ClipboardList },
         ],
       },
     ],
@@ -121,7 +127,9 @@ const NAV_CONFIG: Record<UserRole, { areaLabel: string; groups: NavGroup[] }> = 
       {
         items: [
           { label: "Tổng quan", href: "/student/dashboard", icon: LayoutDashboard },
-          { label: "Lịch nhóm", href: "/student/schedule", icon: CalendarClock },
+          { label: "Đăng ký lịch", href: "/student/preferences", icon: CalendarDays },
+          { label: "Lịch của nhóm", href: "/student/schedule", icon: CalendarClock },
+          { label: "Kết quả", href: "/student/results", icon: Award },
         ],
       },
     ],

@@ -1,5 +1,39 @@
 import apiService from "../core";
 
+/**
+ * Phần dưới đây theo capstone-fe-be-implementation-spec.md §9/§74/§76 (Phase 8 — Result &
+ * Progression). Đặt tên riêng, không sửa các export cũ bên dưới — `results-page.tsx` hiện tại
+ * (danh sách case khắc phục + overdue-fail) không có endpoint tương ứng trong spec mới (xem
+ * ghi chú trong docs/manager-fe-migration-phases.md Phase 8), nên giữ nguyên cho tới khi BE
+ * xác nhận có/không có màn hình đó.
+ */
+
+export type ReviewResult = "PASS" | "NEEDS_FIX" | "FAIL";
+export type DefenseResult = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "LEVEL_4";
+
+export interface SubmitReviewResultPayload {
+  result: ReviewResult;
+  note?: string;
+}
+
+export interface SubmitDefenseResultPayload {
+  result: DefenseResult;
+  note?: string;
+  /** Bắt buộc khi result = LEVEL_2 (spec §74) */
+  remediation?: {
+    deadline: string;
+    verifierId: string;
+  };
+}
+
+export type SubmitSessionResultPayload = SubmitReviewResultPayload | SubmitDefenseResultPayload;
+
+/** spec §76 — Manager/Lecturer xác nhận case khắc phục. PASS: D12_CONDITIONAL → ELIGIBLE_D12 */
+export interface VerifyRemediationPayload {
+  decision: "PASS" | "FAIL";
+  note?: string;
+}
+
 export type ResultOutcome = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "LEVEL_4" | "PASSED" | "COMPLETED" | string;
 
 export interface SessionResultDetail {
@@ -104,5 +138,15 @@ export const fetchResults = {
       payload
     );
     return response.data;
+  },
+
+  /** POST /sessions/:sessionId/result — spec §74. BE tự transition ProjectStatus, FE chỉ refetch */
+  submitSessionResult: async (sessionId: string, payload: SubmitSessionResultPayload): Promise<void> => {
+    await apiService.post(`api/v1/sessions/${sessionId}/result`, payload);
+  },
+
+  /** POST /remediations/:remediationId/verify — spec §76 */
+  verifyRemediation: async (remediationId: string, payload: VerifyRemediationPayload): Promise<void> => {
+    await apiService.post(`api/v1/remediations/${remediationId}/verify`, payload);
   },
 };

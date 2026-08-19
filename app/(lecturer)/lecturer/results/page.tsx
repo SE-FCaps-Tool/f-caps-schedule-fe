@@ -3,7 +3,7 @@ import { buildPageMetadata } from "@/lib/seo/metadata";
 import { LecturerResults } from "./components/lecturer-results";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Nhập kết quả",
+  title: "Khắc phục",
   path: "/lecturer/results",
   noindex: true,
 });

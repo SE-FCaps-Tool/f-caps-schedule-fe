@@ -14,18 +14,83 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { StatusDot } from "../../_shared/status-dot";
-import { SESSION_STATUS_META, type SessionStatus } from "../../_shared/labels";
+import { ROUND_SESSION_STATUS_META, type RoundSessionStatus } from "../../_shared/labels";
 import { useLecturers } from "@/hooks/manager/useLecturers";
 import { formatDate } from "@/lib/utils/formatDate";
-import type { RoomApiItem } from "@/lib/api/services/fetchRooms";
-import type { RoundTimeslot } from "@/lib/api/services/fetchRounds";
-import type { DisplaySession, MoveTarget } from "./types";
+import type { AssignableRoom } from "@/lib/api/services/fetchRoomAssignment";
+import type { DisplaySession } from "./types";
 
-function ChangeReviewersDialog({
+function ChangeRoomDialog({
+  session,
+  rooms,
+  open,
+  onOpenChange,
+  onSubmit,
+  isPending,
+}: {
+  session: DisplaySession;
+  rooms: AssignableRoom[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (roomId: string, reason: string) => void;
+  isPending: boolean;
+}) {
+  const [roomId, setRoomId] = useState("");
+  const [reason, setReason] = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!roomId || !reason.trim()) return;
+    onSubmit(roomId, reason);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Đổi phòng</DialogTitle>
+            <DialogDescription>{session.groupCode}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <Select value={roomId} onValueChange={(v) => v && setRoomId(v)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Chọn phòng">
+                  {(v: string) => rooms.find((r) => r.id === v)?.code ?? "Chọn phòng"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {rooms
+                  .filter((r) => r.id !== session.roomId)
+                  .map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.code} · {r.type}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <div className="space-y-1.5">
+              <Label>Lý do</Label>
+              <Textarea value={reason} onChange={(e) => setReason(e.target.value)} required />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="submit" disabled={isPending || !roomId || !reason.trim()}>
+              {isPending ? "Đang lưu..." : "Đổi phòng"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ReplaceReviewerDialog({
   session,
   open,
   onOpenChange,
@@ -35,46 +100,68 @@ function ChangeReviewersDialog({
   session: DisplaySession;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (reviewerIds: number[], reason: string) => void;
+  onSubmit: (oldLecturerId: string, newLecturerId: string, reason: string) => void;
   isPending: boolean;
 }) {
   const { data: lecturers } = useLecturers();
-  const [selected, setSelected] = useState<Set<number>>(new Set(session.reviewers.map((r) => r.id)));
+  const [oldLecturerId, setOldLecturerId] = useState("");
+  const [newLecturerId, setNewLecturerId] = useState("");
   const [reason, setReason] = useState("");
-
-  function toggle(id: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (selected.size === 0 || !reason.trim()) return;
-    onSubmit(Array.from(selected), reason);
+    if (!oldLecturerId || !newLecturerId || !reason.trim()) return;
+    onSubmit(oldLecturerId, newLecturerId, reason);
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Thay reviewer</DialogTitle>
-            <DialogDescription>{session.groupCode}</DialogDescription>
+            <DialogDescription>{session.groupCode} — Council cũ vẫn giữ nguyên, hệ thống tạo council mới thay thế.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border border-border p-2">
-              {(lecturers ?? []).map((l) => (
-                <label key={l.id} className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50">
-                  <Checkbox checked={selected.has(l.id)} onCheckedChange={() => toggle(l.id)} />
-                  <span className="font-medium">{l.lecturer_code}</span>
-                  <span className="text-muted-foreground">— {l.display_name}</span>
-                </label>
-              ))}
+            <div className="space-y-1.5">
+              <Label>Reviewer cần thay</Label>
+              <Select value={oldLecturerId} onValueChange={(v) => v && setOldLecturerId(v)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn reviewer trong council">
+                    {(v: string) => session.reviewers.find((r) => r.id === v)?.name ?? "Chọn reviewer"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {session.reviewers.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Reviewer thay thế</Label>
+              <Select value={newLecturerId} onValueChange={(v) => v && setNewLecturerId(v)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn giảng viên">
+                    {(v: string) => {
+                      const l = lecturers?.find((l) => String(l.id) === v);
+                      return l ? `${l.lecturer_code} — ${l.display_name}` : "Chọn giảng viên";
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {(lecturers ?? [])
+                    .filter((l) => !session.reviewers.some((r) => r.id === String(l.id)))
+                    .map((l) => (
+                      <SelectItem key={l.id} value={String(l.id)}>
+                        {l.lecturer_code} — {l.display_name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Lý do</Label>
@@ -83,8 +170,58 @@ function ChangeReviewersDialog({
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={isPending || selected.size === 0 || !reason.trim()}>
-              {isPending ? "Đang lưu..." : "Cập nhật reviewer"}
+            <Button type="submit" disabled={isPending || !oldLecturerId || !newLecturerId || !reason.trim()}>
+              {isPending ? "Đang lưu..." : "Thay reviewer"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PostponeDialog({
+  session,
+  open,
+  onOpenChange,
+  onSubmit,
+  isPending,
+}: {
+  session: DisplaySession;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (reason: string) => void;
+  isPending: boolean;
+}) {
+  const [reason, setReason] = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!reason.trim()) return;
+    onSubmit(reason);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Hoãn buổi</DialogTitle>
+            <DialogDescription>
+              {session.groupCode} — buổi gốc chuyển sang &ldquo;Đã hoãn&rdquo; và giữ nguyên, không xoá. Tạo buổi bù riêng sau khi hoãn.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-1.5">
+              <Label>Lý do</Label>
+              <Textarea value={reason} onChange={(e) => setReason(e.target.value)} required />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="submit" variant="destructive" disabled={isPending || !reason.trim()}>
+              {isPending ? "Đang lưu..." : "Hoãn buổi"}
             </Button>
           </DialogFooter>
         </form>
@@ -96,21 +233,29 @@ function ChangeReviewersDialog({
 export function SessionDrawer({
   session,
   rooms,
-  timeslots,
   onOpenChange,
-  onRequestMove,
-  onChangeReviewers,
-  changeReviewersPending,
+  onChangeRoom,
+  changeRoomPending,
+  onReplaceReviewer,
+  replaceReviewerPending,
+  onPostpone,
+  postponePending,
 }: {
   session: DisplaySession | null;
-  rooms: RoomApiItem[];
-  timeslots: RoundTimeslot[];
+  rooms: AssignableRoom[];
   onOpenChange: (open: boolean) => void;
-  onRequestMove: (target: MoveTarget) => void;
-  onChangeReviewers: (reviewerIds: number[], reason: string) => void;
-  changeReviewersPending: boolean;
+  onChangeRoom: (roomId: string, reason: string) => void;
+  changeRoomPending: boolean;
+  onReplaceReviewer: (oldLecturerId: string, newLecturerId: string, reason: string) => void;
+  replaceReviewerPending: boolean;
+  onPostpone: (reason: string) => void;
+  postponePending: boolean;
 }) {
-  const [reviewersDialogOpen, setReviewersDialogOpen] = useState(false);
+  const [roomDialogOpen, setRoomDialogOpen] = useState(false);
+  const [reviewerDialogOpen, setReviewerDialogOpen] = useState(false);
+  const [postponeDialogOpen, setPostponeDialogOpen] = useState(false);
+
+  const canOperate = session ? session.status === "SCHEDULED" || session.status === "PLANNED" : false;
 
   return (
     <Sheet open={session !== null} onOpenChange={onOpenChange}>
@@ -138,7 +283,7 @@ export function SessionDrawer({
                   <p className="text-xs text-muted-foreground">Trạng thái</p>
                   <div className="mt-1">
                     {(() => {
-                      const meta = SESSION_STATUS_META[session.status as SessionStatus];
+                      const meta = ROUND_SESSION_STATUS_META[session.status as RoundSessionStatus];
                       return meta ? <StatusDot tone={meta.tone} label={meta.label} /> : <span>{session.status}</span>;
                     })()}
                   </div>
@@ -149,90 +294,30 @@ export function SessionDrawer({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <p className="text-xs text-muted-foreground">Đổi giờ</p>
-                  <Select
-                    value={String(session.timeslotId)}
-                    onValueChange={(v) => {
-                      const slot = timeslots.find((t) => t.id === Number(v));
-                      if (slot)
-                        onRequestMove({
-                          timeslotId: slot.id,
-                          roomId: session.roomId,
-                          date: slot.day_date,
-                          start: formatDate(slot.start_at, "HH:mm"),
-                          end: formatDate(slot.end_at, "HH:mm"),
-                        });
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue>
-                        {(v: string) => {
-                          const slot = timeslots.find((t) => String(t.id) === v);
-                          return slot ? `${formatDate(slot.start_at, "HH:mm")} – ${formatDate(slot.end_at, "HH:mm")}` : "";
-                        }}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {timeslots.map((slot) => (
-                        <SelectItem key={slot.id} value={String(slot.id)}>
-                          {formatDate(slot.start_at, "HH:mm")} – {formatDate(slot.end_at, "HH:mm")}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <p className="text-xs text-muted-foreground">Đổi phòng</p>
-                  <Select
-                    value={String(session.roomId)}
-                    onValueChange={(v) =>
-                      v &&
-                      onRequestMove({
-                        timeslotId: session.timeslotId,
-                        roomId: Number(v),
-                        date: session.date,
-                        start: session.start,
-                        end: session.end,
-                      })
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue>{(v: string) => rooms.find((r) => String(r.id) === v)?.code ?? ""}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {rooms.map((room) => (
-                        <SelectItem key={room.id} value={String(room.id)}>
-                          {room.code}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
               <div>
                 <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Users className="size-3.5" />
-                  Reviewers
+                  Council (reviewer)
                 </p>
                 <div className="mt-2 space-y-1.5">
                   {session.reviewers.map((r) => (
                     <div key={r.id} className="flex items-center justify-between rounded-md border border-border px-3 py-1.5 text-sm">
                       <span>{r.name}</span>
-                      {session.resultOwnerIds.includes(r.id) && (
-                        <span className="text-xs font-medium text-primary">Result Owner</span>
-                      )}
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            <SheetFooter className="flex-row justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setReviewersDialogOpen(true)}>
+            <SheetFooter className="flex-row flex-wrap justify-end gap-2">
+              <Button variant="outline" size="sm" disabled={!canOperate} onClick={() => setRoomDialogOpen(true)}>
+                Đổi phòng
+              </Button>
+              <Button variant="outline" size="sm" disabled={!canOperate} onClick={() => setReviewerDialogOpen(true)}>
                 Thay reviewer
+              </Button>
+              <Button variant="outline" size="sm" disabled={!canOperate} onClick={() => setPostponeDialogOpen(true)}>
+                Hoãn buổi
               </Button>
               <Link href={`/manager/progress?group=${encodeURIComponent(session.groupCode)}`}>
                 <Button variant="outline" size="sm">
@@ -241,14 +326,35 @@ export function SessionDrawer({
               </Link>
             </SheetFooter>
 
-            <ChangeReviewersDialog
+            <ChangeRoomDialog
               session={session}
-              open={reviewersDialogOpen}
-              onOpenChange={setReviewersDialogOpen}
-              isPending={changeReviewersPending}
-              onSubmit={(reviewerIds, reason) => {
-                onChangeReviewers(reviewerIds, reason);
-                setReviewersDialogOpen(false);
+              rooms={rooms}
+              open={roomDialogOpen}
+              onOpenChange={setRoomDialogOpen}
+              isPending={changeRoomPending}
+              onSubmit={(roomId, reason) => {
+                onChangeRoom(roomId, reason);
+                setRoomDialogOpen(false);
+              }}
+            />
+            <ReplaceReviewerDialog
+              session={session}
+              open={reviewerDialogOpen}
+              onOpenChange={setReviewerDialogOpen}
+              isPending={replaceReviewerPending}
+              onSubmit={(oldLecturerId, newLecturerId, reason) => {
+                onReplaceReviewer(oldLecturerId, newLecturerId, reason);
+                setReviewerDialogOpen(false);
+              }}
+            />
+            <PostponeDialog
+              session={session}
+              open={postponeDialogOpen}
+              onOpenChange={setPostponeDialogOpen}
+              isPending={postponePending}
+              onSubmit={(reason) => {
+                onPostpone(reason);
+                setPostponeDialogOpen(false);
               }}
             />
           </>

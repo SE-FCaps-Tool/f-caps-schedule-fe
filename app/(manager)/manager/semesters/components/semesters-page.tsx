@@ -5,16 +5,21 @@ import { toast } from "sonner";
 import { Search, WifiOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SemestersTable } from "@/components/semesters/semesters-table";
 import { AddSemesterDialog } from "@/components/semesters/add-semester-dialog";
 import { useSemesters } from "@/hooks/useSemesters";
-import type { SemesterApiItem } from "@/lib/api/services/fetchSemesters";
+import { SEMESTER_STATUS_LABEL } from "@/components/semesters/status";
+import type { SemesterApiItem, SemesterStatus } from "@/lib/api/services/fetchSemesters";
 import { useSemesterContext } from "../../_shared/semester-context";
 
 export function SemestersPage() {
-  const { data: semesters, isLoading, isError } = useSemesters();
-  const { currentSemesterId, setCurrentSemesterId } = useSemesterContext();
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<SemesterStatus | "ALL">("ALL");
+  const { data: semesters, isLoading, isError } = useSemesters({
+    status: status === "ALL" ? undefined : status,
+  });
+  const { currentSemesterId, setCurrentSemesterId } = useSemesterContext();
 
   const filtered = useMemo(() => {
     if (!semesters) return [];
@@ -38,9 +43,21 @@ export function SemestersPage() {
         <AddSemesterDialog />
       </div>
 
-      <div className="relative mt-6 max-w-sm">
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm theo mã hoặc tên học kỳ..." className="pl-9" />
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <div className="relative max-w-sm flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm theo mã hoặc tên học kỳ..." className="pl-9" />
+        </div>
+        <Select value={status} onValueChange={(v) => v && setStatus(v as SemesterStatus | "ALL")}>
+          <SelectTrigger className="w-40">
+            <SelectValue>{(v: string) => (v === "ALL" ? "Mọi trạng thái" : SEMESTER_STATUS_LABEL[v as SemesterStatus])}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Mọi trạng thái</SelectItem>
+            <SelectItem value="ACTIVE">{SEMESTER_STATUS_LABEL.ACTIVE}</SelectItem>
+            <SelectItem value="CLOSED">{SEMESTER_STATUS_LABEL.CLOSED}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="mt-4">

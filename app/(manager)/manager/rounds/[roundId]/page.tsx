@@ -14,8 +14,7 @@ export async function generateMetadata({ params }: { params: Promise<{ roundId: 
 
 export default async function ManagerRoundDetailPage({ params }: { params: Promise<{ roundId: string }> }) {
   const { roundId } = await params;
-  const id = Number(roundId);
-  if (!Number.isFinite(id) || id <= 0) notFound();
+  if (!roundId) notFound();
 
-  return <RoundDetailPage roundId={id} />;
+  return <RoundDetailPage roundId={roundId} />;
 }

@@ -11,6 +11,10 @@ import {
   type RoundOperationPayload,
   type ScheduleRunPayload,
   type SessionEditPayload,
+  type ChangeRoomPayload,
+  type ReplaceReviewerPayload,
+  type PostponeRoundSessionPayload,
+  type CreateMakeupSessionPayload,
 } from "@/lib/api/services/fetchScheduling";
 import { managerKeys } from "@/lib/api/managerQueryKeys";
 import { detailMessage, detailViolations, friendlyErrorMessage } from "@/lib/api/errorDetail";
@@ -100,6 +104,194 @@ export function useActivateVersion() {
     },
     onError: (error: ApiError) => {
       toast.error(friendlyErrorMessage(error, "Chỉ phương án VALID mới kích hoạt được"));
+    },
+  });
+}
+
+// --- Phase 4 (spec §25/§26/§57/§58/§64) — tên riêng, xem ghi chú đầu fetchScheduling.ts ---
+
+/** GET /rounds/:roundId/scheduling-readiness — spec §25/§57 */
+export function useSchedulingReadiness(roundId: string | null) {
+  return useQuery({
+    queryKey: ["manager", "round", roundId, "scheduling-readiness"] as const,
+    queryFn: () => fetchScheduling.readiness(roundId as string),
+    enabled: roundId !== null,
+    staleTime: 15 * 1000,
+  });
+}
+
+/** GET /rounds/:roundId/schedules — spec §26 */
+export function useRoundScheduleVersions(roundId: string | null) {
+  return useQuery({
+    queryKey: ["manager", "round", roundId, "schedules"] as const,
+    queryFn: () => fetchScheduling.roundScheduleVersions(roundId as string),
+    enabled: roundId !== null,
+    staleTime: 15 * 1000,
+  });
+}
+
+function useInvalidateRoundSchedules() {
+  const queryClient = useQueryClient();
+  return async (roundId: string) => {
+    await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId, "schedules"] });
+    await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId] });
+  };
+}
+
+/** POST /rounds/:roundId/schedules/generate — spec §58. Partial solution vẫn lưu DRAFT (spec §62) */
+export function useGenerateSchedule() {
+  const invalidate = useInvalidateRoundSchedules();
+
+  return useMutation({
+    mutationFn: (roundId: string) => fetchScheduling.generate(roundId),
+    onSuccess: async (data, roundId) => {
+      await invalidate(roundId);
+      toast.success(
+        data.unscheduledCount > 0
+          ? `Đã xếp lịch: ${data.scheduledCount} nhóm xếp được, ${data.unscheduledCount} nhóm chưa xếp được`
+          : `Đã xếp lịch đủ ${data.scheduledCount} nhóm`
+      );
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không chạy được thuật toán xếp lịch"));
+    },
+  });
+}
+
+/** POST /rounds/:roundId/schedules/:versionId/actions/set-active — spec §26/§64 */
+export function useSetActiveScheduleVersion() {
+  const invalidate = useInvalidateRoundSchedules();
+
+  return useMutation({
+    mutationFn: ({ roundId, versionId }: { roundId: string; versionId: string }) =>
+      fetchScheduling.setActiveVersion(roundId, versionId),
+    onSuccess: async (_data, variables) => {
+      await invalidate(variables.roundId);
+      toast.success("Đã kích hoạt phương án lịch — đợt chuyển sang Đã xếp lịch");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không kích hoạt được phương án lịch"));
+    },
+  });
+}
+
+/** POST /rounds/:roundId/schedules/:versionId/actions/discard — spec §26 */
+export function useDiscardScheduleVersion() {
+  const invalidate = useInvalidateRoundSchedules();
+
+  return useMutation({
+    mutationFn: ({ roundId, versionId }: { roundId: string; versionId: string }) =>
+      fetchScheduling.discardVersion(roundId, versionId),
+    onSuccess: async (_data, variables) => {
+      await invalidate(variables.roundId);
+      toast.success("Đã loại bỏ phương án lịch");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không loại bỏ được phương án lịch"));
+    },
+  });
+}
+
+/** GET /rounds/:roundId/publish-readiness — spec §29/§69 */
+export function usePublishReadiness(roundId: string | null) {
+  return useQuery({
+    queryKey: ["manager", "round", roundId, "publish-readiness"] as const,
+    queryFn: () => fetchScheduling.publishReadiness(roundId as string),
+    enabled: roundId !== null,
+    staleTime: 15 * 1000,
+  });
+}
+
+/** POST /rounds/:roundId/actions/publish — spec §29/§70 */
+export function usePublishRound() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (roundId: string) => fetchScheduling.publishRound(roundId),
+    onSuccess: async (_data, roundId) => {
+      await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "rounds"] });
+      toast.success("Đã công bố lịch cho đợt đánh giá");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không công bố được lịch — kiểm tra điều kiện publish"));
+    },
+  });
+}
+
+// --- Phase 7 (spec §71-73) — post-publish, thao tác theo từng Session ---
+
+function useInvalidateSession(roundId: string, versionId: string | null) {
+  const queryClient = useQueryClient();
+  return async () => {
+    await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId, "sessions", versionId] });
+  };
+}
+
+/** POST /sessions/:sessionId/actions/change-room — spec §71 */
+export function useChangeSessionRoom(roundId: string, versionId: string | null) {
+  const invalidate = useInvalidateSession(roundId, versionId);
+
+  return useMutation({
+    mutationFn: ({ sessionId, payload }: { sessionId: string; payload: ChangeRoomPayload }) =>
+      fetchScheduling.changeSessionRoom(sessionId, payload),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Đã đổi phòng cho phiên đánh giá");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không đổi được phòng — kiểm tra xung đột cùng timeslot"));
+    },
+  });
+}
+
+/** POST /sessions/:sessionId/actions/replace-reviewer — spec §72. Council cũ giữ nguyên, tạo Council mới */
+export function useReplaceSessionReviewer(roundId: string, versionId: string | null) {
+  const invalidate = useInvalidateSession(roundId, versionId);
+
+  return useMutation({
+    mutationFn: ({ sessionId, payload }: { sessionId: string; payload: ReplaceReviewerPayload }) =>
+      fetchScheduling.replaceSessionReviewer(sessionId, payload),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Đã thay reviewer cho phiên đánh giá");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không thay được reviewer — kiểm tra lịch rảnh/COI/hạn mức"));
+    },
+  });
+}
+
+/** POST /sessions/:sessionId/actions/postpone — spec §73. Session gốc giữ nguyên, chỉ đổi status */
+export function usePostponeRoundSession(roundId: string, versionId: string | null) {
+  const invalidate = useInvalidateSession(roundId, versionId);
+
+  return useMutation({
+    mutationFn: ({ sessionId, payload }: { sessionId: string; payload: PostponeRoundSessionPayload }) =>
+      fetchScheduling.postponeRoundSession(sessionId, payload),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Đã hoãn phiên đánh giá");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không hoãn được phiên đánh giá"));
+    },
+  });
+}
+
+/** POST /sessions/:sessionId/makeup — spec §73 */
+export function useCreateMakeupSession(roundId: string, versionId: string | null) {
+  const invalidate = useInvalidateSession(roundId, versionId);
+
+  return useMutation({
+    mutationFn: ({ sessionId, payload }: { sessionId: string; payload: CreateMakeupSessionPayload }) =>
+      fetchScheduling.createMakeupSession(sessionId, payload),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Đã tạo buổi bù");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không tạo được buổi bù"));
     },
   });
 }

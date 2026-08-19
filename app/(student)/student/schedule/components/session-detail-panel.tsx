@@ -1,21 +1,11 @@
 "use client";
 
-import {
-  CalendarClock,
-  CheckCircle2,
-  Circle,
-  ClipboardCopy,
-  Info,
-  LockKeyhole,
-  MessageSquareText,
-  Pencil,
-  Users2,
-} from "lucide-react";
+import { CalendarClock, ClipboardCopy, MessageSquareText, Users2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { formatDate } from "@/lib/utils/formatDate";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import type { ScheduleRound, ScheduleSlot, ScheduleTone } from "./mock-data";
+import type { ScheduleRound, ScheduleSlot, ScheduleTone } from "./types";
 
 const toneBandClass: Record<ScheduleTone, string> = {
   neutral: "bg-muted",
@@ -28,10 +18,6 @@ const toneBandClass: Record<ScheduleTone, string> = {
 
 const kindIcon: Record<ScheduleSlot["kind"], typeof CalendarClock> = {
   official: CalendarClock,
-  preferred: CheckCircle2,
-  available: Circle,
-  "not-selected": LockKeyhole,
-  empty: Info,
 };
 
 function ActionButton({
@@ -91,9 +77,7 @@ export function SessionDetailPanel({ round, slot }: { round: ScheduleRound; slot
           </span>
         </div>
         <h2 className="mt-3 text-lg font-semibold tracking-tight text-balance">{slot.title}</h2>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground text-pretty">
-          {slot.note ?? round.description}
-        </p>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground text-pretty">{round.description}</p>
       </div>
 
       <div className="divide-y divide-border border-b border-border px-4">
@@ -110,11 +94,10 @@ export function SessionDetailPanel({ round, slot }: { round: ScheduleRound; slot
         <DetailRow
           label="Hội đồng"
           value={`${round.councilSize} reviewer · ${round.durationMinutes} phút`}
-          hint={`Tối đa ${round.maxGroupsPerTimeslot} nhóm/khung`}
         />
         <DetailRow
-          label="Mã lịch"
-          value={slot.councilCode ?? round.scheduleVersionLabel ?? "Chưa sinh"}
+          label="Mã hội đồng"
+          value={slot.councilCode ?? "Chưa gán"}
           hint={round.statusLabel}
         />
       </div>
@@ -128,22 +111,13 @@ export function SessionDetailPanel({ round, slot }: { round: ScheduleRound; slot
           <ul className="mt-3 space-y-2.5">
             {slot.reviewers.map((reviewer) => (
               <li key={reviewer.id} className="flex items-center gap-2.5">
-                <Avatar
-                  className={cn(
-                    reviewer.isResultOwner && "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                  )}
-                >
+                <Avatar>
                   <AvatarFallback className="bg-secondary text-xs font-medium text-secondary-foreground">
                     {reviewerInitials(reviewer.name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{reviewer.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {reviewer.code}
-                    {reviewer.isResultOwner ? " · Result owner" : ""}
-                    {reviewer.isCarriedFromPrevious ? " · giữ từ đợt trước" : ""}
-                  </p>
                 </div>
               </li>
             ))}
@@ -156,21 +130,10 @@ export function SessionDetailPanel({ round, slot }: { round: ScheduleRound; slot
       </div>
 
       <div className="flex flex-wrap gap-2 p-4">
-        {slot.kind === "official" ? (
-          <>
-            <ActionButton icon={MessageSquareText} variant="primary">
-              Xin đổi lịch
-            </ActionButton>
-            <ActionButton icon={ClipboardCopy}>Copy giờ</ActionButton>
-          </>
-        ) : (
-          <>
-            <ActionButton icon={Pencil} variant="primary">
-              Cập nhật lựa chọn
-            </ActionButton>
-            <ActionButton icon={ClipboardCopy}>Copy khung</ActionButton>
-          </>
-        )}
+        <ActionButton icon={MessageSquareText} variant="primary">
+          Xin đổi lịch
+        </ActionButton>
+        <ActionButton icon={ClipboardCopy}>Copy giờ</ActionButton>
       </div>
     </div>
   );

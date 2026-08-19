@@ -1,115 +1,149 @@
 import apiService from "../core";
 
-export interface GroupApiItem {
-  id: number;
+/** capstone-fe-be-implementation-spec.md §2 — organizational lifecycle, khác ProjectStatus (academic progression) */
+export type GroupStatus = "FORMING" | "FORMED" | "ASSIGNED" | "DISBANDED";
+
+export type GroupMemberRole = "LEADER" | "MEMBER";
+
+export type GroupMembershipStatus = "ACTIVE" | "LEFT";
+
+export interface GroupWarning {
   code: string;
-  status: string;
-  /** manager-api.md §10.3 — trạng thái hiển thị (khác `status` nghiệp vụ) */
-  ui_status: string;
-  project_code: string;
-  title: string;
-  active_member_count: number;
-  leader_count: number;
-  /** manager-api.md §10.3 — tên leader hiện tại, null nếu chưa có */
-  leader_name: string | null;
+  message: string;
 }
 
-export interface GroupMemberPayload {
-  student_code: string;
-  role?: "LEADER" | "MEMBER";
+export interface GroupListItem {
+  id: string;
+  code: string;
+  status: GroupStatus;
+  memberCount: number;
+  leader: {
+    id: string;
+    code: string;
+    fullName: string;
+  } | null;
+  project: {
+    id: string;
+    code: string;
+    name: string;
+    status: string;
+  } | null;
+  warnings: GroupWarning[];
+}
+
+export interface GroupListParams {
+  search?: string;
+  status?: GroupStatus;
+  hasProject?: boolean;
+  hasLeader?: boolean;
+  warning?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface GroupListMeta {
+  page: number;
+  pageSize: number;
+  total: number;
 }
 
 export interface GroupCreatePayload {
-  project_id: number;
   code: string;
-  /** 4–5 phần tử, đúng 1 LEADER (BR-GRP-02, BR-GRP-03) */
-  members: GroupMemberPayload[];
+  studentIds: string[];
+  leaderId?: string;
 }
 
 export interface GroupCreateResponse {
-  id: number;
+  id: string;
   code: string;
-  member_count: number;
-}
-
-export interface DropMemberPayload {
-  reason: string;
-}
-
-export interface DropMemberResponse {
-  group_id: number;
-  student_id: number;
-  status: "DROPPED";
-  warning?: "GROUP_BELOW_MINIMUM_MAY_CONTINUE";
-}
-
-export interface SetLeaderPayload {
-  student_id: number;
-  reason: string;
-}
-
-export interface SetLeaderResponse {
-  group_id: number;
-  leader_student_id: number;
+  status: GroupStatus;
 }
 
 export interface GroupMemberDetail {
-  student_id: number;
-  student_code: string;
-  display_name: string;
-  role: "LEADER" | "MEMBER";
-  status: string;
+  membershipId: string;
+  studentId: string;
+  studentCode: string;
+  fullName: string;
+  role: GroupMemberRole;
+  status: GroupMembershipStatus;
+  leftAt?: string | null;
 }
 
 export interface GroupDetail {
-  id: number;
+  id: string;
   code: string;
-  status: string;
-  project_id: number;
-  project_code: string;
-  title: string;
-  members: GroupMemberDetail[];
+  status: GroupStatus;
+  leaderId: string | null;
+  currentMemberCount: number;
+  initialMemberCount: number;
+  project: {
+    id: string;
+    code: string;
+    name: string;
+    status: string;
+    mainSupervisor: { id: string; code: string; fullName: string } | null;
+    coSupervisor: { id: string; code: string; fullName: string } | null;
+  } | null;
+}
+
+export interface ChangeLeaderPayload {
+  leaderId: string;
+  reason: string;
+}
+
+export interface MemberLeavePayload {
+  /** "YYYY-MM-DD" */
+  effectiveDate: string;
+  reason: string;
+}
+
+export interface AssignProjectPayload {
+  projectId: string;
 }
 
 export const fetchGroups = {
-  /** GET /groups?semester_id= — ADMIN, MANAGER. Đã hỗ trợ ở backend (manager-api.md §8) */
-  list: async (semesterId?: number | null): Promise<GroupApiItem[]> => {
-    const response = await apiService.get<GroupApiItem[]>("api/v1/groups", {
-      semester_id: semesterId ?? undefined,
-    });
-    return response.data;
-  },
-
-  /** POST /groups — ADMIN, MANAGER */
-  create: async (payload: GroupCreatePayload): Promise<GroupCreateResponse> => {
-    const response = await apiService.post<GroupCreateResponse>("api/v1/groups", payload);
-    return response.data;
-  },
-
-  /** GET /groups/{group_id}?semester_id= — ADMIN, MANAGER. manager-api.md §5/§10.3, dùng cho picker thành viên */
-  getById: async (groupId: number, semesterId?: number | null): Promise<GroupDetail> => {
-    const response = await apiService.get<GroupDetail>(`api/v1/groups/${groupId}`, {
-      semester_id: semesterId ?? undefined,
-    });
-    return response.data;
-  },
-
-  /** POST /groups/{group_id}/members/{student_id}/drop — ADMIN, MANAGER */
-  dropMember: async (
-    groupId: number,
-    studentId: number,
-    payload: DropMemberPayload
-  ): Promise<DropMemberResponse> => {
-    const response = await apiService.post<DropMemberResponse>(
-      `api/v1/groups/${groupId}/members/${studentId}/drop`,
-      payload
+  /** GET /semesters/:semesterId/groups — spec §11/§41 */
+  list: async (semesterId: string, params?: GroupListParams): Promise<{ data: GroupListItem[]; meta?: GroupListMeta }> => {
+    const response = await apiService.get<{ data: GroupListItem[]; meta?: GroupListMeta }>(
+      `api/v1/semesters/${semesterId}/groups`,
+      params
     );
     return response.data;
   },
 
-  /** POST /groups/{group_id}/leader — ADMIN, MANAGER */
-  setLeader: async (groupId: number, payload: SetLeaderPayload): Promise<SetLeaderResponse> => {
-    const response = await apiService.post<SetLeaderResponse>(`api/v1/groups/${groupId}/leader`, payload);
-    return response.data;
+  /** GET /groups/:groupId — spec §13 */
+  getById: async (groupId: string): Promise<GroupDetail> => {
+    const response = await apiService.get<{ data: GroupDetail }>(`api/v1/groups/${groupId}`);
+    return response.data.data;
+  },
+
+  /** GET /groups/:groupId/members — spec §14 */
+  members: async (groupId: string): Promise<GroupMemberDetail[]> => {
+    const response = await apiService.get<{ data: GroupMemberDetail[] }>(`api/v1/groups/${groupId}/members`);
+    return response.data.data;
+  },
+
+  /** POST /semesters/:semesterId/groups — spec §12/§42 */
+  create: async (semesterId: string, payload: GroupCreatePayload): Promise<GroupCreateResponse> => {
+    const response = await apiService.post<{ data: GroupCreateResponse }>(
+      `api/v1/semesters/${semesterId}/groups`,
+      payload
+    );
+    return response.data.data;
+  },
+
+  /** POST /groups/:groupId/actions/change-leader — spec §14/§43 */
+  changeLeader: async (groupId: string, payload: ChangeLeaderPayload): Promise<void> => {
+    await apiService.post(`api/v1/groups/${groupId}/actions/change-leader`, payload);
+  },
+
+  /** POST /groups/:groupId/members/:membershipId/actions/leave — spec §14/§44 */
+  memberLeave: async (groupId: string, membershipId: string, payload: MemberLeavePayload): Promise<void> => {
+    await apiService.post(`api/v1/groups/${groupId}/members/${membershipId}/actions/leave`, payload);
+  },
+
+  /** PUT /groups/:groupId/project — spec §15/§45 */
+  assignProject: async (groupId: string, payload: AssignProjectPayload): Promise<void> => {
+    await apiService.put(`api/v1/groups/${groupId}/project`, payload);
   },
 };

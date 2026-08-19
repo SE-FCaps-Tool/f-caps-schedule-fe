@@ -4,21 +4,20 @@ import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from
 import { flushSync } from "react-dom";
 import { useReducedMotion } from "motion/react";
 import {
-  CalendarCheck2,
   CalendarClock,
   CalendarDays,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Circle,
-  Info,
-  LockKeyhole,
+  PauseCircle,
   ShieldCheck,
+  UserX,
+  XCircle,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils/formatDate";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { ScheduleRound, ScheduleSlot, StudentScheduleData } from "./mock-data";
+import type { ScheduleRound, ScheduleSlot, StudentScheduleData } from "./types";
 import { SessionDetailPanel } from "./session-detail-panel";
 
 type ViewTransitionDocument = Document & {
@@ -38,27 +37,19 @@ function pixelsFromMinutes(minutes: number) {
 }
 
 const roundStatusClass: Record<ScheduleRound["status"], string> = {
-  DRAFT: "bg-muted text-muted-foreground",
-  OPEN_REGISTRATION: "bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300",
-  REGISTRATION_CLOSED: "bg-sky-50 text-sky-800 dark:bg-sky-500/10 dark:text-sky-300",
-  SCHEDULING: "bg-sky-50 text-sky-800 dark:bg-sky-500/10 dark:text-sky-300",
   SCHEDULED: "bg-secondary text-secondary-foreground",
-  PUBLISHED: "bg-primary text-primary-foreground",
-  ONGOING: "bg-primary text-primary-foreground",
   COMPLETED: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
-  LOCKED: "bg-muted text-muted-foreground",
+  POSTPONED: "bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300",
+  GROUP_ABSENT: "bg-destructive/10 text-destructive",
+  CANCELLED: "bg-destructive/10 text-destructive",
 };
 
 const roundStatusIcon: Record<ScheduleRound["status"], typeof CheckCircle2> = {
-  DRAFT: Circle,
-  OPEN_REGISTRATION: CalendarCheck2,
-  REGISTRATION_CLOSED: CalendarClock,
-  SCHEDULING: CalendarClock,
   SCHEDULED: CalendarClock,
-  PUBLISHED: CalendarClock,
-  ONGOING: CalendarClock,
   COMPLETED: CheckCircle2,
-  LOCKED: Circle,
+  POSTPONED: PauseCircle,
+  GROUP_ABSENT: UserX,
+  CANCELLED: XCircle,
 };
 
 const eventCardClass =
@@ -66,18 +57,10 @@ const eventCardClass =
 
 const eventIconClass: Record<ScheduleSlot["kind"], string> = {
   official: "text-primary",
-  preferred: "text-primary",
-  available: "text-sky-600 dark:text-sky-400",
-  "not-selected": "text-muted-foreground",
-  empty: "text-muted-foreground",
 };
 
 const eventIcon: Record<ScheduleSlot["kind"], typeof CalendarClock> = {
   official: CalendarClock,
-  preferred: CheckCircle2,
-  available: Circle,
-  "not-selected": LockKeyhole,
-  empty: Info,
 };
 
 function parseDateOnly(date: string) {
@@ -167,13 +150,11 @@ function layoutDaySlots(slots: ScheduleSlot[]): SlotPlacement[] {
 }
 
 function getFirstSelectableSlot(round: ScheduleRound) {
-  const slots = getSlots(round);
-  return slots.find((slot) => slot.kind === "official" || slot.kind === "preferred") ?? slots[0];
+  return getSlots(round)[0];
 }
 
 function getWeekDays(round: ScheduleRound) {
-  const firstDate = round.days[0]?.date ?? "2026-08-17";
-  const weekStart = startOfWeek(parseDateOnly(firstDate));
+  const weekStart = round.days[0]?.date ? startOfWeek(parseDateOnly(round.days[0].date)) : startOfWeek(new Date());
   return Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
 }
 
@@ -752,10 +733,6 @@ export function ScheduleCalendar({ data }: { data: StudentScheduleData }) {
       <div className="flex shrink-0 flex-col gap-3 border-b border-border px-4 py-4 md:px-6 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground">
-              <CalendarCheck2 className="size-3.5" />
-              {data.semester.code}
-            </span>
             <span className={cn("inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold", roundStatusClass[activeRound.status])}>
               {activeRound.statusLabel}
             </span>
@@ -808,23 +785,16 @@ export function ScheduleCalendar({ data }: { data: StudentScheduleData }) {
             <div className="mt-3 space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <span className="size-2.5 rounded-full bg-primary" />
-                Phiên chính thức
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="size-2.5 rounded-full bg-[oklch(0.96_0.045_72)] ring-1 ring-primary/25" />
-                Slot leader chọn
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="size-2.5 rounded-full bg-sky-500" />
-                Slot còn chỗ
+                Phiên chính thức đã công bố
               </div>
             </div>
           </div>
 
-          <div className="border-t border-border pt-4">
-            <p className="text-sm font-semibold text-pretty">{data.group.projectTitleEn}</p>
-            <p className="mt-3 text-xs text-muted-foreground">{data.semester.timezoneLabel}</p>
-          </div>
+          {data.group.projectTitleEn && (
+            <div className="border-t border-border pt-4">
+              <p className="text-sm font-semibold text-pretty">{data.group.projectTitleEn}</p>
+            </div>
+          )}
         </aside>
 
         <main className="min-w-0 p-4 md:px-6 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden">

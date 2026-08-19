@@ -1,10 +1,10 @@
 "use client";
 
 import { type CSSProperties, useEffect, useState } from "react";
-import { Check, Clock3, PauseCircle, Radio, X } from "lucide-react";
+import { Check, Clock3, PauseCircle, UserX, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
-import { ROUND_TYPE_LABEL, roundKind, type LecturerSession } from "./mock-data";
+import { ROUND_TYPE_LABEL, roundKind, type LecturerSession } from "./types";
 import { STATUS_META, toneCardClass, toneDotClass } from "./tone";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SessionPopoverContent } from "./session-popover-content";
@@ -19,9 +19,9 @@ const LONG_DURATION_MINUTES = 60;
 
 const STATUS_ICON: Record<LecturerSession["status"], typeof Clock3> = {
   SCHEDULED: Clock3,
-  ONGOING: Radio,
   COMPLETED: Check,
   POSTPONED: PauseCircle,
+  GROUP_ABSENT: UserX,
   CANCELLED: X,
 };
 

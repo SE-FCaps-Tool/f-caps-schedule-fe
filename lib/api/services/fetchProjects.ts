@@ -1,73 +1,140 @@
 import apiService from "../core";
+import type { RoundType } from "./fetchRounds";
 
-export interface ProjectApiItem {
-  id: number;
+/** capstone-fe-be-implementation-spec.md §3 — academic progression, BE tự transition, FE chỉ hiển thị */
+export type ProjectStatus =
+  | "DRAFT"
+  | "ACTIVE"
+  | "ELIGIBLE_D12"
+  | "D12_CONDITIONAL"
+  | "PENDING_D2"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED";
+
+export type SupervisorRole = "MAIN" | "CO";
+
+export interface ProjectSupervisor {
+  id: string;
   code: string;
-  title: string;
-  status: "ACTIVE" | "COMPLETED" | "FAILED";
-  semester_id: number;
-  semester_code: string;
-  major_code: string;
-  supervisor_count: number;
-  /** CHƯA CÓ Ở BACKEND, đề xuất tại manager-api.md §8.5 — tên/mã GVHD chính-phụ */
-  supervisors?: { lecturer_code: string; display_name: string; type: "MAIN" | "CO" }[];
+  fullName: string;
+}
+
+export interface ProjectListItem {
+  id: string;
+  code: string;
+  nameVi: string;
+  nameEn?: string | null;
+  status: ProjectStatus;
+  mainSupervisor: ProjectSupervisor | null;
+  coSupervisor: ProjectSupervisor | null;
+  group: { id: string; code: string } | null;
+}
+
+export interface ProjectListParams {
+  search?: string;
+  status?: ProjectStatus;
+  supervisorId?: string;
+  hasGroup?: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ProjectListMeta {
+  page: number;
+  pageSize: number;
+  total: number;
 }
 
 export interface ProjectCreatePayload {
-  semester_id: number;
-  major_id: number;
   code: string;
-  title: string;
-  /** "LECTURER_CODE:MAIN" | "LECTURER_CODE:CO" — 1–2 phần tử, đúng 1 MAIN */
-  supervisors: string[];
+  nameVi: string;
+  nameEn?: string;
+  mainSupervisorId: string;
+  coSupervisorId?: string;
 }
 
 export interface ProjectCreateResponse {
-  id: number;
+  id: string;
   code: string;
-  title: string;
+  nameVi: string;
+  status: ProjectStatus;
 }
 
-/** manager-api.md §10.3 PATCH — mọi field optional */
-export interface ProjectUpdatePayload {
-  code?: string;
-  title?: string;
-  /** "LECTURER_CODE:MAIN" | "LECTURER_CODE:CO" — 1–2 phần tử, đúng 1 MAIN */
-  supervisors?: string[];
+export interface ProjectDetail {
+  id: string;
+  code: string;
+  nameVi: string;
+  nameEn?: string | null;
+  status: ProjectStatus;
+  mainSupervisor: ProjectSupervisor | null;
+  coSupervisor: ProjectSupervisor | null;
+  group: { id: string; code: string; memberCount: number; leader: { id: string; fullName: string } | null } | null;
 }
 
-export interface ProjectUpdateResponse {
-  id: number;
-  code: string;
-  title: string;
-  status: "ACTIVE" | "COMPLETED" | "FAILED";
-  semester_id: number;
+/** spec §18 — UI progression: chuỗi mốc Review/Defense + trạng thái hiện tại + remediation nếu có */
+export interface ProjectProgressionEntry {
+  round: RoundType;
+  result: string | null;
+}
+
+export interface ProjectProgression {
+  status: ProjectStatus;
+  timeline: ProjectProgressionEntry[];
+  remediation: {
+    status: string;
+    deadline: string;
+    verifierId: string;
+  } | null;
+}
+
+export interface ProjectResultEntry {
+  sessionId: string;
+  round: RoundType;
+  result: string;
+  note: string | null;
+  submittedAt: string;
 }
 
 export const fetchProjects = {
-  /** GET /projects?semester_id= — ADMIN, MANAGER. Đã hỗ trợ ở backend (manager-api.md §8) */
-  list: async (semesterId?: number | null): Promise<ProjectApiItem[]> => {
-    const response = await apiService.get<ProjectApiItem[]>("api/v1/projects", {
-      semester_id: semesterId ?? undefined,
-    });
+  /** GET /semesters/:semesterId/projects — spec §16/§46 */
+  list: async (
+    semesterId: string,
+    params?: ProjectListParams
+  ): Promise<{ data: ProjectListItem[]; meta?: ProjectListMeta }> => {
+    const response = await apiService.get<{ data: ProjectListItem[]; meta?: ProjectListMeta }>(
+      `api/v1/semesters/${semesterId}/projects`,
+      params
+    );
     return response.data;
   },
 
-  /** POST /projects — ADMIN, MANAGER */
-  create: async (payload: ProjectCreatePayload): Promise<ProjectCreateResponse> => {
-    const response = await apiService.post<ProjectCreateResponse>("api/v1/projects", payload);
-    return response.data;
+  /** POST /semesters/:semesterId/projects — spec §17/§47. Trạng thái khởi tạo luôn DRAFT */
+  create: async (semesterId: string, payload: ProjectCreatePayload): Promise<ProjectCreateResponse> => {
+    const response = await apiService.post<{ data: ProjectCreateResponse }>(
+      `api/v1/semesters/${semesterId}/projects`,
+      payload
+    );
+    return response.data.data;
   },
 
-  /** PATCH /projects/{project_id}?semester_id= — ADMIN, MANAGER. manager-api.md §5/§10.3 */
-  update: async (
-    projectId: number,
-    payload: ProjectUpdatePayload,
-    semesterId?: number | null
-  ): Promise<ProjectUpdateResponse> => {
-    const response = await apiService.patch<ProjectUpdateResponse>(`api/v1/projects/${projectId}`, payload, {
-      semester_id: semesterId ?? undefined,
-    });
-    return response.data;
+  /** GET /projects/:projectId — spec §18 */
+  getById: async (projectId: string): Promise<ProjectDetail> => {
+    const response = await apiService.get<{ data: ProjectDetail }>(`api/v1/projects/${projectId}`);
+    return response.data.data;
   },
+
+  /** GET /projects/:projectId/progression — spec §18/§75 */
+  progression: async (projectId: string): Promise<ProjectProgression> => {
+    const response = await apiService.get<{ data: ProjectProgression }>(`api/v1/projects/${projectId}/progression`);
+    return response.data.data;
+  },
+
+  /** GET /projects/:projectId/results — spec §18 */
+  results: async (projectId: string): Promise<ProjectResultEntry[]> => {
+    const response = await apiService.get<{ data: ProjectResultEntry[] }>(`api/v1/projects/${projectId}/results`);
+    return response.data.data;
+  },
+
+  // Chưa migrate: spec chưa liệt kê PATCH /projects/:projectId (sửa code/tên/đổi GVHD sau khi tạo).
 };

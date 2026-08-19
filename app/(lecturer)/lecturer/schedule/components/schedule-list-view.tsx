@@ -3,7 +3,7 @@
 import { motion, useReducedMotion, type Variants } from "motion/react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
-import type { LecturerSession } from "./mock-data";
+import type { LecturerSession } from "./types";
 import { SessionRow } from "./session-row";
 
 const containerVariants: Variants = {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Check, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadIcsCalendar } from "./build-ics";
-import type { LecturerSession } from "./mock-data";
+import type { LecturerSession } from "./types";
 
 export function ExportIcsButton({ sessions }: { sessions: LecturerSession[] }) {
   const [done, setDone] = useState(false);

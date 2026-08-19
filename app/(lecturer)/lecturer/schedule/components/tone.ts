@@ -1,12 +1,12 @@
-import type { SessionStatus } from "@/types/models";
+import type { LecturerScheduleSessionStatus } from "@/lib/api/services/fetchLecturerPortal";
 
 export type StatusTone = "neutral" | "primary" | "emerald" | "amber" | "red";
 
-export const STATUS_META: Record<SessionStatus, { label: string; tone: StatusTone }> = {
+export const STATUS_META: Record<LecturerScheduleSessionStatus, { label: string; tone: StatusTone }> = {
   SCHEDULED: { label: "Sắp diễn ra", tone: "neutral" },
-  ONGOING: { label: "Đang diễn ra", tone: "primary" },
   COMPLETED: { label: "Đã xong", tone: "emerald" },
   POSTPONED: { label: "Đã hoãn", tone: "amber" },
+  GROUP_ABSENT: { label: "Nhóm vắng mặt", tone: "red" },
   CANCELLED: { label: "Đã huỷ", tone: "red" },
 };
 

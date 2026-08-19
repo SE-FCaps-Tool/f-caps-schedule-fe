@@ -13,7 +13,6 @@ export const ROUND_STATUS_META: Record<RoundStatus, { label: string; tone: Statu
   ONGOING: { label: "Đang diễn ra", tone: "sky" },
   COMPLETED: { label: "Hoàn thành", tone: "emerald" },
   LOCKED: { label: "Đã khóa", tone: "neutral" },
-  POSTPONED: { label: "Đã hoãn", tone: "orange" },
   CANCELLED: { label: "Đã hủy", tone: "red" },
 };
 
@@ -25,21 +24,36 @@ export const ROUND_TYPE_LABEL: Record<RoundType, string> = {
   DEFENSE_2: "Defense 2",
 };
 
-export type GroupProgressState =
+/** capstone-fe-be-implementation-spec.md §2 — vòng đời tổ chức của Group (khác ProjectStatus) */
+export type GroupStatus = "FORMING" | "FORMED" | "ASSIGNED" | "DISBANDED";
+
+export const GROUP_STATUS_META: Record<GroupStatus, { label: string; tone: StatusTone }> = {
+  FORMING: { label: "Đang lập nhóm", tone: "neutral" },
+  FORMED: { label: "Đã lập nhóm", tone: "sky" },
+  ASSIGNED: { label: "Đã gắn đề tài", tone: "emerald" },
+  DISBANDED: { label: "Đã giải tán", tone: "red" },
+};
+
+/** capstone-fe-be-implementation-spec.md §3 — academic progression của Project, BE tự transition */
+export type ProjectProgressState =
+  | "DRAFT"
   | "ACTIVE"
-  | "D12_CONDITIONAL"
   | "ELIGIBLE_D12"
+  | "D12_CONDITIONAL"
   | "PENDING_D2"
   | "COMPLETED"
-  | "FAILED";
+  | "FAILED"
+  | "CANCELLED";
 
-export const GROUP_PROGRESS_META: Record<GroupProgressState, { label: string; tone: StatusTone }> = {
+export const PROJECT_STATUS_META: Record<ProjectProgressState, { label: string; tone: StatusTone }> = {
+  DRAFT: { label: "Nháp", tone: "neutral" },
   ACTIVE: { label: "Đang đánh giá", tone: "sky" },
-  D12_CONDITIONAL: { label: "D1.2 có điều kiện", tone: "amber" },
   ELIGIBLE_D12: { label: "Đủ điều kiện D1.2", tone: "emerald" },
+  D12_CONDITIONAL: { label: "D1.2 có điều kiện", tone: "amber" },
   PENDING_D2: { label: "Chờ Defense 2", tone: "orange" },
   COMPLETED: { label: "Hoàn thành", tone: "emerald" },
   FAILED: { label: "Không đạt", tone: "red" },
+  CANCELLED: { label: "Đã hủy", tone: "red" },
 };
 
 export type DefenseConclusion = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "LEVEL_4";
@@ -60,12 +74,15 @@ export const REMEDIATION_STATUS_META: Record<RemediationStatus, { label: string;
   FAILED: { label: "Không đạt", tone: "red" },
 };
 
-export type InvitationStatus = "PENDING" | "ACCEPTED" | "REJECTED";
+/** capstone-fe-be-implementation-spec.md §5 — thêm EXPIRED/WITHDRAWN, REJECTED đổi tên thành DECLINED */
+export type InvitationStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "WITHDRAWN";
 
 export const INVITATION_STATUS_META: Record<InvitationStatus, { label: string; tone: StatusTone }> = {
   PENDING: { label: "Đang chờ", tone: "amber" },
   ACCEPTED: { label: "Đã nhận lời", tone: "emerald" },
-  REJECTED: { label: "Đã từ chối", tone: "red" },
+  DECLINED: { label: "Đã từ chối", tone: "red" },
+  EXPIRED: { label: "Hết hạn", tone: "neutral" },
+  WITHDRAWN: { label: "Đã rút lời mời", tone: "neutral" },
 };
 
 export type ScheduleVersionStatus = "VALID" | "PUBLISHED" | "SUPERSEDED";
@@ -74,6 +91,16 @@ export const SCHEDULE_VERSION_STATUS_META: Record<ScheduleVersionStatus, { label
   VALID: { label: "Hợp lệ", tone: "violet" },
   PUBLISHED: { label: "Đã công bố", tone: "emerald" },
   SUPERSEDED: { label: "Đã thay thế", tone: "neutral" },
+};
+
+/** capstone-fe-be-implementation-spec.md §6 — DRAFT → ACTIVE → PUBLISHED, hoặc DISCARDED */
+export type RoundScheduleVersionStatus = "DRAFT" | "ACTIVE" | "PUBLISHED" | "DISCARDED";
+
+export const ROUND_SCHEDULE_VERSION_STATUS_META: Record<RoundScheduleVersionStatus, { label: string; tone: StatusTone }> = {
+  DRAFT: { label: "Nháp", tone: "neutral" },
+  ACTIVE: { label: "Đang dùng", tone: "violet" },
+  PUBLISHED: { label: "Đã công bố", tone: "emerald" },
+  DISCARDED: { label: "Đã loại bỏ", tone: "red" },
 };
 
 export type ReviewResult = "PASS" | "NEEDS_FIX" | "FAIL";
@@ -99,6 +126,18 @@ export const SESSION_STATUS_META: Record<SessionStatus, { label: string; tone: S
   ONGOING: { label: "Đang diễn ra", tone: "sky" },
   COMPLETED: { label: "Đã diễn ra", tone: "neutral" },
   POSTPONED: { label: "Đã hoãn", tone: "red" },
+};
+
+/** capstone-fe-be-implementation-spec.md §7 — thêm PLANNED/GROUP_ABSENT/CANCELLED so với enum cũ */
+export type RoundSessionStatus = "PLANNED" | "SCHEDULED" | "COMPLETED" | "POSTPONED" | "GROUP_ABSENT" | "CANCELLED";
+
+export const ROUND_SESSION_STATUS_META: Record<RoundSessionStatus, { label: string; tone: StatusTone }> = {
+  PLANNED: { label: "Đã lên kế hoạch", tone: "neutral" },
+  SCHEDULED: { label: "Đã xếp lịch", tone: "violet" },
+  COMPLETED: { label: "Đã diễn ra", tone: "emerald" },
+  POSTPONED: { label: "Đã hoãn", tone: "amber" },
+  GROUP_ABSENT: { label: "Nhóm vắng", tone: "red" },
+  CANCELLED: { label: "Đã hủy", tone: "red" },
 };
 
 export type AttentionSeverity = "HIGH" | "MEDIUM" | "LOW";

@@ -5,10 +5,16 @@ import Link from "next/link";
 import { ChevronLeft, Search, WifiOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useRooms } from "@/hooks/useRooms";
+import type { RoomType } from "@/lib/api/services/fetchRounds";
+import { ROOM_TYPE_LABEL, ROOM_TYPES } from "./labels";
 import { RoomsGrid } from "./rooms-grid";
 import { AddRoomDialog } from "./add-room-dialog";
+
+const TYPE_FILTER_ALL = "ALL" as const;
+type TypeFilter = typeof TYPE_FILTER_ALL | RoomType;
 
 /**
  * Dùng chung cho Admin (`/admin/master-data/rooms`) và Manager (`/manager/rooms`).
@@ -18,13 +24,17 @@ import { AddRoomDialog } from "./add-room-dialog";
 export function RoomsPage({ backHref, backLabel }: { backHref?: string; backLabel?: string }) {
   const { data: rooms, isLoading, isError } = useRooms();
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>(TYPE_FILTER_ALL);
 
   const filtered = useMemo(() => {
     if (!rooms) return [];
     const q = search.trim().toLowerCase();
-    if (!q) return rooms;
-    return rooms.filter((r) => r.code.toLowerCase().includes(q) || r.name.toLowerCase().includes(q));
-  }, [rooms, search]);
+    return rooms.filter((r) => {
+      const matchesQuery = !q || r.code.toLowerCase().includes(q) || r.name.toLowerCase().includes(q);
+      const matchesType = typeFilter === TYPE_FILTER_ALL || r.type === typeFilter;
+      return matchesQuery && matchesType;
+    });
+  }, [rooms, search, typeFilter]);
 
   return (
     <div>
@@ -43,9 +53,24 @@ export function RoomsPage({ backHref, backLabel }: { backHref?: string; backLabe
         <AddRoomDialog />
       </div>
 
-      <div className="relative mt-6 max-w-sm">
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm theo mã hoặc tên phòng..." className="pl-9" />
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1 min-w-56">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm theo mã hoặc tên phòng..." className="pl-9" />
+        </div>
+        <Select value={typeFilter} onValueChange={(v) => v && setTypeFilter(v as TypeFilter)}>
+          <SelectTrigger className="w-44">
+            <SelectValue>{(v: TypeFilter) => (v === TYPE_FILTER_ALL ? "Tất cả loại phòng" : ROOM_TYPE_LABEL[v])}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={TYPE_FILTER_ALL}>Tất cả loại phòng</SelectItem>
+            {ROOM_TYPES.map((t) => (
+              <SelectItem key={t} value={t}>
+                {ROOM_TYPE_LABEL[t]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="mt-4">

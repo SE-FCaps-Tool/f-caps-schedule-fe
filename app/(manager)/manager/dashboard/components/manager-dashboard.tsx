@@ -48,8 +48,9 @@ export function ManagerDashboard() {
   const { data, isLoading, isError } = useDashboard(currentSemester?.id);
 
   const currentRound = useMemo(() => {
-    if (!rounds || rounds.length === 0) return null;
-    return rounds.find((r) => r.id === data?.version?.round_id) ?? rounds[0];
+    const list = rounds?.data ?? [];
+    if (list.length === 0) return null;
+    return list.find((r) => r.id === String(data?.version?.round_id)) ?? list[0];
   }, [rounds, data]);
 
   const overdueRemediationCount = remediationCases?.filter((c) => c.status === "OVERDUE").length ?? 0;
@@ -162,9 +163,13 @@ export function ManagerDashboard() {
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
           <span className="font-medium text-foreground">Học kỳ {currentSemesterId}</span>
           <span className="text-muted-foreground/50">·</span>
-          <span className="text-muted-foreground">{projects ? `${projects.length} đề tài` : "…"}</span>
+          <span className="text-muted-foreground">
+            {projects ? `${projects.meta?.total ?? projects.data?.length ?? 0} đề tài` : "…"}
+          </span>
           <span className="text-muted-foreground/50">·</span>
-          <span className="text-muted-foreground">{groups ? `${groups.length} nhóm` : "…"}</span>
+          <span className="text-muted-foreground">
+            {groups ? `${groups.meta?.total ?? groups.data?.length ?? 0} nhóm` : "…"}
+          </span>
         </div>
       </div>
 

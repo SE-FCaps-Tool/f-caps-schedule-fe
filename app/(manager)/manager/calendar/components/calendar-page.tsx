@@ -3,45 +3,45 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { AnimatePresence } from "motion/react";
-import { CheckCircle2, Search, WifiOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search, WifiOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
 import { StatusDot } from "../../_shared/status-dot";
-import { ROUND_TYPE_LABEL, SCHEDULE_VERSION_STATUS_META } from "../../_shared/labels";
+import { ROUND_TYPE_LABEL, ROUND_SCHEDULE_VERSION_STATUS_META } from "../../_shared/labels";
 import { useSemesterContext } from "../../_shared/semester-context";
-import { useRounds, useRoundMyAvailability } from "@/hooks/manager/useRounds";
-import { useScheduleVersions, useScheduleVersion, useEditSession, useControlledChangeSession, usePublishVersion } from "@/hooks/manager/useScheduling";
-import { useRooms } from "@/hooks/useRooms";
+import { useRounds, useRoundDetail } from "@/hooks/manager/useRounds";
+import { useRoundScheduleVersions } from "@/hooks/manager/useScheduling";
+import { useRoundSessions, useAvailableRooms } from "@/hooks/manager/useRoomAssignment";
+import {
+  useChangeSessionRoom,
+  useReplaceSessionReviewer,
+  usePostponeRoundSession,
+} from "@/hooks/manager/useScheduling";
 import { ReasonDialog } from "@/components/shared/reason-dialog";
 import { SessionCard } from "./session-card";
 import { SessionDrawer } from "./session-drawer";
-import type { DisplaySession, MoveTarget } from "./types";
-import type { RoomApiItem } from "@/lib/api/services/fetchRooms";
+import type { DisplaySession } from "./types";
+import type { RoundSession, AssignableRoom } from "@/lib/api/services/fetchRoomAssignment";
 
 type ViewMode = "day" | "week" | "list";
 
-function toDisplaySession(
-  session: { id: number; group_id: number; group_code: string; timeslot_id: number; room_id: number; start_at: string; end_at: string; status: string; reviewer_ids: number[]; result_owner_ids: number[]; reviewer_names: Record<string, string> },
-  rooms: RoomApiItem[]
-): DisplaySession {
-  const room = rooms.find((r) => r.id === session.room_id);
+function toDisplaySession(session: RoundSession, rooms: AssignableRoom[]): DisplaySession {
+  const room = rooms.find((r) => r.id === session.roomId);
   return {
     id: session.id,
-    groupId: session.group_id,
-    groupCode: session.group_code,
-    projectTitle: null,
-    date: formatDate(session.start_at, "YYYY-MM-DD"),
-    start: formatDate(session.start_at, "HH:mm"),
-    end: formatDate(session.end_at, "HH:mm"),
-    timeslotId: session.timeslot_id,
-    roomId: session.room_id,
-    roomCode: room?.code ?? `#${session.room_id}`,
-    reviewers: session.reviewer_ids.map((id) => ({ id, name: session.reviewer_names[String(id)] ?? `#${id}` })),
-    resultOwnerIds: session.result_owner_ids,
+    groupId: session.group.id,
+    groupCode: session.group.code,
+    projectTitle: session.project.name,
+    date: session.date,
+    start: session.startTime,
+    end: session.endTime,
+    timeslotId: session.timeslotId,
+    roomId: session.roomId,
+    roomCode: room?.code ?? (session.roomId ? `#${session.roomId}` : "Chưa gán"),
+    reviewers: session.council.map((c) => ({ id: c.lecturerId, name: c.fullName })),
     status: session.status,
   };
 }
@@ -63,52 +63,46 @@ export function CalendarPage() {
   const { currentSemester } = useSemesterContext();
   const semesterId = currentSemester?.id;
 
-  const { data: rounds, isLoading: roundsLoading } = useRounds(semesterId);
+  const { data: roundsResult, isLoading: roundsLoading } = useRounds(semesterId);
+  const rounds = roundsResult?.data;
   const roundParam = searchParams.get("round");
-  const selectedRoundId = roundParam ? Number(roundParam) : (rounds?.[0]?.id ?? null);
+  const selectedRoundId = roundParam ?? rounds?.[0]?.id ?? null;
   const selectedRound = rounds?.find((r) => r.id === selectedRoundId) ?? null;
 
-  const { data: versions, isLoading: versionsLoading, isError: versionsError } = useScheduleVersions(selectedRoundId, semesterId);
-  const { data: rooms } = useRooms();
-  const { data: availability } = useRoundMyAvailability(selectedRoundId);
+  const { data: round } = useRoundDetail(selectedRoundId);
+  const { data: versions, isLoading: versionsLoading, isError: versionsError } = useRoundScheduleVersions(selectedRoundId);
+  const { data: rooms } = useAvailableRooms(selectedRoundId);
 
-  const autoVersionId = useMemo(() => {
+  // Ưu tiên phương án đã PUBLISHED (lịch chính thức); chưa publish thì xem trước bản ACTIVE.
+  const currentVersion = useMemo(() => {
     if (!versions || versions.length === 0) return null;
-    const published = versions.find((v) => v.status === "PUBLISHED");
-    const latest = [...versions].sort((a, b) => b.version_no - a.version_no)[0];
-    return (published ?? latest).id;
+    return versions.find((v) => v.status === "PUBLISHED") ?? versions.find((v) => v.status === "ACTIVE") ?? null;
   }, [versions]);
-  const [versionOverride, setVersionOverride] = useState<number | null>(null);
-  const versionId = versionOverride && versions?.some((v) => v.id === versionOverride) ? versionOverride : autoVersionId;
 
-  const { data: versionDetail, isLoading: sessionsLoading, isError: sessionsError } = useScheduleVersion(versionId, semesterId);
-  const currentVersion = versions?.find((v) => v.id === versionId) ?? null;
-  const isPublished = currentVersion?.status === "PUBLISHED";
-
-  const editSession = useEditSession();
-  const controlledChange = useControlledChangeSession();
-  const publishVersion = usePublishVersion();
-
-  const sessions: DisplaySession[] = useMemo(
-    () => (versionDetail?.sessions ?? []).map((s) => toDisplaySession(s, rooms ?? [])),
-    [versionDetail, rooms]
+  const { data: rawSessions, isLoading: sessionsLoading, isError: sessionsError } = useRoundSessions(
+    selectedRoundId,
+    currentVersion?.id ?? null
   );
 
-  const dates = useMemo(() => {
-    const fromTimeslots = (availability?.timeslots ?? []).map((t) => t.day_date);
-    const fromSessions = sessions.map((s) => s.date);
-    return Array.from(new Set([...fromTimeslots, ...fromSessions])).sort();
-  }, [availability, sessions]);
+  const changeRoom = useChangeSessionRoom(selectedRoundId ?? "", currentVersion?.id ?? null);
+  const replaceReviewer = useReplaceSessionReviewer(selectedRoundId ?? "", currentVersion?.id ?? null);
+  const postponeSession = usePostponeRoundSession(selectedRoundId ?? "", currentVersion?.id ?? null);
+
+  const sessions: DisplaySession[] = useMemo(
+    () => (rawSessions ?? []).map((s) => toDisplaySession(s, rooms ?? [])),
+    [rawSessions, rooms]
+  );
+
+  const dates = useMemo(() => round?.days.map((d) => d.date) ?? [], [round]);
 
   const timeslotRows = useMemo(() => {
+    if (!round) return [];
     const seen = new Map<string, { start: string; end: string }>();
-    for (const t of availability?.timeslots ?? []) {
-      const start = formatDate(t.start_at, "HH:mm");
-      const end = formatDate(t.end_at, "HH:mm");
-      seen.set(start, { start, end });
+    for (const day of round.days) {
+      for (const slot of day.slots) seen.set(slot.startTime, { start: slot.startTime, end: slot.endTime });
     }
     return Array.from(seen.values()).sort((a, b) => a.start.localeCompare(b.start));
-  }, [availability]);
+  }, [round]);
 
   const roomColumns = rooms ?? [];
 
@@ -117,48 +111,27 @@ export function CalendarPage() {
 
   const [view, setView] = useState<ViewMode>("day");
   const [search, setSearch] = useState("");
-  const [draggingId, setDraggingId] = useState<number | null>(null);
-  const [hoveredCell, setHoveredCell] = useState<{ roomId: number; start: string } | null>(null);
-  const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
-  const [pendingMove, setPendingMove] = useState<{ sessionId: number; target: MoveTarget } | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<{ roomId: string; start: string } | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [pendingRoomMove, setPendingRoomMove] = useState<{ sessionId: string; roomId: string } | null>(null);
 
   const activeSession = sessions.find((s) => s.id === activeSessionId) ?? null;
   const sessionsForDate = useMemo(() => sessions.filter((s) => s.date === selectedDate), [sessions, selectedDate]);
 
-  function findTimeslotId(date: string, start: string): number | null {
-    const match = (availability?.timeslots ?? []).find((t) => t.day_date === date && formatDate(t.start_at, "HH:mm") === start);
-    return match?.id ?? null;
-  }
-
-  function requestMove(sessionId: number, target: MoveTarget) {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (!session) return;
-    if (session.roomId === target.roomId && session.timeslotId === target.timeslotId) return;
-    setPendingMove({ sessionId, target });
-  }
-
-  function handleDrop(room: RoomApiItem, start: string) {
-    if (!draggingId || !selectedDate) return;
-    const slot = timeslotRows.find((t) => t.start === start);
-    const timeslotId = findTimeslotId(selectedDate, start);
-    if (!slot || !timeslotId) return;
-    requestMove(draggingId, { timeslotId, roomId: room.id, date: selectedDate, start: slot.start, end: slot.end });
+  function handleDrop(room: AssignableRoom, start: string) {
+    if (!draggingId) return;
+    const session = sessions.find((s) => s.id === draggingId);
     setHoveredCell(null);
     setDraggingId(null);
+    if (!session || session.start !== start || session.roomId === room.id) return;
+    setPendingRoomMove({ sessionId: draggingId, roomId: room.id });
   }
 
-  function confirmMove(reason: string) {
-    if (!pendingMove || !versionId) return;
-    const payload = { timeslot_id: pendingMove.target.timeslotId, room_id: pendingMove.target.roomId, reason };
-    if (isPublished) {
-      controlledChange.mutate(
-        { versionId, sessionId: pendingMove.sessionId, roundId: selectedRoundId ?? undefined, semesterId, payload },
-        { onSuccess: (data) => setVersionOverride(data.version_id) }
-      );
-    } else {
-      editSession.mutate({ versionId, sessionId: pendingMove.sessionId, roundId: selectedRoundId ?? undefined, semesterId, payload });
-    }
-    setPendingMove(null);
+  function confirmRoomMove(reason: string) {
+    if (!pendingRoomMove) return;
+    changeRoom.mutate({ sessionId: pendingRoomMove.sessionId, payload: { roomId: pendingRoomMove.roomId, reason } });
+    setPendingRoomMove(null);
   }
 
   if (roundsLoading) {
@@ -181,12 +154,11 @@ export function CalendarPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Lịch đánh giá</h1>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             <Select
-              value={selectedRoundId ? String(selectedRoundId) : null}
+              value={selectedRoundId}
               onValueChange={(v) => {
                 const params = new URLSearchParams(searchParams.toString());
                 if (v) params.set("round", v);
                 router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-                setVersionOverride(null);
               }}
             >
               <SelectTrigger className="h-7 gap-1 border-none bg-transparent px-0 font-medium shadow-none">
@@ -194,7 +166,7 @@ export function CalendarPage() {
               </SelectTrigger>
               <SelectContent>
                 {rounds.map((r) => (
-                  <SelectItem key={r.id} value={String(r.id)}>
+                  <SelectItem key={r.id} value={r.id}>
                     {ROUND_TYPE_LABEL[r.type]}
                   </SelectItem>
                 ))}
@@ -204,8 +176,8 @@ export function CalendarPage() {
               <>
                 <span className="text-muted-foreground/50">·</span>
                 <StatusDot
-                  tone={SCHEDULE_VERSION_STATUS_META[currentVersion.status].tone}
-                  label={`V${currentVersion.version_no} — ${SCHEDULE_VERSION_STATUS_META[currentVersion.status].label}`}
+                  tone={ROUND_SCHEDULE_VERSION_STATUS_META[currentVersion.status].tone}
+                  label={`V${currentVersion.versionNumber} — ${ROUND_SCHEDULE_VERSION_STATUS_META[currentVersion.status].label}`}
                 />
                 <span className="text-muted-foreground/50">·</span>
                 <span className="text-muted-foreground">{sessions.length} buổi đã xếp</span>
@@ -213,16 +185,6 @@ export function CalendarPage() {
             )}
           </div>
         </div>
-        {currentVersion && (
-          <Button
-            size="sm"
-            disabled={isPublished || publishVersion.isPending || !selectedRoundId}
-            onClick={() => selectedRoundId && publishVersion.mutate({ roundId: selectedRoundId, versionId: currentVersion.id, semesterId })}
-          >
-            {isPublished ? <CheckCircle2 /> : null}
-            {isPublished ? "Đã công bố" : "Công bố lịch"}
-          </Button>
-        )}
       </div>
 
       {versionsLoading && <Skeleton className="mt-6 h-64 w-full" />}
@@ -237,8 +199,13 @@ export function CalendarPage() {
           Đợt này chưa có phương án lịch — vào trang đợt đánh giá để chạy xếp lịch.
         </p>
       )}
+      {versions && versions.length > 0 && !currentVersion && (
+        <p className="mt-6 py-10 text-center text-sm text-muted-foreground">
+          Chưa có phương án nào được kích hoạt — vào trang đợt đánh giá để kích hoạt.
+        </p>
+      )}
 
-      {versions && versions.length > 0 && (
+      {currentVersion && (
         <>
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-1">
@@ -377,35 +344,31 @@ export function CalendarPage() {
       <SessionDrawer
         session={activeSession}
         rooms={roomColumns}
-        timeslots={(availability?.timeslots ?? []).filter((t) => t.day_date === activeSession?.date)}
         onOpenChange={(open) => !open && setActiveSessionId(null)}
-        onRequestMove={(target) => activeSessionId && requestMove(activeSessionId, target)}
-        changeReviewersPending={editSession.isPending || controlledChange.isPending}
-        onChangeReviewers={(reviewerIds, reason) => {
-          if (!activeSessionId || !versionId) return;
-          const payload = { reviewer_ids: reviewerIds, reason };
-          if (isPublished) {
-            controlledChange.mutate(
-              { versionId, sessionId: activeSessionId, roundId: selectedRoundId ?? undefined, semesterId, payload },
-              { onSuccess: (data) => setVersionOverride(data.version_id) }
-            );
-          } else {
-            editSession.mutate({ versionId, sessionId: activeSessionId, roundId: selectedRoundId ?? undefined, semesterId, payload });
-          }
+        changeRoomPending={changeRoom.isPending}
+        onChangeRoom={(roomId, reason) => {
+          if (!activeSessionId) return;
+          changeRoom.mutate({ sessionId: activeSessionId, payload: { roomId, reason } });
+        }}
+        replaceReviewerPending={replaceReviewer.isPending}
+        onReplaceReviewer={(oldLecturerId, newLecturerId, reason) => {
+          if (!activeSessionId) return;
+          replaceReviewer.mutate({ sessionId: activeSessionId, payload: { oldLecturerId, newLecturerId, reason } });
+        }}
+        postponePending={postponeSession.isPending}
+        onPostpone={(reason) => {
+          if (!activeSessionId) return;
+          postponeSession.mutate({ sessionId: activeSessionId, payload: { reason } });
         }}
       />
 
       <ReasonDialog
-        open={pendingMove !== null}
-        onOpenChange={(open) => !open && setPendingMove(null)}
-        title="Xác nhận đổi lịch"
-        description={
-          isPublished
-            ? "Lịch đã công bố — thay đổi sẽ tạo một phương án mới, cần công bố lại. Lý do sẽ được ghi vào audit log."
-            : "Lý do sẽ được ghi vào audit log."
-        }
+        open={pendingRoomMove !== null}
+        onOpenChange={(open) => !open && setPendingRoomMove(null)}
+        title="Xác nhận đổi phòng"
+        description="Lý do sẽ được ghi vào audit log."
         confirmLabel="Xác nhận đổi"
-        onConfirm={confirmMove}
+        onConfirm={confirmRoomMove}
       />
     </div>
   );
@@ -426,17 +389,17 @@ function DayGrid({
   onSelect,
 }: {
   sessions: DisplaySession[];
-  rooms: RoomApiItem[];
+  rooms: AssignableRoom[];
   timeslotRows: { start: string; end: string }[];
   search: string;
-  draggingId: number | null;
-  hoveredCell: { roomId: number; start: string } | null;
+  draggingId: string | null;
+  hoveredCell: { roomId: string; start: string } | null;
   compact?: boolean;
-  onDragStart: (id: number) => void;
+  onDragStart: (id: string) => void;
   onDragEnd: () => void;
-  onCellDragOver: (cell: { roomId: number; start: string } | null) => void;
-  onDrop: (room: RoomApiItem, start: string) => void;
-  onSelect: (id: number) => void;
+  onCellDragOver: (cell: { roomId: string; start: string } | null) => void;
+  onDrop: (room: AssignableRoom, start: string) => void;
+  onSelect: (id: string) => void;
 }) {
   const cellHeight = compact ? 56 : 92;
 
@@ -500,7 +463,7 @@ function DayGrid({
                         dimmed={!matchesSearch(session, search)}
                         dragging={draggingId === session.id}
                         onDragStart={(e) => {
-                          e.dataTransfer.setData("text/plain", String(session.id));
+                          e.dataTransfer.setData("text/plain", session.id);
                           onDragStart(session.id);
                         }}
                         onDragEnd={onDragEnd}

@@ -1,23 +1,14 @@
 export interface DisplaySession {
-  id: number;
-  groupId: number;
+  id: string;
+  groupId: string;
   groupCode: string;
   projectTitle: string | null;
   date: string;
   start: string;
   end: string;
-  timeslotId: number;
-  roomId: number;
+  timeslotId: string;
+  roomId: string | null;
   roomCode: string;
-  reviewers: { id: number; name: string }[];
-  resultOwnerIds: number[];
+  reviewers: { id: string; name: string }[];
   status: string;
-}
-
-export interface MoveTarget {
-  timeslotId: number;
-  roomId: number;
-  date: string;
-  start: string;
-  end: string;
 }
