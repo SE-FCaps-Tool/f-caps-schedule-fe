@@ -112,6 +112,29 @@ GET /api/v1/lecturer/me/supervised-projects/:projectId/results
 Đề xuất: cùng shape với A8, dùng chung nếu hợp lý. Hiện §34 chỉ có field số ít `Latest Result`.
 📁 `app/(lecturer)/lecturer/supervised-groups/**`
 
+### A10. Lưới lịch rảnh theo từng slot của 1 giảng viên (Manager xem chi tiết ở Round Detail)
+```http
+GET /api/v1/rounds/:roundId/invitations/:invitationId/availability-grid
+```
+Spec §22 (Lecturer Tab — Manager) chỉ có bảng tổng hợp `Availability` dạng số lượng (đã có sẵn
+qua field `availabilitySlotCount` của `GET /rounds/:roundId/invitations`) — **không** có endpoint
+nào cho Manager xem giảng viên rảnh đúng slot nào. FE hiện đang tạm dùng lại endpoint cũ
+`GET /rounds/:roundId/my-availability` (route/shape khác convention spec — snake_case, không bọc
+`{data}`) để lấy `timeslots` + map `selected_by_lecturer` cho Sheet "Xem chi tiết" khi Manager bấm
+vào 1 giảng viên. Đề xuất response theo đúng convention spec:
+```json
+{
+  "data": {
+    "slots": [
+      { "id": "ts_01", "date": "2026-08-25", "startTime": "08:00", "endTime": "09:00", "available": true, "assigned": false }
+    ]
+  }
+}
+```
+Nếu BE build endpoint này, FE sẽ bỏ hẳn `my-availability` khỏi Round Detail (chỉ còn dùng ở
+Calendar — nơi khác, không thuộc phạm vi màn này).
+📁 `app/(manager)/manager/rounds/[roundId]/components/round-detail-page.tsx` (Sheet "Xem chi tiết" giảng viên, dòng ~373-384, ~838-857)
+
 ---
 
 ## Phần B — Endpoint đã có trong spec, FE tự suy field (BE build khớp theo đây)
