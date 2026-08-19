@@ -1,119 +1,49 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
-import { deleteCookie } from "cookies-next";
+import { getCookie } from "cookies-next";
 import type { ApiError } from "@/types/api";
 
-let store: any;
-export const injectStore = (_store: any) => {
-  store = _store;
-};
+// Backend dùng session cookie HttpOnly (docs/auth.md) — không có access/refresh token
+// để FE cầm. Mọi request phải withCredentials:true để trình duyệt gửi kèm session cookie;
+// CSRF token đọc từ cookie đọc được `scheduler_csrf` và gắn vào header cho request có side-effect.
+const CSRF_COOKIE = "scheduler_csrf";
+const CSRF_HEADER = "X-CSRF-Token";
+const MUTATING_METHODS = new Set(["post", "put", "patch", "delete"]);
+// 401 từ chính các endpoint auth là phản hồi bình thường (chưa đăng nhập / sai mật khẩu),
+// không phải dấu hiệu một session đang sống bị hết hạn — không nên phát sự kiện global logout,
+// nếu không useMe() sẽ tự tạo vòng lặp redirect vô hạn ngay trên trang /login.
+const AUTH_ENDPOINT_PATTERN = /\/api\/v1\/auth\//;
 
 class ApiService {
   private client: AxiosInstance;
-  private isRefreshing = false;
-  private failedQueue: Array<{
-    resolve: (token: string) => void;
-    reject: (error: any) => void;
-  }> = [];
 
-  constructor(baseURL: string, timeout = 600000) {
+  constructor(baseURL: string, timeout = 60000) {
     this.client = axios.create({
       baseURL,
       timeout,
-      headers: { "Content-Type": "application/json" },
+      withCredentials: true,
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
     });
     this.setupInterceptors();
   }
 
-  private processQueue(error: any, token: string | null = null) {
-    this.failedQueue.forEach((prom) => {
-      if (error) prom.reject(error);
-      else prom.resolve(token!);
-    });
-    this.failedQueue = [];
-  }
-
   private setupInterceptors() {
-    this.client.interceptors.request.use(
-      (config) => {
-        const token = store?.getState()?.auth?.token;
-        if (token) config.headers.Authorization = `Bearer ${token}`;
-        if (config.data instanceof FormData) delete config.headers["Content-Type"];
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
+    this.client.interceptors.request.use((config) => {
+      const method = config.method?.toLowerCase();
+      if (method && MUTATING_METHODS.has(method)) {
+        const csrfToken = getCookie(CSRF_COOKIE);
+        if (csrfToken) config.headers[CSRF_HEADER] = csrfToken;
+      }
+      if (config.data instanceof FormData) delete config.headers["Content-Type"];
+      return config;
+    });
 
     this.client.interceptors.response.use(
       (response) => response,
-      async (error) => {
-        const originalRequest = error.config;
-
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          if (this.isRefreshing) {
-            return new Promise((resolve, reject) => {
-              this.failedQueue.push({ resolve, reject });
-            })
-              .then((token) => {
-                originalRequest.headers["Authorization"] = "Bearer " + token;
-                return this.client(originalRequest);
-              })
-              .catch((err) => Promise.reject(err));
-          }
-
-          originalRequest._retry = true;
-          this.isRefreshing = true;
-
-          try {
-            const refreshToken = store?.getState()?.auth?.refreshToken;
-            if (!refreshToken) throw new Error("No refresh token");
-
-            const response = await axios.post(
-              `${process.env.NEXT_PUBLIC_API_URL}api/v1/auth/refresh-token`,
-              { refreshToken },
-              { headers: { "Content-Type": "application/json" } }
-            );
-
-            if (response.data?.data?.accessToken) {
-              const { accessToken, refreshToken: newRefreshToken } = response.data.data;
-
-              const { setTokenWithRefresh } = await import("@/lib/redux/slices/authSlice");
-              const { setCookie } = await import("cookies-next");
-              const { getAuthCookieConfig } = await import("@/utils/cookieConfig");
-
-              if (store)
-                store.dispatch(setTokenWithRefresh({ accessToken, refreshToken: newRefreshToken }));
-              setCookie("authToken", accessToken, getAuthCookieConfig());
-
-              this.processQueue(null, accessToken);
-              this.isRefreshing = false;
-
-              originalRequest.headers["Authorization"] = "Bearer " + accessToken;
-              return this.client(originalRequest);
-            }
-
-            throw new Error("Invalid refresh response");
-          } catch (refreshError) {
-            this.isRefreshing = false;
-            this.processQueue(refreshError, null);
-
-            deleteCookie("authToken", { path: "/" });
-            if (store) {
-              import("@/lib/redux/slices/authSlice").then(({ logout }) => {
-                store.dispatch(logout());
-              });
-            }
-
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new Event("logout"));
-            }
-
-            return Promise.reject({
-              code: 401,
-              message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
-              status: false,
-            } as ApiError);
-          }
+      (error) => {
+        const isAuthEndpoint = AUTH_ENDPOINT_PATTERN.test(error.config?.url || "");
+        if (error.response?.status === 401 && !isAuthEndpoint && typeof window !== "undefined") {
+          window.dispatchEvent(new Event("auth:unauthorized"));
         }
 
         const apiError: ApiError = {
@@ -136,20 +66,25 @@ class ApiService {
     return this.request<T>({ method: "GET", url, params });
   }
 
-  async post<T, D = any>(url: string, data?: D): Promise<AxiosResponse<T>> {
-    return this.request<T>({ method: "POST", url, data });
+  async post<T, D = any>(url: string, data?: D, params?: Record<string, any>): Promise<AxiosResponse<T>> {
+    return this.request<T>({ method: "POST", url, data, params });
   }
 
-  async put<T, D = any>(url: string, data?: D): Promise<AxiosResponse<T>> {
-    return this.request<T>({ method: "PUT", url, data });
+  async put<T, D = any>(url: string, data?: D, params?: Record<string, any>): Promise<AxiosResponse<T>> {
+    return this.request<T>({ method: "PUT", url, data, params });
   }
 
-  async patch<T, D = any>(url: string, data?: D): Promise<AxiosResponse<T>> {
-    return this.request<T>({ method: "PATCH", url, data });
+  async patch<T, D = any>(url: string, data?: D, params?: Record<string, any>): Promise<AxiosResponse<T>> {
+    return this.request<T>({ method: "PATCH", url, data, params });
   }
 
-  async delete<T>(url: string): Promise<AxiosResponse<T>> {
-    return this.request<T>({ method: "DELETE", url });
+  async delete<T>(url: string, params?: Record<string, any>): Promise<AxiosResponse<T>> {
+    return this.request<T>({ method: "DELETE", url, params });
+  }
+
+  /** GET trả về binary (vd. export .xlsx) — dùng responseType 'blob' để axios không cố parse JSON. */
+  async download(url: string, params?: Record<string, any>): Promise<AxiosResponse<Blob>> {
+    return this.request<Blob>({ method: "GET", url, params, responseType: "blob" });
   }
 
   async upload<T>(

@@ -1,7 +1,11 @@
+import { Suspense } from "react";
 import type { ReactNode } from "react";
-import { AppShell } from "@/components/layout/app-shell";
-import { ROLE_MANAGER } from "@/lib/types/roles";
+import { ManagerShell } from "./manager/_shared/manager-shell";
 
 export default function ManagerLayout({ children }: { children: ReactNode }) {
-  return <AppShell area={ROLE_MANAGER}>{children}</AppShell>;
+  return (
+    <Suspense>
+      <ManagerShell>{children}</ManagerShell>
+    </Suspense>
+  );
 }

@@ -15,6 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
+import { ROLE_LABEL_VI } from "@/lib/utils/roleLabels";
+import type { UserRole } from "@/lib/types/roles";
 
 const NAV_ITEMS = [
   { label: "Tổng quan", href: "/student/dashboard", icon: LayoutDashboard },
@@ -24,7 +26,8 @@ const NAV_ITEMS = [
 export function StudentHeader() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const initial = (user?.fullName ?? "?").trim().slice(0, 1).toUpperCase();
+  const roleLabel = user ? ROLE_LABEL_VI[user.role as UserRole] : "";
+  const initial = (roleLabel || "?").trim().slice(0, 1).toUpperCase();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -67,10 +70,10 @@ export function StudentHeader() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="font-normal">
-                <p className="truncate text-sm font-medium text-foreground">
-                  {user?.fullName ?? "—"}
+                <p className="truncate text-sm font-medium text-foreground">{roleLabel || "—"}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {user ? `Tài khoản #${user.account_id}` : ""}
                 </p>
-                <p className="truncate text-xs text-muted-foreground">{user?.email ?? ""}</p>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

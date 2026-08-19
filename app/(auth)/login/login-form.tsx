@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { MOCK_ACCOUNTS } from "@/lib/mock/mockUsers";
 import { ROLE_LABEL_VI } from "@/lib/utils/roleLabels";
 import type { UserRole } from "@/lib/types/roles";
+import type { ApiError } from "@/types/api";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Vui lòng nhập email").email("Email không hợp lệ"),
@@ -42,7 +43,7 @@ export function LoginForm() {
     try {
       await login(values);
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Đăng nhập thất bại");
+      setSubmitError((error as ApiError)?.message || "Đăng nhập thất bại");
     }
   };
 

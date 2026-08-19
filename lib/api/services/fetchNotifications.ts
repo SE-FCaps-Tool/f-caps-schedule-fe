@@ -1,0 +1,32 @@
+import apiService from "../core";
+
+export interface NotificationItem {
+  id: number;
+  event_type: string;
+  payload: Record<string, unknown>;
+  status: "PENDING" | "SENT" | "FAILED";
+  sent_at: string | null;
+  created_at: string;
+}
+
+export interface RetryNotificationResponse {
+  id: number;
+  status: "PENDING";
+  dedupe_key: string;
+}
+
+export const fetchNotifications = {
+  /** GET /notifications?limit= — tất cả role. Manager/Admin thấy scope quản lý */
+  list: async (limit = 50): Promise<NotificationItem[]> => {
+    const response = await apiService.get<NotificationItem[]>("api/v1/notifications", { limit });
+    return response.data;
+  },
+
+  /** POST /notifications/{notification_id}/retry — ADMIN, MANAGER. Chỉ retry notification FAILED */
+  retry: async (notificationId: number): Promise<RetryNotificationResponse> => {
+    const response = await apiService.post<RetryNotificationResponse>(
+      `api/v1/notifications/${notificationId}/retry`
+    );
+    return response.data;
+  },
+};

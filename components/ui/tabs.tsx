@@ -73,7 +73,15 @@ function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   return (
     <TabsPrimitive.Panel
       data-slot="tabs-content"
-      className={cn("flex-1 text-sm outline-none", className)}
+      className={cn(
+        "flex-1 text-sm outline-none",
+        "motion-safe:transition-[opacity,transform] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "motion-safe:data-starting-style:opacity-0",
+        "motion-safe:data-[activation-direction=right]:data-starting-style:translate-x-2",
+        "motion-safe:data-[activation-direction=left]:data-starting-style:-translate-x-2",
+        "motion-safe:data-[activation-direction=none]:data-starting-style:translate-y-1",
+        className
+      )}
       {...props}
     />
   )

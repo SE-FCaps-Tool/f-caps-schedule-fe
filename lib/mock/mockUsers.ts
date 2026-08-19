@@ -46,9 +46,3 @@ export const MOCK_ACCOUNTS: Record<string, MockAccount> = {
     },
   },
 };
-
-export function findMockAccount(email: string, password: string): User | null {
-  const account = MOCK_ACCOUNTS[email.trim().toLowerCase()];
-  if (!account || account.password !== password) return null;
-  return account.user;
-}

@@ -1,32 +1,18 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { jwtDecode } from "jwt-decode";
-import { ROLE_ADMIN, ROLE_MANAGER, ROLE_LECTURER, ROLE_STUDENT } from "@/lib/types/roles";
+import { ROLE_ADMIN, ROLE_MANAGER, ROLE_LECTURER, ROLE_STUDENT, ROLE_HOME } from "@/lib/types/roles";
+import { SESSION_ROLE_COOKIE } from "@/lib/constants/auth";
 
 // Next.js 16: Middleware was renamed to Proxy (node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md)
-
-const ROLE_HOME: Record<string, string> = {
-  [ROLE_ADMIN]: "/admin/dashboard",
-  [ROLE_MANAGER]: "/manager/dashboard",
-  [ROLE_LECTURER]: "/lecturer/dashboard",
-  [ROLE_STUDENT]: "/student/dashboard",
-};
-
-const getUserRole = (token: string | undefined): string | null => {
-  if (!token) return null;
-  try {
-    const decoded = jwtDecode(token) as { role?: string; exp?: number } | null;
-    if (decoded?.exp && decoded.exp < Math.floor(Date.now() / 1000)) return null;
-    return decoded?.role ?? null;
-  } catch {
-    return null;
-  }
-};
+//
+// Session thật là cookie HttpOnly do backend set (docs/auth.md), proxy không đọc được nó.
+// `session_role` là cookie đọc được FE tự set sau khi login/hydrate — chỉ dùng để định tuyến
+// UX, không phải biên bảo mật; mọi request vẫn được backend xác thực bằng session cookie thật,
+// và một session hết hạn phía server sẽ lộ ra qua 401 ở `/auth/me` (xem useAuthSyncAcrossTabs).
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get("authToken")?.value;
-  const role = getUserRole(token);
+  const role = request.cookies.get(SESSION_ROLE_COOKIE)?.value || null;
 
   if (pathname.endsWith(".xml") || pathname.endsWith(".json")) return NextResponse.next();
 
@@ -35,10 +21,10 @@ export function proxy(request: NextRequest) {
   const isAuthRoute = authRoutes.some((r) => pathname === r);
 
   // Chưa đăng nhập
-  if (!token || !role) {
+  if (!role) {
     if (isAuthRoute) return NextResponse.next();
     const res = NextResponse.redirect(new URL("/login", request.url));
-    if (token) res.cookies.delete("authToken");
+    res.cookies.delete(SESSION_ROLE_COOKIE);
     return res;
   }
 
