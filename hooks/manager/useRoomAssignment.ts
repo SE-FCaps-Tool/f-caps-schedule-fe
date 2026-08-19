@@ -6,6 +6,7 @@ import {
   fetchRoomAssignment,
   type AssignRoomPayload,
   type AvailableRoomsParams,
+  type RoomSuggestion,
 } from "@/lib/api/services/fetchRoomAssignment";
 import { friendlyErrorMessage } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
@@ -70,7 +71,7 @@ export function useApplySuggestions(roundId: string) {
   const invalidate = useInvalidateRoomAssignment();
 
   return useMutation({
-    mutationFn: () => fetchRoomAssignment.applySuggestions(roundId),
+    mutationFn: (suggestions: RoomSuggestion[]) => fetchRoomAssignment.applySuggestions(roundId, suggestions),
     onSuccess: async () => {
       await invalidate(roundId);
       toast.success("Đã áp dụng gợi ý gán phòng");

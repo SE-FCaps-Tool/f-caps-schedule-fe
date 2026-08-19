@@ -66,7 +66,7 @@ export interface PublishReadinessBlocker {
 
 export interface PublishReadiness {
   ready: boolean;
-  versionId: string | null;
+  versionId: number | null;
   blockers: PublishReadinessBlocker[];
 }
 
@@ -152,6 +152,7 @@ export interface ScheduleSession {
 
 export interface ScheduleVersionDetail extends ScheduleVersionSummary {
   sessions: ScheduleSession[];
+  assignments?: Array<{ group_id?: number; groupId?: number }>;
 }
 
 export interface ActivateVersionResponse {
@@ -442,24 +443,53 @@ export const fetchScheduling = {
 
   /** POST /rounds/:roundId/schedules/generate — spec §58. Không fail toàn bộ khi partial (spec §62) */
   generate: async (roundId: string): Promise<GenerateScheduleResult> => {
-    const response = await apiService.post<{ data: GenerateScheduleResult }>(
-      `api/v1/rounds/${roundId}/schedules/generate`,
+    // The running BE exposes the durable scheduler at /schedule/run. Keep the
+    // phase-4 method name so existing UI hooks remain stable, but adapt the
+    // legacy response into the model used by this page.
+    const response = await apiService.post<ScheduleRunResponse>(
+      `api/v1/rounds/${roundId}/schedule/run`,
       {}
     );
-    return response.data.data;
+    const result = response.data;
+    return {
+      versionId: String(result.version_id),
+      versionNumber: result.version_id,
+      status: "DRAFT",
+      scheduledCount: result.scheduled_count,
+      unscheduledCount: result.unscheduled.length,
+      overallScore: Object.values(result.soft_scores).reduce((sum, score) => sum + score, 0),
+      scores: {
+        workload: result.soft_scores.S1 ?? 0,
+        continuity: result.soft_scores.S3 ?? 0,
+        compactness: result.soft_scores.S4 ?? 0,
+      },
+    };
   },
 
   /** GET /rounds/:roundId/schedules — spec §26 */
   roundScheduleVersions: async (roundId: string): Promise<RoundScheduleVersionItem[]> => {
-    const response = await apiService.get<{ data: RoundScheduleVersionItem[] }>(
-      `api/v1/rounds/${roundId}/schedules`
+    const response = await apiService.get<ScheduleVersionSummary[]>(
+      `api/v1/rounds/${roundId}/schedule/versions`
     );
-    return response.data.data;
+    return Promise.all(response.data.map(async (version) => {
+      const detail = await apiService.get<ScheduleVersionDetail>(`api/v1/schedule/versions/${version.id}`);
+      const assignments = detail.data.assignments ?? [];
+      return {
+        id: String(version.id),
+        versionNumber: version.version_no,
+        status: version.status as RoundScheduleVersionStatus,
+        scheduledCount: assignments.length,
+        unscheduledCount: 0,
+        overallScore: version.total_score,
+        createdAt: version.created_at,
+      };
+    }));
   },
 
   /** POST /rounds/:roundId/schedules/:versionId/actions/set-active — spec §26/§64 */
   setActiveVersion: async (roundId: string, versionId: string): Promise<void> => {
-    await apiService.post(`api/v1/rounds/${roundId}/schedules/${versionId}/actions/set-active`);
+    void roundId;
+    await apiService.post(`api/v1/schedule/versions/${Number(versionId)}/activate`);
   },
 
   /** POST /rounds/:roundId/schedules/:versionId/actions/discard — spec §26 */
@@ -477,8 +507,8 @@ export const fetchScheduling = {
    * POST /rounds/:roundId/actions/publish — spec §29/§70.
    * Round SCHEDULED→PUBLISHED, Version ACTIVE→PUBLISHED, Session PLANNED→SCHEDULED.
    */
-  publishRound: async (roundId: string): Promise<void> => {
-    await apiService.post(`api/v1/rounds/${roundId}/actions/publish`);
+  publishRound: async (roundId: string, versionId: number): Promise<void> => {
+    await apiService.post(`api/v1/rounds/${roundId}/actions/publish`, { versionId });
   },
 
   /** POST /sessions/:sessionId/actions/change-room — spec §71 */

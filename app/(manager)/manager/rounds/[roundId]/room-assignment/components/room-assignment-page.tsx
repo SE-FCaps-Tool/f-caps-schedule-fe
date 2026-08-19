@@ -27,7 +27,7 @@ import {
   useSuggestRooms,
   useApplySuggestions,
 } from "@/hooks/manager/useRoomAssignment";
-import type { RoundSession } from "@/lib/api/services/fetchRoomAssignment";
+import type { RoomSuggestion, RoundSession } from "@/lib/api/services/fetchRoomAssignment";
 
 function AssignRoomDialog({
   session,
@@ -105,7 +105,7 @@ export function RoomAssignmentPage({ roundId }: { roundId: string }) {
   const { data: rooms } = useAvailableRooms(roundId);
   const suggestRooms = useSuggestRooms();
   const applySuggestions = useApplySuggestions(roundId);
-  const [suggestionCount, setSuggestionCount] = useState<number | null>(null);
+  const [suggestions, setSuggestions] = useState<RoomSuggestion[] | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [assignTarget, setAssignTarget] = useState<RoundSession | null>(null);
 
@@ -161,17 +161,17 @@ export function RoomAssignmentPage({ roundId }: { roundId: string }) {
             variant="outline"
             size="sm"
             disabled={suggestRooms.isPending}
-            onClick={() => suggestRooms.mutate(roundId, { onSuccess: (data) => setSuggestionCount(data.length) })}
+            onClick={() => suggestRooms.mutate(roundId, { onSuccess: (data) => setSuggestions(data) })}
           >
             <Sparkles />
             {suggestRooms.isPending ? "Đang tính..." : "Gợi ý gán phòng"}
           </Button>
           <Button
             size="sm"
-            disabled={applySuggestions.isPending || suggestionCount === null}
-            onClick={() => applySuggestions.mutate(undefined, { onSuccess: () => setSuggestionCount(null) })}
+            disabled={applySuggestions.isPending || suggestions === null}
+            onClick={() => suggestions && applySuggestions.mutate(suggestions, { onSuccess: () => setSuggestions(null) })}
           >
-            {applySuggestions.isPending ? "Đang áp dụng..." : suggestionCount !== null ? `Áp dụng ${suggestionCount} gợi ý` : "Áp dụng gợi ý"}
+            {applySuggestions.isPending ? "Đang áp dụng..." : suggestions !== null ? `Áp dụng ${suggestions.length} gợi ý` : "Áp dụng gợi ý"}
           </Button>
         </div>
       </div>

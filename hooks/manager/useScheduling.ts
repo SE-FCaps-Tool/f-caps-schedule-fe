@@ -207,8 +207,9 @@ export function usePublishRound() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (roundId: string) => fetchScheduling.publishRound(roundId),
-    onSuccess: async (_data, roundId) => {
+    mutationFn: ({ roundId, versionId }: { roundId: string; versionId: number }) =>
+      fetchScheduling.publishRound(roundId, versionId),
+    onSuccess: async (_data, { roundId }) => {
       await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId] });
       await queryClient.invalidateQueries({ queryKey: ["manager", "rounds"] });
       toast.success("Đã công bố lịch cho đợt đánh giá");

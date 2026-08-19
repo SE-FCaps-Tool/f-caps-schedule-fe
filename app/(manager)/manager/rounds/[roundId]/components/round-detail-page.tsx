@@ -101,7 +101,8 @@ function PublishDialog({
   const publishRound = usePublishRound();
 
   function handlePublish() {
-    publishRound.mutate(roundId, { onSuccess: () => onOpenChange(false) });
+    if (readiness?.versionId == null) return;
+    publishRound.mutate({ roundId, versionId: readiness.versionId }, { onSuccess: () => onOpenChange(false) });
   }
 
   return (
@@ -136,7 +137,11 @@ function PublishDialog({
         </div>
 
         <DialogFooter>
-          <Button type="button" disabled={!readiness?.ready || publishRound.isPending} onClick={handlePublish}>
+          <Button
+            type="button"
+            disabled={!readiness?.ready || readiness.versionId == null || publishRound.isPending}
+            onClick={handlePublish}
+          >
             {publishRound.isPending ? "Đang công bố..." : "Xác nhận công bố"}
           </Button>
         </DialogFooter>
@@ -941,7 +946,11 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
         roundId={roundId}
         invitedIds={new Set((invitations ?? []).map((l) => l.lecturer.id))}
       />
-      <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} roundId={roundId} />
+      <PublishDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        roundId={roundId}
+      />
     </div>
   );
 }
