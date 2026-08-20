@@ -12,6 +12,10 @@ import { useSemesters } from "@/hooks/useSemesters";
 import { SEMESTER_STATUS_LABEL } from "@/components/semesters/status";
 import type { SemesterApiItem, SemesterStatus } from "@/lib/api/services/fetchSemesters";
 import { useSemesterContext } from "../../_shared/semester-context";
+import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
+import { normalizeListResponse } from "@/lib/api/pagination";
+import { usePageState } from "@/hooks/shared/usePageState";
 
 export function SemestersPage() {
   const [search, setSearch] = useState("");
@@ -20,6 +24,8 @@ export function SemestersPage() {
     status: status === "ALL" ? undefined : status,
   });
   const { currentSemesterId, setCurrentSemesterId } = useSemesterContext();
+  const { containerRef, pageSize } = useAutoPageSize();
+  const [page, setPage] = usePageState(search, status, pageSize);
 
   const filtered = useMemo(() => {
     if (!semesters) return [];
@@ -27,6 +33,8 @@ export function SemestersPage() {
     if (!q) return semesters;
     return semesters.filter((s) => s.code.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
   }, [semesters, search]);
+
+  const { items: pageItems, meta } = normalizeListResponse(filtered, { page, pageSize });
 
   function handleSetContext(semester: SemesterApiItem) {
     setCurrentSemesterId(semester.code);
@@ -38,7 +46,7 @@ export function SemestersPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Học kỳ</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{semesters ? `${semesters.length} học kỳ` : "…"}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{semesters ? `${meta.total} học kỳ` : "…"}</p>
         </div>
         <AddSemesterDialog />
       </div>
@@ -60,7 +68,7 @@ export function SemestersPage() {
         </Select>
       </div>
 
-      <div className="mt-4">
+      <div ref={containerRef} className="mt-4">
         {isLoading && (
           <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
@@ -74,8 +82,9 @@ export function SemestersPage() {
           </div>
         )}
         {semesters && (
-          <SemestersTable semesters={filtered} currentContextId={currentSemesterId} onSetContext={handleSetContext} />
+          <SemestersTable semesters={pageItems} currentContextId={currentSemesterId} onSetContext={handleSetContext} />
         )}
+        {semesters && <DataTablePagination meta={meta} onPageChange={setPage} />}
       </div>
     </div>
   );

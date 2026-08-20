@@ -11,6 +11,10 @@ import { useAccounts } from "@/hooks/admin/useAccounts";
 import { AccountsTable, RoleFilterSelect } from "./accounts-table";
 import { CreateAccountDialog } from "./create-account-dialog";
 import type { UserRole } from "@/lib/types/roles";
+import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
+import { normalizeListResponse } from "@/lib/api/pagination";
+import { usePageState } from "@/hooks/shared/usePageState";
 
 type AccountStatus = "ACTIVE" | "INACTIVE";
 
@@ -19,6 +23,8 @@ export function AccountsPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<AccountStatus | "ALL">("ALL");
+  const { containerRef, pageSize } = useAutoPageSize();
+  const [page, setPage] = usePageState(search, roleFilter, statusFilter, pageSize);
 
   const filtered = useMemo(() => {
     if (!accounts) return [];
@@ -30,6 +36,8 @@ export function AccountsPage() {
       return true;
     });
   }, [accounts, search, roleFilter, statusFilter]);
+
+  const { items: pageItems, meta } = normalizeListResponse(filtered, { page, pageSize });
 
   return (
     <div>
@@ -82,7 +90,7 @@ export function AccountsPage() {
         </Select>
       </div>
 
-      <div className="mt-4">
+      <div ref={containerRef} className="mt-4">
         {isLoading && (
           <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
@@ -102,7 +110,12 @@ export function AccountsPage() {
           <p className="py-10 text-center text-sm text-muted-foreground">Không có tài khoản khớp bộ lọc.</p>
         )}
 
-        {accounts && filtered.length > 0 && <AccountsTable accounts={filtered} />}
+        {accounts && filtered.length > 0 && (
+          <>
+            <AccountsTable accounts={pageItems} />
+            <DataTablePagination meta={meta} onPageChange={setPage} />
+          </>
+        )}
       </div>
     </div>
   );

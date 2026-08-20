@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,24 +51,32 @@ export function LoginForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="ten.gv@fe.edu.vn"
-          autoComplete="email"
-          {...register("email")}
-        />
+        <div className="group relative">
+          <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+          <Input
+            id="email"
+            type="email"
+            placeholder="ten.gv@fe.edu.vn"
+            autoComplete="email"
+            className="rounded-xl border-transparent bg-muted/60 pl-9 transition-colors focus-visible:border-primary/40 focus-visible:bg-background focus-visible:ring-primary/15"
+            {...register("email")}
+          />
+        </div>
         {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="password">Mật khẩu</Label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          {...register("password")}
-        />
+        <div className="group relative">
+          <KeyRound className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            className="rounded-xl border-transparent bg-muted/60 pl-9 transition-colors focus-visible:border-primary/40 focus-visible:bg-background focus-visible:ring-primary/15"
+            {...register("password")}
+          />
+        </div>
         {errors.password && (
           <p className="text-sm text-destructive">{errors.password.message}</p>
         )}
@@ -76,12 +84,16 @@ export function LoginForm() {
 
       {submitError && <p className="text-sm text-destructive">{submitError}</p>}
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button
+        type="submit"
+        className="w-full rounded-xl shadow-[0_8px_20px_-8px_var(--brand-orange)] transition-shadow hover:shadow-[0_10px_24px_-6px_var(--brand-orange)]"
+        disabled={isLoading}
+      >
         {isLoading && <Loader2 className="size-4 animate-spin" />}
         Đăng nhập
       </Button>
 
-      <div className="space-y-2 rounded-lg border border-dashed border-border bg-muted/40 p-3">
+      <div className="space-y-2 border-t border-border pt-4">
         <p className="text-xs font-medium text-muted-foreground">
           Tài khoản demo (chưa nối backend)
         </p>

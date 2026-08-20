@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { FilePlus2, MoreHorizontal, Pencil, Search, Upload, WifiOff } from "lucide-react";
@@ -18,13 +18,19 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AsyncCombobox } from "@/components/shared/async-combobox";
 import { StatusDot } from "../../_shared/status-dot";
 import { PROJECT_STATUS_META, type ProjectProgressState } from "../../_shared/labels";
 import { useSemesterContext } from "../../_shared/semester-context";
 import { useProjects, useCreateProject, useUpdateProject } from "@/hooks/manager/useProjects";
-import { useLecturers } from "@/hooks/manager/useLecturers";
+import { useLecturersInfinite } from "@/hooks/manager/useLecturers";
 import type { ProjectListItem } from "@/lib/api/services/fetchProjects";
+import type { LecturerApiItem } from "@/lib/api/services/fetchLecturers";
+import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
+import { normalizeListResponse } from "@/lib/api/pagination";
+import { useDebouncedValue } from "@/hooks/shared/useDebouncedValue";
+import { usePageState } from "@/hooks/shared/usePageState";
 
 function notImplemented(action: string) {
   toast.info(`${action} — chưa có trong spec BE, cần chốt endpoint`);
@@ -41,52 +47,41 @@ function SupervisorPicker({
   onChangeMain: (v: string) => void;
   onChangeCo: (v: string) => void;
 }) {
-  const { data: lecturers } = useLecturers();
+  const main = useLecturersInfinite();
+  const co = useLecturersInfinite();
+  const label = (l: LecturerApiItem) => `${l.lecturer_code} — ${l.display_name}`;
+
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
         <Label>GVHD chính</Label>
-        <Select value={mainLecturerId} onValueChange={(v) => v && onChangeMain(v)}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Chọn giảng viên">
-              {(v: string) => {
-                const l = lecturers?.find((l) => String(l.id) === v);
-                return l ? `${l.lecturer_code} — ${l.display_name}` : "Chọn giảng viên";
-              }}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {(lecturers ?? []).map((l) => (
-              <SelectItem key={l.id} value={String(l.id)}>
-                {l.lecturer_code} — {l.display_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <AsyncCombobox
+          value={mainLecturerId || null}
+          onChange={(v) => onChangeMain(v ?? "")}
+          items={main.items}
+          getId={(l) => String(l.id)}
+          getLabel={label}
+          sentinelRef={main.sentinelRef}
+          isLoading={main.isLoading}
+          isFetchingNextPage={main.isFetchingNextPage}
+          placeholder="Chọn giảng viên"
+          searchPlaceholder="Tìm giảng viên..."
+        />
       </div>
       <div className="space-y-1.5">
         <Label>GVHD phụ (tùy chọn)</Label>
-        <Select value={coLecturerId} onValueChange={(v) => onChangeCo(!v || v === "__none" ? "" : v)}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Không có">
-              {(v: string) => {
-                if (!v || v === "__none") return "Không có";
-                const l = lecturers?.find((l) => String(l.id) === v);
-                return l ? `${l.lecturer_code} — ${l.display_name}` : "Không có";
-              }}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none">Không có</SelectItem>
-            {(lecturers ?? [])
-              .filter((l) => String(l.id) !== mainLecturerId)
-              .map((l) => (
-                <SelectItem key={l.id} value={String(l.id)}>
-                  {l.lecturer_code} — {l.display_name}
-                </SelectItem>
-              ))}
-          </SelectContent>
-        </Select>
+        <AsyncCombobox
+          value={coLecturerId || null}
+          onChange={(v) => onChangeCo(v ?? "")}
+          items={co.items.filter((l) => String(l.id) !== mainLecturerId)}
+          getId={(l) => String(l.id)}
+          getLabel={label}
+          sentinelRef={co.sentinelRef}
+          isLoading={co.isLoading}
+          isFetchingNextPage={co.isFetchingNextPage}
+          placeholder="Không có"
+          searchPlaceholder="Tìm giảng viên..."
+        />
       </div>
     </div>
   );
@@ -240,24 +235,22 @@ function EditProjectSupervisorsDialog({
 
 export function ProjectsPage() {
   const { currentSemesterId, currentSemester } = useSemesterContext();
-  const { data: projectsResult, isLoading, isError } = useProjects(currentSemester?.id);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectListItem | null>(null);
+  const { containerRef, pageSize } = useAutoPageSize();
+  const [page, setPage] = usePageState(debouncedSearch, pageSize);
 
-  const projects = projectsResult?.data;
+  const { data: projectsResult, isLoading, isError } = useProjects(currentSemester?.id, {
+    search: debouncedSearch || undefined,
+    page,
+    pageSize,
+  });
 
-  const filtered = useMemo(() => {
-    const list = projects ?? [];
-    const q = search.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter(
-      (p) =>
-        p.code.toLowerCase().includes(q) ||
-        p.nameVi.toLowerCase().includes(q) ||
-        (p.mainSupervisor?.fullName.toLowerCase().includes(q) ?? false)
-    );
-  }, [projects, search]);
+  const { items: filtered, meta } = projectsResult
+    ? normalizeListResponse(projectsResult, { page, pageSize })
+    : { items: [] as ProjectListItem[], meta: null };
 
   return (
     <div>
@@ -266,9 +259,7 @@ export function ProjectsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">
             Đề tài <span className="font-normal text-muted-foreground">— {currentSemesterId}</span>
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {projectsResult ? `${projectsResult.meta?.total ?? projectsResult.data?.length ?? 0} đề tài` : "…"}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{meta ? `${meta.total} đề tài` : "…"}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => notImplemented("Import đề tài")}>
@@ -302,7 +293,7 @@ export function ProjectsPage() {
         />
       </div>
 
-      <div className="mt-4">
+      <div ref={containerRef} className="mt-4">
         {isLoading && (
           <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
@@ -384,6 +375,7 @@ export function ProjectsPage() {
             </Table>
           </div>
         )}
+        {meta && <DataTablePagination meta={meta} onPageChange={setPage} />}
       </div>
     </div>
   );

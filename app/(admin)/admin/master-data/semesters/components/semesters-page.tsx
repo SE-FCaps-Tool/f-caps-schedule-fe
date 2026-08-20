@@ -11,6 +11,10 @@ import { SemestersTable } from "@/components/semesters/semesters-table";
 import { AddSemesterDialog } from "@/components/semesters/add-semester-dialog";
 import { SEMESTER_STATUS_LABEL } from "@/components/semesters/status";
 import type { SemesterStatus } from "@/lib/api/services/fetchSemesters";
+import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
+import { normalizeListResponse } from "@/lib/api/pagination";
+import { usePageState } from "@/hooks/shared/usePageState";
 
 export function SemestersPage() {
   const [search, setSearch] = useState("");
@@ -18,6 +22,8 @@ export function SemestersPage() {
   const { data: semesters, isLoading, isError } = useSemesters({
     status: status === "ALL" ? undefined : status,
   });
+  const { containerRef, pageSize } = useAutoPageSize();
+  const [page, setPage] = usePageState(search, status, pageSize);
 
   const filtered = useMemo(() => {
     if (!semesters) return [];
@@ -25,6 +31,8 @@ export function SemestersPage() {
     if (!q) return semesters;
     return semesters.filter((s) => s.code.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
   }, [semesters, search]);
+
+  const { items: pageItems, meta } = normalizeListResponse(filtered, { page, pageSize });
 
   return (
     <div>
@@ -39,7 +47,7 @@ export function SemestersPage() {
       <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Học kỳ</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{semesters ? `${semesters.length} học kỳ` : "…"}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{semesters ? `${meta.total} học kỳ` : "…"}</p>
         </div>
         <AddSemesterDialog />
       </div>
@@ -61,7 +69,7 @@ export function SemestersPage() {
         </Select>
       </div>
 
-      <div className="mt-4">
+      <div ref={containerRef} className="mt-4">
         {isLoading && (
           <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
@@ -74,7 +82,8 @@ export function SemestersPage() {
             Không tải được danh sách học kỳ. Thử tải lại trang.
           </div>
         )}
-        {semesters && <SemestersTable semesters={filtered} />}
+        {semesters && <SemestersTable semesters={pageItems} />}
+        {semesters && <DataTablePagination meta={meta} onPageChange={setPage} />}
       </div>
     </div>
   );

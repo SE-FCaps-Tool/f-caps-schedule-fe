@@ -2,14 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { fetchLecturers, type LecturerCreatePayload } from "@/lib/api/services/fetchLecturers";
+import { fetchLecturers, type LecturerCreatePayload, type LecturerListParams } from "@/lib/api/services/fetchLecturers";
 import { adminKeys } from "@/lib/api/adminQueryKeys";
 import type { ApiError } from "@/types/api";
 
-export function useLecturers() {
+export function useLecturers(params?: LecturerListParams) {
   return useQuery({
-    queryKey: adminKeys.lecturers,
-    queryFn: fetchLecturers.list,
+    queryKey: [...adminKeys.lecturers, params ?? null] as const,
+    queryFn: () => fetchLecturers.list(params),
     staleTime: 30 * 1000,
   });
 }

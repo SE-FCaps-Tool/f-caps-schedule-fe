@@ -14,10 +14,10 @@ import { friendlyErrorMessage } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
 
 /** GET /semesters/:semesterId/rounds — spec §19 */
-export function useRounds(semesterId?: number | null) {
+export function useRounds(semesterId?: number | null, params?: { page?: number; pageSize?: number }) {
   return useQuery({
-    queryKey: managerKeys.rounds(semesterId),
-    queryFn: () => fetchRounds.list(String(semesterId)),
+    queryKey: [...managerKeys.rounds(semesterId), params ?? null] as const,
+    queryFn: () => fetchRounds.list(String(semesterId), params),
     enabled: semesterId != null,
     staleTime: 30 * 1000,
   });

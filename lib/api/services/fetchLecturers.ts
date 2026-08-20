@@ -28,10 +28,21 @@ export interface LecturerCreateResponse {
   account_id: number;
 }
 
+export interface LecturerListParams {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
 export const fetchLecturers = {
-  /** GET /lecturers — ADMIN, MANAGER */
-  list: async (): Promise<LecturerApiItem[]> => {
-    const response = await apiService.get<LecturerApiItem[]>("api/v1/lecturers");
+  /**
+   * GET /lecturers — ADMIN, MANAGER.
+   * `page`/`pageSize`/`search` gửi sẵn theo hợp đồng ListResponse<T> — BE hiện chưa hỗ trợ
+   * (luôn trả mảng phẳng đầy đủ), FE tự cắt trang qua lib/api/pagination.ts normalizeListResponse
+   * cho tới khi BE bổ sung `meta`. Xem docs/manager-fe-migration-phases.md cho danh sách API cần bổ sung.
+   */
+  list: async (params?: LecturerListParams): Promise<LecturerApiItem[]> => {
+    const response = await apiService.get<LecturerApiItem[]>("api/v1/lecturers", params);
     return response.data;
   },
 

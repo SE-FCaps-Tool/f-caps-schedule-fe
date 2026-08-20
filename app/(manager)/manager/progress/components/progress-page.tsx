@@ -11,6 +11,10 @@ import { StatusDot } from "../../_shared/status-dot";
 import { REVIEW_RESULT_META, DEFENSE_CONCLUSION_META, type ReviewResult, type DefenseConclusion } from "../../_shared/labels";
 import { useSemesterContext } from "../../_shared/semester-context";
 import { useGroupProgress } from "@/hooks/manager/useReports";
+import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
+import { usePageState } from "@/hooks/shared/usePageState";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
+import { normalizeListResponse } from "@/lib/api/pagination";
 
 function ReviewCell({ outcome }: { outcome: string | null }) {
   if (!outcome) return <span className="text-sm text-muted-foreground">—</span>;
@@ -32,6 +36,7 @@ export function ProgressPage() {
   const searchParams = useSearchParams();
   // Cho phép deep-link từ trang Nhóm/Lịch đánh giá: /manager/progress?group=G001
   const [search, setSearch] = useState(searchParams.get("group") ?? "");
+  const { containerRef, pageSize } = useAutoPageSize();
 
   const filtered = useMemo(() => {
     if (!groups) return [];
@@ -39,6 +44,9 @@ export function ProgressPage() {
     if (!q) return groups;
     return groups.filter((g) => g.group_code.toLowerCase().includes(q) || g.project_name.toLowerCase().includes(q));
   }, [groups, search]);
+
+  const [page, setPage] = usePageState(search, pageSize);
+  const { items: pageItems, meta } = normalizeListResponse(filtered, { page, pageSize });
 
   return (
     <div>
@@ -54,7 +62,7 @@ export function ProgressPage() {
         <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm theo mã nhóm hoặc đề tài..." className="pl-9" />
       </div>
 
-      <div className="mt-4">
+      <div ref={containerRef} className="mt-4">
         {isLoading && (
           <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
@@ -80,14 +88,14 @@ export function ProgressPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.length === 0 && (
+                {pageItems.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
                       Chưa có nhóm nào khớp tìm kiếm.
                     </TableCell>
                   </TableRow>
                 )}
-                {filtered.map((group) => (
+                {pageItems.map((group) => (
                   <TableRow key={group.group_id}>
                     <TableCell className="pl-4">
                       <span className="font-mono text-xs font-medium">{group.group_code}</span>
@@ -113,6 +121,7 @@ export function ProgressPage() {
             </Table>
           </div>
         )}
+        {groups && <DataTablePagination meta={meta} onPageChange={setPage} />}
       </div>
     </div>
   );

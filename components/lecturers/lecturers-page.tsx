@@ -9,6 +9,10 @@ import { cn } from "@/lib/utils";
 import { useLecturers } from "@/hooks/useLecturers";
 import { LecturersTable } from "./lecturers-table";
 import { AddLecturerDialog } from "./add-lecturer-dialog";
+import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
+import { normalizeListResponse } from "@/lib/api/pagination";
+import { usePageState } from "@/hooks/shared/usePageState";
 
 /**
  * Dùng chung cho Admin (`/admin/master-data/lecturers`) và Manager (`/manager/lecturers`).
@@ -18,6 +22,8 @@ import { AddLecturerDialog } from "./add-lecturer-dialog";
 export function LecturersPage({ backHref, backLabel }: { backHref?: string; backLabel?: string }) {
   const { data: lecturers, isLoading, isError } = useLecturers();
   const [search, setSearch] = useState("");
+  const { containerRef, pageSize } = useAutoPageSize();
+  const [page, setPage] = usePageState(search, pageSize);
 
   const filtered = useMemo(() => {
     if (!lecturers) return [];
@@ -31,6 +37,8 @@ export function LecturersPage({ backHref, backLabel }: { backHref?: string; back
     );
   }, [lecturers, search]);
 
+  const { items: pageItems, meta } = normalizeListResponse(filtered, { page, pageSize });
+
   return (
     <div>
       {backHref && (
@@ -43,7 +51,7 @@ export function LecturersPage({ backHref, backLabel }: { backHref?: string; back
       <div className={cn("flex flex-wrap items-start justify-between gap-4", backHref && "mt-2")}>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Giảng viên</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{lecturers ? `${lecturers.length} giảng viên` : "…"}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{lecturers ? `${meta.total} giảng viên` : "…"}</p>
         </div>
         <AddLecturerDialog />
       </div>
@@ -53,7 +61,7 @@ export function LecturersPage({ backHref, backLabel }: { backHref?: string; back
         <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm theo tên hoặc mã GV..." className="pl-9" />
       </div>
 
-      <div className="mt-4">
+      <div ref={containerRef} className="mt-4">
         {isLoading && (
           <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
@@ -66,7 +74,8 @@ export function LecturersPage({ backHref, backLabel }: { backHref?: string; back
             Không tải được danh sách giảng viên. Thử tải lại trang.
           </div>
         )}
-        {lecturers && <LecturersTable lecturers={filtered} />}
+        {lecturers && <LecturersTable lecturers={pageItems} />}
+        {lecturers && <DataTablePagination meta={meta} onPageChange={setPage} />}
       </div>
     </div>
   );

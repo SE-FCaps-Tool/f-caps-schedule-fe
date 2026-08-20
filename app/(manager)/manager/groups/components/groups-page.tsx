@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { AlertTriangle, MoreHorizontal, Search, UsersRound, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,11 @@ import {
 import { useProjects } from "@/hooks/manager/useProjects";
 import { useStudents } from "@/hooks/manager/useLookups";
 import type { GroupListItem } from "@/lib/api/services/fetchGroups";
+import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
+import { normalizeListResponse } from "@/lib/api/pagination";
+import { useDebouncedValue } from "@/hooks/shared/useDebouncedValue";
+import { usePageState } from "@/hooks/shared/usePageState";
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -396,21 +401,24 @@ function AssignProjectDialog({
 
 export function GroupsPage() {
   const { currentSemesterId, currentSemester } = useSemesterContext();
-  const { data: groupsResult, isLoading, isError } = useGroups(currentSemester?.id);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
   const [createOpen, setCreateOpen] = useState(false);
   const [leaderTarget, setLeaderTarget] = useState<GroupListItem | null>(null);
   const [leaveTarget, setLeaveTarget] = useState<GroupListItem | null>(null);
   const [assignTarget, setAssignTarget] = useState<GroupListItem | null>(null);
+  const { containerRef, pageSize } = useAutoPageSize();
+  const [page, setPage] = usePageState(debouncedSearch, pageSize);
 
-  const groups = groupsResult?.data;
+  const { data: groupsResult, isLoading, isError } = useGroups(currentSemester?.id, {
+    search: debouncedSearch || undefined,
+    page,
+    pageSize,
+  });
 
-  const filtered = useMemo(() => {
-    const list = groups ?? [];
-    const q = search.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((g) => g.code.toLowerCase().includes(q) || (g.project?.code.toLowerCase().includes(q) ?? false));
-  }, [groups, search]);
+  const { items: filtered, meta } = groupsResult
+    ? normalizeListResponse(groupsResult, { page, pageSize })
+    : { items: [] as GroupListItem[], meta: null };
 
   return (
     <div>
@@ -419,9 +427,7 @@ export function GroupsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">
             Nhóm sinh viên <span className="font-normal text-muted-foreground">— {currentSemesterId}</span>
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {groupsResult ? `${groupsResult.meta?.total ?? groupsResult.data?.length ?? 0} nhóm` : "…"}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{meta ? `${meta.total} nhóm` : "…"}</p>
         </div>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           <UsersRound />
@@ -439,7 +445,7 @@ export function GroupsPage() {
         <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm theo mã nhóm hoặc đề tài..." className="pl-9" />
       </div>
 
-      <div className="mt-4">
+      <div ref={containerRef} className="mt-4">
         {isLoading && (
           <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
@@ -543,6 +549,7 @@ export function GroupsPage() {
             </Table>
           </div>
         )}
+        {meta && <DataTablePagination meta={meta} onPageChange={setPage} />}
       </div>
     </div>
   );

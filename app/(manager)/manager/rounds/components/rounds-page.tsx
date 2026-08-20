@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarPlus, ChevronRight, WifiOff } from "lucide-react";
@@ -18,15 +19,20 @@ import { StatusDot } from "../../_shared/status-dot";
 import { ROUND_STATUS_META, ROUND_TYPE_LABEL } from "../../_shared/labels";
 import { useSemesterContext } from "../../_shared/semester-context";
 import { useRounds } from "@/hooks/manager/useRounds";
+import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
+import { normalizeListResponse } from "@/lib/api/pagination";
 
 export function RoundsPage() {
   const router = useRouter();
   const { currentSemesterId, currentSemester } = useSemesterContext();
+  const { containerRef, pageSize } = useAutoPageSize();
+  const [page, setPage] = useState(1);
   const {
     data: roundsResult,
     isLoading,
     isError,
-  } = useRounds(currentSemester?.id);
+  } = useRounds(currentSemester?.id, { page, pageSize });
 
   function roundHref(roundId: string) {
     const params = new URLSearchParams(window.location.search);
@@ -42,7 +48,9 @@ export function RoundsPage() {
   }
   // Học kỳ CLOSED hiển thị mọi đợt ở trạng thái LOCKED (chỉ xem, không thao tác) — §8 doc
   const isLockedSemester = currentSemester?.status === "CLOSED";
-  const rounds = roundsResult?.data ?? [];
+  const { items: rounds, meta } = roundsResult
+    ? normalizeListResponse(roundsResult, { page, pageSize })
+    : { items: [] as NonNullable<typeof roundsResult>["data"], meta: null };
 
   return (
     <div>
@@ -55,9 +63,7 @@ export function RoundsPage() {
             </span>
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {roundsResult
-              ? `${roundsResult.meta?.total ?? roundsResult.data?.length ?? 0} đợt trong học kỳ ${currentSemesterId}`
-              : "…"}
+            {meta ? `${meta.total} đợt trong học kỳ ${currentSemesterId}` : "…"}
           </p>
         </div>
         <Link
@@ -82,7 +88,7 @@ export function RoundsPage() {
         </p>
       )}
 
-      <div className="mt-6">
+      <div ref={containerRef} className="mt-6">
         {isLoading && (
           <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
@@ -207,6 +213,7 @@ export function RoundsPage() {
             </div>
           </div>
         )}
+        {meta && <DataTablePagination meta={meta} onPageChange={setPage} />}
       </div>
     </div>
   );

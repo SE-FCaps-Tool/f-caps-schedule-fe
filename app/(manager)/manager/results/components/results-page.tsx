@@ -15,6 +15,10 @@ import { useSemesterContext } from "../../_shared/semester-context";
 import { useRemediationCases, useOverdueFailRemediation } from "@/hooks/manager/useResults";
 import { useLecturers } from "@/hooks/useLecturers";
 import type { RemediationCase } from "@/lib/api/services/fetchResults";
+import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
+import { usePageState } from "@/hooks/shared/usePageState";
+import { DataTablePagination } from "@/components/shared/data-table-pagination";
+import { normalizeListResponse } from "@/lib/api/pagination";
 
 const NEXT_STEP: Record<RemediationCase["status"], string> = {
   OPEN: "Chờ phản biện xác nhận",
@@ -29,8 +33,11 @@ export function ResultsPage() {
   const { data: lecturers } = useLecturers();
   const overdueFail = useOverdueFailRemediation();
   const [pendingCase, setPendingCase] = useState<RemediationCase | null>(null);
+  const { containerRef, pageSize } = useAutoPageSize();
+  const [page, setPage] = usePageState(pageSize);
 
   const overdueCount = cases?.filter((r) => r.status === "OVERDUE").length ?? 0;
+  const { items: pageItems, meta } = normalizeListResponse(cases ?? [], { page, pageSize });
 
   return (
     <div>
@@ -44,7 +51,7 @@ export function ResultsPage() {
         </p>
       </div>
 
-      <div className="mt-6">
+      <div ref={containerRef} className="mt-6">
         {isLoading && (
           <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
@@ -78,7 +85,7 @@ export function ResultsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {cases.map((row) => {
+                {pageItems.map((row) => {
                   // Remediation case chỉ được tạo khi Defense 1.1 outcome = LEVEL_2 (§6 manager-api.md)
                   const resultMeta = DEFENSE_CONCLUSION_META.LEVEL_2;
                   const remediationMeta = REMEDIATION_STATUS_META[row.status];
@@ -125,6 +132,7 @@ export function ResultsPage() {
             </Table>
           </div>
         )}
+        {cases && cases.length > 0 && <DataTablePagination meta={meta} onPageChange={setPage} />}
       </div>
 
       <ReasonDialog

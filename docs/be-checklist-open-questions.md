@@ -359,14 +359,33 @@ làm React key tốt hơn, không bắt buộc.
    danh sách (khi đó cần thêm endpoint liệt kê giảng viên hợp lệ).
 5. **Room CRUD thuộc Manager** — FE build route CRUD phòng (A4) dưới quyền Manager, không phải
    Admin. Nếu quyền quản lý phòng thực ra thuộc Admin, báo lại để FE đổi route group.
-6. **`meta.{page,pageSize,total}` thiếu ở response thực tế của các endpoint list** — Project list
-   (§16/§46), Group list (§11/§41), Round list (§19) hiện trả về `{data:[...]}` **không có `meta`**,
-   trong khi spec mô tả envelope phân trang chuẩn là `{data:[...], meta:{page,pageSize,total}}`.
-   FE đã sửa tạm bằng cách coi `meta` là optional và fallback hiển thị `data.length` thay vì
-   `meta.total` (không còn crash), nhưng số hiển thị sẽ sai nếu danh sách thực sự có phân trang
-   (chỉ đúng khi BE trả hết trong 1 trang). Cần BE bổ sung `meta` đúng theo spec ở 3 endpoint này
-   (và audit thêm các list endpoint khác có khả năng bị thiếu tương tự) để số liệu hiển thị đúng.
-   📁 `lib/api/services/fetchProjects.ts`, `fetchGroups.ts`, `fetchRounds.ts`
+6. **`meta.{page,pageSize,total}` thiếu ở response thực tế của các endpoint list** (audit lại
+   2026-08-20 — mở rộng so với bản ghi cũ, lúc đó chỉ mới thấy 3 endpoint đầu).
+   FE giờ đã có UI phân trang (page/pageSize + nút Trước/Sau) ở **mọi trang list bên Manager**,
+   dựa trên `lib/api/pagination.ts::normalizeListResponse()` — hàm này tự nhận diện response có
+   `meta` hay không: có thì dùng phân trang server thật, không có thì tự cắt trang trên mảng đã
+   fetch (đúng UI ngay hôm nay, nhưng **sai số liệu nếu danh sách thật dài hơn 1 trang** vì BE
+   vẫn trả về nguyên mảng). Trạng thái từng endpoint:
+
+   | Endpoint | FE gửi `page`/`pageSize`? | BE trả `meta`? |
+   |---|---|---|
+   | `GET /semesters/:id/projects` (§16/§46) | Có | **Không** |
+   | `GET /semesters/:id/groups` (§11/§41) | Có | **Không** |
+   | `GET /semesters/:id/rounds` (§19) | Có | **Không** |
+   | `GET /lecturers` | Có (qua combobox GVHD) | **Không** — bỏ qua params, trả full mảng |
+   | `GET /semesters` | Chưa (mới gửi `status`) | **Không** |
+   | `GET /reports/group-progress` | Chưa | **Không** |
+   | `GET /remediation` | Chưa | **Không** |
+   | `GET /rooms` | Chưa | **Không** |
+
+   Đề xuất: dùng chung 1 format — query `?page=&pageSize=`, response
+   `{data:[...], meta:{page,pageSize,total}}` (đúng envelope spec đã mô tả). Ưu tiên làm 3 dòng
+   đầu (projects/groups/rounds) trước vì FE đã gửi params sẵn — BE chỉ cần trả `meta` đúng là
+   chạy phân trang thật ngay, không cần FE deploy lại gì thêm. Các dòng còn lại BE nên đồng thời
+   nhận `page`/`pageSize`, để FE bắt đầu gửi params ngay khi confirm.
+   📁 `lib/api/services/fetchProjects.ts`, `fetchGroups.ts`, `fetchRounds.ts`, `fetchLecturers.ts`,
+   `fetchSemesters.ts`, `fetchReports.ts` (`groupProgress`), `fetchResults.ts` (`remediation`),
+   `fetchRooms.ts`
 
 ---
 
