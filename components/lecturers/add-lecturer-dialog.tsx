@@ -75,7 +75,11 @@ export function AddLecturerDialog() {
               placeholder="Tối thiểu 12 ký tự"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              aria-invalid={password.length > 0 && password.length < 12}
             />
+            {password.length > 0 && password.length < 12 && (
+              <p className="text-xs text-destructive">Mật khẩu cần tối thiểu 12 ký tự (còn thiếu {12 - password.length}).</p>
+            )}
           </div>
         </div>
 

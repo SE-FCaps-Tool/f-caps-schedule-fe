@@ -1,4 +1,9 @@
-import { ROLE_ADMIN, ROLE_MANAGER, ROLE_LECTURER, ROLE_STUDENT } from "@/lib/types/roles";
+import {
+  ROLE_ADMIN,
+  ROLE_MANAGER,
+  ROLE_LECTURER,
+  ROLE_STUDENT,
+} from "@/lib/types/roles";
 import type { User } from "@/types/models";
 
 // Tài khoản demo — dùng để xem thử UI khi chưa nối backend thật.
@@ -9,11 +14,11 @@ interface MockAccount {
 }
 
 export const MOCK_ACCOUNTS: Record<string, MockAccount> = {
-  "student@gmail.com": {
+  "student1@gmail.com": {
     password: "12345@Abc",
     user: {
       id: "mock-student-1",
-      email: "student@gmail.com",
+      email: "student1@gmail.com",
       fullName: "Nguyễn Văn Sinh Viên",
       role: ROLE_STUDENT,
     },

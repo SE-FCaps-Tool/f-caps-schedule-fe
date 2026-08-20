@@ -114,8 +114,7 @@ export function RoundsPage() {
                     <TableHead>Khoảng ngày</TableHead>
                     <TableHead className="text-right">Thời lượng</TableHead>
                     <TableHead className="text-center">Reviewer</TableHead>
-                    <TableHead>Hạn GV</TableHead>
-                    <TableHead>Hạn SV</TableHead>
+                    <TableHead>Hạn đăng ký chọn lịch</TableHead>
                     <TableHead className="pr-4">
                       <span className="sr-only">Mở</span>
                     </TableHead>
@@ -189,13 +188,6 @@ export function RoundsPage() {
                           {round.registrationDeadline
                             ? formatDate(round.registrationDeadline)
                             : "—"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground tabular-nums whitespace-nowrap">
-                          {round.groupSelectionMode
-                            ? round.groupPreferenceDeadline
-                              ? formatDate(round.groupPreferenceDeadline)
-                              : "—"
-                            : "Không cần"}
                         </TableCell>
                         <TableCell className="pr-4">
                           <Link

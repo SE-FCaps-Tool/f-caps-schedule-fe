@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   Clock,
   Grid3x3,
-  Hourglass,
   ListChecks,
   Mail,
   MoreHorizontal,
@@ -51,7 +50,6 @@ import {
   useRoundMyAvailability,
   useAttachRoundResources,
   useOpenRoundRegistration,
-  useOpenGroupRegistration,
   useCloseRoundRegistration,
   useInviteLecturers,
   useRemindInvitation,
@@ -369,7 +367,6 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
   const [publishOpen, setPublishOpen] = useState(false);
   const [configEditOpen, setConfigEditOpen] = useState(false);
   const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set());
-  const [groupRegistrationOpened, setGroupRegistrationOpened] = useState(false);
 
   const { data: round, isLoading: roundLoading, isError: roundError } = useRoundDetail(roundId);
   const { data: invitations, isLoading: invitationsLoading, isError: invitationsError } = useRoundInvitations(roundId);
@@ -392,7 +389,6 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
   const { data: roundVersions, isLoading: roundVersionsLoading, isError: roundVersionsError } = useRoundScheduleVersions(roundId);
 
   const openRegistration = useOpenRoundRegistration();
-  const openGroupRegistration = useOpenGroupRegistration();
   const closeRegistration = useCloseRoundRegistration();
   const generateSchedule = useGenerateSchedule();
   const setActiveVersion = useSetActiveScheduleVersion();
@@ -431,8 +427,6 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
   const canEditConfig = round.status === "DRAFT" || round.status === "OPEN_REGISTRATION";
   const roundTimeslots = round.days.flatMap((d) => d.slots.map((s) => ({ ...s, date: d.date })));
   const roundRoomTypes = round.roomTypes;
-  const groupRegistrationIsOpen =
-    groupRegistrationOpened || round.registrationPhase === "GROUP" || round.registrationPhase === "CLOSED";
 
   function toggleGroup(groupId: string) {
     setSelectedGroupIds((current) => {
@@ -490,22 +484,6 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
         )}
         {round.status === "OPEN_REGISTRATION" && (
           <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={groupRegistrationIsOpen || openGroupRegistration.isPending}
-              onClick={() =>
-                openGroupRegistration.mutate(roundId, {
-                  onSuccess: () => setGroupRegistrationOpened(true),
-                })
-              }
-            >
-              {openGroupRegistration.isPending
-                ? "Đang chuyển..."
-                : groupRegistrationIsOpen
-                  ? "Đã mở đăng ký cho sinh viên"
-                  : "Mở đăng ký cho sinh viên"}
-            </Button>
             <Button size="sm" disabled={closeRegistration.isPending} onClick={() => closeRegistration.mutate(roundId)}>
               Đóng đăng ký
             </Button>
@@ -543,7 +521,7 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
               tone="emerald"
             />
             <StatBlock
-              label="Hạn đăng ký"
+              label="Hạn đăng ký chọn lịch"
               value={round.registrationDeadline ? formatDate(round.registrationDeadline) : "—"}
               icon={CalendarClock}
               tone="amber"
@@ -616,14 +594,6 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
               icon={Award}
               tone={round.resultOwnerMode ? "emerald" : "neutral"}
             />
-            {round.groupSelectionMode && (
-              <StatBlock
-                label="Hạn chọn lịch nhóm"
-                value={round.groupPreferenceDeadline ? formatDate(round.groupPreferenceDeadline) : "Chưa thiết lập"}
-                icon={Hourglass}
-                tone="amber"
-              />
-            )}
           </div>
 
           <div>

@@ -50,7 +50,6 @@ function RoundConfigEditForm({
   const [durationMinutes, setDurationMinutes] = useState(String(round.durationMinutes || ""));
   const [maxGroupsPerTimeslot, setMaxGroupsPerTimeslot] = useState(String(round.maxGroupsPerTimeslot || ""));
   const [registrationDeadline, setRegistrationDeadline] = useState(isoToDatetimeLocal(round.registrationDeadline));
-  const [groupPreferenceDeadline, setGroupPreferenceDeadline] = useState(isoToDatetimeLocal(round.groupPreferenceDeadline));
   const [groupSelectionMode, setGroupSelectionMode] = useState(round.groupSelectionMode);
   const [resultOwnerMode, setResultOwnerMode] = useState(round.resultOwnerMode);
   const [roomTypes, setRoomTypes] = useState<Set<RoomType>>(new Set(round.roomTypes));
@@ -73,8 +72,6 @@ function RoundConfigEditForm({
     duration > 0 &&
     maxGroups > 0 &&
     registrationDeadline !== "" &&
-    (!groupSelectionMode || groupPreferenceDeadline !== "") &&
-    (!groupSelectionMode || registrationDeadline < groupPreferenceDeadline) &&
     roomTypes.size >= 1;
 
   function handleSubmit(e: React.FormEvent) {
@@ -87,7 +84,6 @@ function RoundConfigEditForm({
       maxGroupsPerTimeslot: maxGroups,
       registrationDeadline: datetimeLocalToIso(registrationDeadline),
       groupSelectionMode,
-      groupPreferenceDeadline: groupSelectionMode ? datetimeLocalToIso(groupPreferenceDeadline) : null,
       resultOwnerMode,
       roomTypes: Array.from(roomTypes),
     };
@@ -154,7 +150,7 @@ function RoundConfigEditForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label>Hạn đăng ký</Label>
+          <Label>Hạn đăng ký chọn lịch</Label>
           <Input
             type="datetime-local"
             value={registrationDeadline}
@@ -162,21 +158,6 @@ function RoundConfigEditForm({
             required
           />
         </div>
-
-        {groupSelectionMode && (
-          <div className="space-y-1.5">
-            <Label className="text-muted-foreground">Hạn chọn lịch của nhóm</Label>
-            <Input
-              type="datetime-local"
-              value={groupPreferenceDeadline}
-              onChange={(e) => setGroupPreferenceDeadline(e.target.value)}
-              required
-            />
-            {groupPreferenceDeadline !== "" && registrationDeadline >= groupPreferenceDeadline && (
-              <p className="text-xs text-destructive">Hạn chọn lịch nhóm phải sau hạn đăng ký.</p>
-            )}
-          </div>
-        )}
 
         <div className="flex items-center justify-between gap-3 rounded-xl border border-border p-3.5">
           <div className="min-w-0">

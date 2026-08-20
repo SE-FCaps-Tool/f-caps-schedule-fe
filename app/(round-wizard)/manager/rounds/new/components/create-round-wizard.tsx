@@ -92,10 +92,6 @@ function slotsOverlap(
   return a.startTime < b.endTime && b.startTime < a.endTime;
 }
 
-function deadlineKey(d: DeadlineDraft): string {
-  return `${d.date}T${d.time}`;
-}
-
 function StepHeader({
   icon: Icon,
   title,
@@ -147,8 +143,6 @@ export function CreateRoundWizard() {
   const [pendingEnd, setPendingEnd] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [registrationDeadline, setRegistrationDeadline] =
-    useState<DeadlineDraft | null>(null);
-  const [groupPreferenceDeadline, setGroupPreferenceDeadline] =
     useState<DeadlineDraft | null>(null);
   const [days, setDays] = useState<DayDraft[]>([]);
 
@@ -206,7 +200,6 @@ export function CreateRoundWizard() {
     setStartDate("");
     setEndDate("");
     setRegistrationDeadline(null);
-    setGroupPreferenceDeadline(null);
     setDays([]);
     setPendingStart(null);
     setPendingEnd(null);
@@ -260,18 +253,11 @@ export function CreateRoundWizard() {
 
   const totalSlots = days.reduce((sum, d) => sum + d.slots.length, 0);
   const slotsValid = days.length >= 1 && days.every((d) => d.slots.length >= 1);
-  const deadlineOrderValid =
-    !groupSelectionMode ||
-    !registrationDeadline ||
-    !groupPreferenceDeadline ||
-    deadlineKey(groupPreferenceDeadline) > deadlineKey(registrationDeadline);
 
   const step2Valid =
     startDate !== "" &&
     endDate !== "" &&
     registrationDeadline != null &&
-    (!groupSelectionMode || groupPreferenceDeadline != null) &&
-    deadlineOrderValid &&
     slotsValid;
 
   const payload: RoundCreatePayload | null = useMemo(() => {
@@ -291,10 +277,6 @@ export function CreateRoundWizard() {
       maxGroupsPerTimeslot: Number(maxGroupsPerTimeslot),
       registrationDeadline: `${registrationDeadline.date}T${registrationDeadline.time}:00+07:00`,
       groupSelectionMode,
-      groupPreferenceDeadline:
-        groupSelectionMode && groupPreferenceDeadline
-          ? `${groupPreferenceDeadline.date}T${groupPreferenceDeadline.time}:00+07:00`
-          : undefined,
       resultOwnerMode: RESULT_OWNER_ALLOWED_TYPES.has(type) && resultOwnerMode,
       roomTypes: Array.from(roomTypes),
       days: dayInputs,
@@ -313,7 +295,6 @@ export function CreateRoundWizard() {
     maxGroupsPerTimeslot,
     registrationDeadline,
     groupSelectionMode,
-    groupPreferenceDeadline,
     resultOwnerMode,
     roomTypes,
   ]);
@@ -621,14 +602,13 @@ export function CreateRoundWizard() {
               <StepHeader
                 icon={Settings2}
                 title="Lịch đợt đánh giá"
-                description={`Chọn khoảng ngày, hạn đăng ký, hạn chọn lịch của nhóm và khung giờ ngay trên lịch. Mỗi khung giờ dài ${duration} phút.`}
+                description={`Chọn khoảng ngày, hạn đăng ký chọn lịch và khung giờ ngay trên lịch. Mỗi khung giờ dài ${duration} phút.`}
               />
             </div>
 
             <div className="min-h-0 flex-1">
               <RoundScheduleCalendar
                 duration={duration}
-                groupSelectionRequired={groupSelectionMode}
                 startDate={startDate}
                 endDate={endDate}
                 pendingStart={pendingStart}
@@ -640,8 +620,6 @@ export function CreateRoundWizard() {
                 onResetRange={resetRange}
                 registrationDeadline={registrationDeadline}
                 onRegistrationDeadlineChange={setRegistrationDeadline}
-                groupPreferenceDeadline={groupPreferenceDeadline}
-                onGroupPreferenceDeadlineChange={setGroupPreferenceDeadline}
                 days={days}
                 onAddSlot={addSlot}
                 onRemoveSlot={removeSlot}
