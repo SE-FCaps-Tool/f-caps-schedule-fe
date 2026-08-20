@@ -63,22 +63,6 @@ export function useOpenRoundRegistration() {
   });
 }
 
-/** POST /rounds/:roundId/actions/open-group-registration — khóa Lecturer, mở Leader. */
-export function useOpenGroupRegistration() {
-  const invalidate = useInvalidateRounds();
-
-  return useMutation({
-    mutationFn: (roundId: string) => fetchRounds.openGroupRegistration(roundId),
-    onSuccess: async (_data, roundId) => {
-      await invalidate(roundId);
-      toast.success("Đã chuyển sang đăng ký lịch cho sinh viên");
-    },
-    onError: (error: ApiError) => {
-      toast.error(friendlyErrorMessage(error, "Không chuyển được sang đăng ký sinh viên"));
-    },
-  });
-}
-
 /** POST /rounds/:roundId/actions/close-registration — spec §21/§52 */
 export function useCloseRoundRegistration() {
   const invalidate = useInvalidateRounds();

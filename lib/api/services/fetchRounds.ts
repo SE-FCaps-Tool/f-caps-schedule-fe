@@ -16,7 +16,7 @@ export type RoundStatus =
   | "LOCKED"
   | "CANCELLED";
 
-export type RegistrationPhase = "INACTIVE" | "LECTURER" | "GROUP" | "CLOSED";
+export type RegistrationPhase = "INACTIVE" | "REGISTRATION" | "CLOSED";
 
 export type RoomType = "NORMAL" | "SEMINAR" | "LAB";
 
@@ -81,7 +81,7 @@ export interface RoundDetail {
   registrationDeadline: string | null;
   groupSelectionMode: boolean;
   groupPreferenceDeadline?: string | null;
-  /** BE-persisted registration handoff; prevents reopening Lecturer registration after refresh. */
+  /** Lecturer và Leader đăng ký song song trong cùng phase REGISTRATION, dùng chung một deadline hiệu lực. */
   registrationPhase?: RegistrationPhase;
   resultOwnerMode: boolean;
   roomTypes: RoomType[];
@@ -557,11 +557,6 @@ export const fetchRounds = {
       `api/v1/rounds/${roundId}/actions/open-registration`,
       {},
     );
-  },
-
-  /** POST /rounds/:roundId/actions/open-group-registration — chuyển lượt đăng ký sang Leader sinh viên. */
-  openGroupRegistration: async (roundId: string): Promise<void> => {
-    await apiService.post(`api/v1/rounds/${roundId}/actions/open-group-registration`, {});
   },
 
   /** POST /rounds/:roundId/actions/close-registration — spec §21/§52. OPEN_REGISTRATION → REGISTRATION_CLOSED */

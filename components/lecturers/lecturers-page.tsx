@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useLecturers } from "@/hooks/useLecturers";
 import { LecturersTable } from "./lecturers-table";
 import { AddLecturerDialog } from "./add-lecturer-dialog";
+import { ImportLecturersDialog } from "./import-lecturers-dialog";
 import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { normalizeListResponse } from "@/lib/api/pagination";
@@ -53,7 +54,10 @@ export function LecturersPage({ backHref, backLabel }: { backHref?: string; back
           <h1 className="text-2xl font-semibold tracking-tight">Giảng viên</h1>
           <p className="mt-1 text-sm text-muted-foreground">{lecturers ? `${meta.total} giảng viên` : "…"}</p>
         </div>
-        <AddLecturerDialog />
+        <div className="flex items-center gap-2">
+          <ImportLecturersDialog />
+          <AddLecturerDialog />
+        </div>
       </div>
 
       <div className="relative mt-6 max-w-sm">

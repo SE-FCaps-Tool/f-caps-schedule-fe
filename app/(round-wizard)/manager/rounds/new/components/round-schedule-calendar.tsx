@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  CalendarRange,
-  ChevronLeft,
-  ChevronRight,
-  Clock3,
-  Users2,
-} from "lucide-react";
+import { CalendarRange, ChevronLeft, ChevronRight, Clock3 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,10 +75,6 @@ function todayKey(): string {
   return toDateKey(new Date());
 }
 
-function deadlineKey(d: DeadlineDraft): string {
-  return `${d.date}T${d.time}`;
-}
-
 interface MonthCell {
   date: Date;
   /** false = thuộc tháng trước/sau, hiển thị mờ để lấp đầy lưới thay vì để trống. */
@@ -127,18 +117,15 @@ function dateRange(start: string, end: string): string[] {
   return out;
 }
 
-type Phase = "range" | "deadline-gv" | "deadline-sv" | "slots";
+type Phase = "range" | "deadline" | "slots";
 
 function computePhase(
   startDate: string,
   endDate: string,
   registrationDeadline: DeadlineDraft | null,
-  groupPreferenceDeadline: DeadlineDraft | null,
-  groupSelectionRequired: boolean,
 ): Phase {
   if (!startDate || !endDate) return "range";
-  if (!registrationDeadline) return "deadline-gv";
-  if (groupSelectionRequired && !groupPreferenceDeadline) return "deadline-sv";
+  if (!registrationDeadline) return "deadline";
   return "slots";
 }
 
@@ -151,15 +138,10 @@ const PHASE_BANNER: Record<
     text: "Bấm chọn ngày bắt đầu, rồi ngày kết thúc đợt — dùng nút để xem tháng khác.",
     tone: "text-primary",
   },
-  "deadline-gv": {
+  deadline: {
     icon: Clock3,
-    text: "Bấm một ngày trong khung để đặt hạn đăng ký cho giảng viên.",
+    text: "Bấm một ngày trong khung để đặt hạn đăng ký chọn lịch.",
     tone: "text-amber-600 dark:text-amber-400",
-  },
-  "deadline-sv": {
-    icon: Users2,
-    text: "Bấm một ngày (từ hạn giảng viên trở đi) để đặt hạn chọn lịch cho nhóm.",
-    tone: "text-violet-600 dark:text-violet-400",
   },
   slots: {
     icon: Clock3,
@@ -168,7 +150,7 @@ const PHASE_BANNER: Record<
   },
 };
 
-type Mode = "slot" | "gv" | "sv";
+type Mode = "slot" | "deadline";
 
 const LEGEND_ITEMS: {
   key: Mode;
@@ -185,24 +167,16 @@ const LEGEND_ITEMS: {
     solid: "bg-primary text-primary-foreground",
   },
   {
-    key: "gv",
-    label: "Hạn đăng ký giảng viên",
+    key: "deadline",
+    label: "Hạn đăng ký chọn lịch",
     dot: "bg-amber-500",
     badge: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
     solid: "bg-amber-500 text-white",
-  },
-  {
-    key: "sv",
-    label: "Hạn chọn lịch nhóm",
-    dot: "bg-violet-500",
-    badge: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
-    solid: "bg-violet-500 text-white",
   },
 ];
 
 interface RoundScheduleCalendarProps {
   duration: number;
-  groupSelectionRequired: boolean;
   startDate: string;
   endDate: string;
   pendingStart: string | null;
@@ -214,8 +188,6 @@ interface RoundScheduleCalendarProps {
   onResetRange: () => void;
   registrationDeadline: DeadlineDraft | null;
   onRegistrationDeadlineChange: (value: DeadlineDraft | null) => void;
-  groupPreferenceDeadline: DeadlineDraft | null;
-  onGroupPreferenceDeadlineChange: (value: DeadlineDraft | null) => void;
   days: DayDraft[];
   onAddSlot: (date: string, startTime: string) => void;
   onRemoveSlot: (date: string, index: number) => void;
@@ -223,7 +195,6 @@ interface RoundScheduleCalendarProps {
 
 export function RoundScheduleCalendar({
   duration,
-  groupSelectionRequired,
   startDate,
   endDate,
   pendingStart,
@@ -235,8 +206,6 @@ export function RoundScheduleCalendar({
   onResetRange,
   registrationDeadline,
   onRegistrationDeadlineChange,
-  groupPreferenceDeadline,
-  onGroupPreferenceDeadlineChange,
   days,
   onAddSlot,
   onRemoveSlot,
@@ -264,29 +233,15 @@ export function RoundScheduleCalendar({
   } | null>(null);
   const [manualMode, setManualMode] = useState<Mode | null>(null);
   const [deadlineMovePreview, setDeadlineMovePreview] = useState<{
-    dtype: "gv" | "sv";
     date: string;
     minutes: number;
   } | null>(null);
 
-  const phase = computePhase(
-    startDate,
-    endDate,
-    registrationDeadline,
-    groupPreferenceDeadline,
-    groupSelectionRequired,
-  );
-  const defaultMode: Mode =
-    phase === "deadline-gv" ? "gv" : phase === "deadline-sv" ? "sv" : "slot";
+  const phase = computePhase(startDate, endDate, registrationDeadline);
+  const defaultMode: Mode = phase === "deadline" ? "deadline" : "slot";
   const activeMode: Mode = manualMode ?? defaultMode;
   const bannerPhase: Phase =
-    phase === "range"
-      ? "range"
-      : activeMode === "gv"
-        ? "deadline-gv"
-        : activeMode === "sv"
-          ? "deadline-sv"
-          : "slots";
+    phase === "range" ? "range" : activeMode === "deadline" ? "deadline" : "slots";
   const banner = PHASE_BANNER[bannerPhase];
 
   function handleResetRange() {
@@ -334,13 +289,8 @@ export function RoundScheduleCalendar({
       onAddSlot(date, timeFromMinutes(minutes));
       return;
     }
-    if (activeMode === "gv") {
+    if (activeMode === "deadline") {
       onRegistrationDeadlineChange({ date, time: timeFromMinutes(minutes) });
-      return;
-    }
-    if (activeMode === "sv") {
-      if (registrationDeadline && date < registrationDeadline.date) return;
-      onGroupPreferenceDeadlineChange({ date, time: timeFromMinutes(minutes) });
     }
   }
 
@@ -380,7 +330,6 @@ export function RoundScheduleCalendar({
   }
 
   interface DeadlineMoveInfo {
-    dtype: "gv" | "sv";
     initialDate: string;
     grabOffsetY: number;
   }
@@ -446,7 +395,6 @@ export function RoundScheduleCalendar({
 
   function handleDeadlineMouseDown(
     e: React.MouseEvent<HTMLDivElement>,
-    dtype: "gv" | "sv",
     date: string,
     time: string,
   ) {
@@ -466,12 +414,11 @@ export function RoundScheduleCalendar({
       date: null,
       move: null,
       deadline: {
-        dtype,
         initialDate: date,
         grabOffsetY: e.clientY - lineClientY,
       },
     };
-    setDeadlineMovePreview({ dtype, date, minutes });
+    setDeadlineMovePreview({ date, minutes });
     window.addEventListener("mousemove", handleWindowMouseMove);
     window.addEventListener("mouseup", handleWindowMouseUp);
   }
@@ -506,7 +453,7 @@ export function RoundScheduleCalendar({
         drag.deadline.grabOffsetY,
         drag.deadline.initialDate,
       );
-      setDeadlineMovePreview({ dtype: drag.deadline.dtype, ...pos });
+      setDeadlineMovePreview(pos);
       return;
     }
 
@@ -555,15 +502,10 @@ export function RoundScheduleCalendar({
         drag.deadline.grabOffsetY,
         drag.deadline.initialDate,
       );
-      const newTime = timeFromMinutes(pos.minutes);
-      if (drag.deadline.dtype === "gv") {
-        onRegistrationDeadlineChange({ date: pos.date, time: newTime });
-      } else if (
-        !registrationDeadline ||
-        pos.date >= registrationDeadline.date
-      ) {
-        onGroupPreferenceDeadlineChange({ date: pos.date, time: newTime });
-      }
+      onRegistrationDeadlineChange({
+        date: pos.date,
+        time: timeFromMinutes(pos.minutes),
+      });
       return;
     }
 
@@ -794,8 +736,7 @@ export function RoundScheduleCalendar({
                 const isMonthStart =
                   index === 0 ||
                   date.slice(0, 7) !== columns[index - 1].slice(0, 7);
-                const isGvDay = registrationDeadline?.date === date;
-                const isSvDay = groupPreferenceDeadline?.date === date;
+                const isDeadlineDay = registrationDeadline?.date === date;
 
                 return (
                   <div
@@ -815,13 +756,11 @@ export function RoundScheduleCalendar({
                     <span
                       className={cn(
                         "flex size-7 items-center justify-center rounded-full text-sm font-semibold tabular-nums",
-                        isGvDay && "bg-amber-500 text-white",
-                        isSvDay && "bg-violet-500 text-white",
-                        !isGvDay &&
-                          !isSvDay &&
+                        isDeadlineDay && "bg-amber-500 text-white",
+                        !isDeadlineDay &&
                           isToday &&
                           "ring-2 ring-sky-500 text-foreground",
-                        !isGvDay && !isSvDay && !isToday && "text-foreground",
+                        !isDeadlineDay && !isToday && "text-foreground",
                       )}
                     >
                       {formatDate(date, "DD")}
@@ -861,8 +800,7 @@ export function RoundScheduleCalendar({
                 const draft = dayByDate.get(date);
                 const isToday = date === today;
                 const isSlotMode = activeMode === "slot";
-                const isGvDay = registrationDeadline?.date === date;
-                const isSvDay = groupPreferenceDeadline?.date === date;
+                const isDeadlineDay = registrationDeadline?.date === date;
 
                 return (
                   <div
@@ -893,16 +831,15 @@ export function RoundScheduleCalendar({
                       />
                     ))}
 
-                    {isGvDay &&
+                    {isDeadlineDay &&
                       registrationDeadline &&
-                      !(deadlineMovePreview?.dtype === "gv") && (
+                      !deadlineMovePreview && (
                         <div
                           onMouseDown={
-                            activeMode === "gv"
+                            activeMode === "deadline"
                               ? (e) =>
                                   handleDeadlineMouseDown(
                                     e,
-                                    "gv",
                                     date,
                                     registrationDeadline.time,
                                   )
@@ -910,7 +847,7 @@ export function RoundScheduleCalendar({
                           }
                           className={cn(
                             "absolute inset-x-0 z-10 flex items-center",
-                            activeMode === "gv"
+                            activeMode === "deadline"
                               ? "cursor-grab active:cursor-grabbing"
                               : "pointer-events-none",
                           )}
@@ -927,40 +864,6 @@ export function RoundScheduleCalendar({
                         </div>
                       )}
 
-                    {isSvDay &&
-                      groupPreferenceDeadline &&
-                      !(deadlineMovePreview?.dtype === "sv") && (
-                        <div
-                          onMouseDown={
-                            activeMode === "sv"
-                              ? (e) =>
-                                  handleDeadlineMouseDown(
-                                    e,
-                                    "sv",
-                                    date,
-                                    groupPreferenceDeadline.time,
-                                  )
-                              : undefined
-                          }
-                          className={cn(
-                            "absolute inset-x-0 z-10 flex items-center",
-                            activeMode === "sv"
-                              ? "cursor-grab active:cursor-grabbing"
-                              : "pointer-events-none",
-                          )}
-                          style={{
-                            top: pixelsFromMinutes(
-                              minutesFromTime(groupPreferenceDeadline.time),
-                            ),
-                          }}
-                        >
-                          <span className="h-0.5 flex-1 bg-violet-500" />
-                          <span className="absolute right-1 -translate-y-1/2 rounded bg-violet-500 px-1 py-0.5 text-[10px] leading-none font-semibold text-white">
-                            {groupPreferenceDeadline.time}
-                          </span>
-                        </div>
-                      )}
-
                     {deadlineMovePreview?.date === date && (
                       <div
                         className="pointer-events-none absolute inset-x-0 z-20 flex items-center"
@@ -968,22 +871,8 @@ export function RoundScheduleCalendar({
                           top: pixelsFromMinutes(deadlineMovePreview.minutes),
                         }}
                       >
-                        <span
-                          className={cn(
-                            "h-0.5 flex-1",
-                            deadlineMovePreview.dtype === "gv"
-                              ? "bg-amber-500"
-                              : "bg-violet-500",
-                          )}
-                        />
-                        <span
-                          className={cn(
-                            "absolute right-1 -translate-y-1/2 rounded px-1 py-0.5 text-[10px] leading-none font-semibold text-white shadow-md",
-                            deadlineMovePreview.dtype === "gv"
-                              ? "bg-amber-500"
-                              : "bg-violet-500",
-                          )}
-                        >
+                        <span className="h-0.5 flex-1 bg-amber-500" />
+                        <span className="absolute right-1 -translate-y-1/2 rounded bg-amber-500 px-1 py-0.5 text-[10px] leading-none font-semibold text-white shadow-md">
                           {timeFromMinutes(deadlineMovePreview.minutes)}
                         </span>
                       </div>
@@ -1066,71 +955,33 @@ export function RoundScheduleCalendar({
         </div>
       )}
 
-      {(registrationDeadline || groupPreferenceDeadline) && (
+      {registrationDeadline && (
         <div className="flex flex-wrap items-center gap-4 border-t border-border px-4 py-3 text-xs">
-          {registrationDeadline && (
-            <div className="flex items-center gap-2">
-              <span
-                className="size-2.5 shrink-0 rounded-full bg-amber-500"
-                aria-hidden
-              />
-              <span className="text-muted-foreground">
-                Hạn GV:{" "}
-                <span className="font-medium text-foreground">
-                  {formatDate(registrationDeadline.date, "DD/MM/YYYY")}
-                </span>
+          <div className="flex items-center gap-2">
+            <span
+              className="size-2.5 shrink-0 rounded-full bg-amber-500"
+              aria-hidden
+            />
+            <span className="text-muted-foreground">
+              Hạn đăng ký chọn lịch:{" "}
+              <span className="font-medium text-foreground">
+                {formatDate(registrationDeadline.date, "DD/MM/YYYY")}
               </span>
-              <Input
-                type="time"
-                value={registrationDeadline.time}
-                onChange={(e) =>
-                  onRegistrationDeadlineChange({
-                    ...registrationDeadline,
-                    time: e.target.value,
-                  })
-                }
-                className="h-7 w-24 px-2 text-xs"
-              />
-            </div>
-          )}
-          {groupPreferenceDeadline && (
-            <div className="flex items-center gap-2">
-              <span
-                className="size-2.5 shrink-0 rounded-full bg-violet-500"
-                aria-hidden
-              />
-              <span className="text-muted-foreground">
-                Hạn SV:{" "}
-                <span className="font-medium text-foreground">
-                  {formatDate(groupPreferenceDeadline.date, "DD/MM/YYYY")}
-                </span>
-              </span>
-              <Input
-                type="time"
-                value={groupPreferenceDeadline.time}
-                onChange={(e) =>
-                  onGroupPreferenceDeadlineChange({
-                    ...groupPreferenceDeadline,
-                    time: e.target.value,
-                  })
-                }
-                className="h-7 w-24 px-2 text-xs"
-              />
-            </div>
-          )}
+            </span>
+            <Input
+              type="time"
+              value={registrationDeadline.time}
+              onChange={(e) =>
+                onRegistrationDeadlineChange({
+                  ...registrationDeadline,
+                  time: e.target.value,
+                })
+              }
+              className="h-7 w-24 px-2 text-xs"
+            />
+          </div>
         </div>
       )}
-
-      {groupSelectionRequired &&
-        registrationDeadline &&
-        groupPreferenceDeadline &&
-        deadlineKey(groupPreferenceDeadline) <=
-          deadlineKey(registrationDeadline) && (
-          <p className="border-t border-border px-4 py-2.5 text-xs text-destructive">
-            Hạn chọn lịch của nhóm phải sau hạn đăng ký của giảng viên — chỉnh
-            lại ngày hoặc giờ ở trên.
-          </p>
-        )}
 
       <Dialog
         open={confirmOpen}
