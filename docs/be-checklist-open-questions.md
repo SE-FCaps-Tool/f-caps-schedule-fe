@@ -133,6 +133,20 @@ vào 1 giảng viên. Đề xuất response theo đúng convention spec:
 ```
 Nếu BE build endpoint này, FE sẽ bỏ hẳn `my-availability` khỏi Round Detail (chỉ còn dùng ở
 Calendar — nơi khác, không thuộc phạm vi màn này).
+
+### A11. `GET /students` thiếu Họ tên + Email
+```http
+GET /api/v1/students
+```
+`docs/master-data.md` ghi rõ response hiện tại chỉ có `{ id, student_code }` — không có tên/email.
+Form "Tạo nhóm" (Manager) cần hiển thị MSSV — Họ tên — Email khi chọn thành viên, nhưng dữ liệu
+không có sẵn để hiển thị. Đề xuất bổ sung:
+```json
+[{ "id": 1, "student_code": "SE001", "full_name": "Nguyễn Văn A", "email": "se001@fpt.edu.vn" }]
+```
+FE đã sửa `StudentApiItem`/`groups-page.tsx` để hiển thị `full_name`/`email` **ngay khi có** (2
+field đang để optional, tạm ẩn nếu BE chưa trả) — không cần FE sửa gì thêm khi BE bổ sung.
+📁 `lib/api/services/fetchMasterDataLookups.ts`, `app/(manager)/manager/groups/components/groups-page.tsx`
 📁 `app/(manager)/manager/rounds/[roundId]/components/round-detail-page.tsx` (Sheet "Xem chi tiết" giảng viên, dòng ~373-384, ~838-857)
 
 ---

@@ -118,6 +118,7 @@ function CreateGroupDialog({
                   {available.map((s) => (
                     <SelectItem key={s.id} value={String(s.id)}>
                       {s.student_code}
+                      {s.full_name && ` — ${s.full_name}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -127,8 +128,12 @@ function CreateGroupDialog({
                 {studentIds.map((id) => {
                   const s = students?.find((s) => String(s.id) === id);
                   return (
-                    <div key={id} className="flex items-center justify-between rounded-md border border-border px-3 py-1.5 text-sm">
-                      <span>{s?.student_code ?? id}</span>
+                    <div key={id} className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-1.5 text-sm">
+                      <span className="min-w-0">
+                        <span className="font-medium">{s?.student_code ?? id}</span>
+                        {s?.full_name && <span className="text-muted-foreground"> — {s.full_name}</span>}
+                        {s?.email && <span className="block truncate text-xs text-muted-foreground">{s.email}</span>}
+                      </span>
                       <Button type="button" variant="ghost" size="icon-sm" onClick={() => removeStudent(id)}>
                         ×
                       </Button>
@@ -146,7 +151,8 @@ function CreateGroupDialog({
                   <SelectValue placeholder="Chọn leader">
                     {(v: string) => {
                       const s = students?.find((s) => String(s.id) === v);
-                      return s ? s.student_code : "Chọn leader";
+                      if (!s) return "Chọn leader";
+                      return s.full_name ? `${s.student_code} — ${s.full_name}` : s.student_code;
                     }}
                   </SelectValue>
                 </SelectTrigger>
@@ -156,6 +162,7 @@ function CreateGroupDialog({
                     return (
                       <SelectItem key={id} value={id}>
                         {s?.student_code ?? id}
+                        {s?.full_name && ` — ${s.full_name}`}
                       </SelectItem>
                     );
                   })}

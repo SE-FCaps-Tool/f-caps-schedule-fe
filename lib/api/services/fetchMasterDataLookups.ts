@@ -9,6 +9,9 @@ export interface MajorApiItem {
 export interface StudentApiItem {
   id: number;
   student_code: string;
+  /** Chưa có trong docs/master-data.md (GET /students hiện chỉ trả {id, student_code}) — optional cho tới khi BE bổ sung */
+  full_name?: string;
+  email?: string;
 }
 
 export const fetchMasterDataLookups = {
