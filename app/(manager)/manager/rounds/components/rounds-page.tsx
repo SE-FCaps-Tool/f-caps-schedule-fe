@@ -74,7 +74,7 @@ export function RoundsPage() {
           }
           aria-disabled={isLockedSemester}
         >
-          <Button size="sm" disabled={isLockedSemester}>
+          <Button disabled={isLockedSemester}>
             <CalendarPlus />
             Tạo đợt đánh giá
           </Button>

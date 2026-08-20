@@ -24,7 +24,7 @@ function useInvalidateSemesters() {
 export function useSemesters(params?: SemesterListParams) {
   return useQuery({
     queryKey: adminKeys.semesters(params),
-    queryFn: () => fetchSemesters.list(params),
+    queryFn: async () => (await fetchSemesters.list(params)).data,
     staleTime: 30 * 1000,
   });
 }

@@ -8,15 +8,15 @@ import { useInfiniteScroll } from "@/hooks/shared/useInfiniteScroll";
 export function useLecturers() {
   return useQuery({
     queryKey: ["manager", "lecturers"] as const,
-    queryFn: () => fetchLecturers.list(),
+    queryFn: async () => (await fetchLecturers.list()).data,
     staleTime: 5 * 60 * 1000,
   });
 }
 
 /**
  * GET /lecturers, load-more theo scroll — dùng cho AsyncCombobox trong các dialog gán GVHD.
- * Dựa trên hooks/shared/useInfiniteScroll.ts; BE /lecturers chưa hỗ trợ page/pageSize nên
- * hoạt động client-side (toàn bộ danh sách về trong "trang 1"), tự nâng cấp khi BE bổ sung.
+ * Dựa trên hooks/shared/useInfiniteScroll.ts — BE giờ đã trả `meta` thật (xem
+ * docs/be-checklist-open-questions.md mục 6) nên load-more chạy phân trang server thật.
  */
 export function useLecturersInfinite(search?: string) {
   return useInfiniteScroll({

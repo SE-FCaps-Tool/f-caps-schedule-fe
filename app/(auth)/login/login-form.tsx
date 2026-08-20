@@ -86,7 +86,7 @@ export function LoginForm() {
 
       <Button
         type="submit"
-        className="w-full rounded-xl shadow-[0_8px_20px_-8px_var(--brand-orange)] transition-shadow hover:shadow-[0_10px_24px_-6px_var(--brand-orange)]"
+        className="w-full shadow-[0_8px_20px_-8px_var(--brand-orange)] transition-shadow hover:shadow-[0_10px_24px_-6px_var(--brand-orange)]"
         disabled={isLoading}
       >
         {isLoading && <Loader2 className="size-4 animate-spin" />}

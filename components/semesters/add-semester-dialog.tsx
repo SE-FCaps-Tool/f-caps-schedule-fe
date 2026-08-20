@@ -234,7 +234,7 @@ export function AddSemesterDialog() {
         if (!next) reset();
       }}
     >
-      <DialogTrigger render={<Button size="sm"><CalendarPlus />Tạo học kỳ</Button>} />
+      <DialogTrigger render={<Button><CalendarPlus />Tạo học kỳ</Button>} />
       <DialogContent className="sm:max-w-lg overflow-hidden">
         <DialogHeader>
           <div className="flex items-center gap-2">

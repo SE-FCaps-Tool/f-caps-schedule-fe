@@ -1,5 +1,6 @@
 import type { AxiosResponse } from "axios";
 import apiService from "../core";
+import { snakeizeKeys } from "../caseConvert";
 
 export interface DashboardResponse {
   /** manager-api.md §10.6 */
@@ -162,11 +163,21 @@ export const fetchReports = {
   },
 
   /** GET /reports/group-progress?semester_id= — CHƯA CÓ Ở BACKEND, đề xuất tại manager-api.md §8.6 */
+  /**
+   * BE có thể trả mảng phẳng HOẶC `{data: [...], meta}` qua success_payload() tuỳ đã migrate
+   * hay chưa (xem docs/be-checklist-open-questions.md mục 6) — chấp nhận cả 2 dạng cho an toàn.
+   */
   groupProgress: async (semesterId?: number | null): Promise<GroupProgressRow[]> => {
-    const response = await apiService.get<GroupProgressRow[]>("api/v1/reports/group-progress", {
+    const response = await apiService.get<unknown>("api/v1/reports/group-progress", {
       semester_id: semesterId ?? undefined,
     });
-    return response.data;
+    const raw = response.data;
+    const list = Array.isArray(raw)
+      ? raw
+      : raw && typeof raw === "object" && Array.isArray((raw as { data?: unknown }).data)
+        ? (raw as { data: unknown[] }).data
+        : [];
+    return snakeizeKeys<GroupProgressRow[]>(list);
   },
 
   /**

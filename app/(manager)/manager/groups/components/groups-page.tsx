@@ -429,7 +429,7 @@ export function GroupsPage() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{meta ? `${meta.total} nhóm` : "…"}</p>
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
+        <Button onClick={() => setCreateOpen(true)}>
           <UsersRound />
           Tạo nhóm
         </Button>

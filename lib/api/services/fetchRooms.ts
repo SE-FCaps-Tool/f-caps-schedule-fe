@@ -1,6 +1,8 @@
 import apiService from "../core";
 import type { RoomType } from "./fetchRounds";
 import type { RoomStatus } from "./fetchRoomAssignment";
+import { snakeizeKeys } from "../caseConvert";
+import type { ListMeta, ListResponse } from "@/types/api";
 
 export interface RoomApiItem {
   id: number;
@@ -26,11 +28,20 @@ export interface RoomUpdatePayload {
   status?: RoomStatus;
 }
 
+export interface RoomListParams {
+  page?: number;
+  pageSize?: number;
+}
+
 export const fetchRooms = {
-  /** GET /rooms — ADMIN, MANAGER */
-  list: async (): Promise<RoomApiItem[]> => {
-    const response = await apiService.get<RoomApiItem[]>("api/v1/rooms");
-    return response.data;
+  /**
+   * GET /rooms — ADMIN, MANAGER.
+   * BE trả `{data: [...camelCase], meta: {page,pageSize,total}}` qua success_payload()
+   * (xem docs/be-checklist-open-questions.md mục 6) — unwrap + snakeize để khớp RoomApiItem.
+   */
+  list: async (params?: RoomListParams): Promise<ListResponse<RoomApiItem>> => {
+    const response = await apiService.get<{ data: unknown[]; meta?: ListMeta }>("api/v1/rooms", params);
+    return { data: snakeizeKeys<RoomApiItem[]>(response.data.data), meta: response.data.meta };
   },
 
   /** POST /rooms — ADMIN only */

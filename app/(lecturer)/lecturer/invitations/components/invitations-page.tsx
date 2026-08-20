@@ -113,11 +113,10 @@ export function InvitationsPage() {
                       <TableCell className="pr-4 text-right">
                         {inv.status === "PENDING" && (
                           <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm" onClick={() => setDeclineTarget(inv)}>
+                            <Button variant="outline" onClick={() => setDeclineTarget(inv)}>
                               Từ chối
                             </Button>
                             <Button
-                              size="sm"
                               disabled={respond.isPending}
                               onClick={() => respond.mutate({ roundId: inv.round.id, payload: { decision: "ACCEPTED" } })}
                             >
@@ -127,7 +126,7 @@ export function InvitationsPage() {
                         )}
                         {inv.status === "ACCEPTED" && (
                           <Link href="/lecturer/availability">
-                            <Button variant="outline" size="sm">
+                            <Button>
                               <CalendarCheck />
                               Đăng ký lịch rảnh
                             </Button>

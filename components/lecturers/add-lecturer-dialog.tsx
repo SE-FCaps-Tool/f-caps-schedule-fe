@@ -45,7 +45,7 @@ export function AddLecturerDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="sm"><UserPlus />Thêm giảng viên</Button>} />
+      <DialogTrigger render={<Button><UserPlus />Thêm giảng viên</Button>} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Thêm giảng viên</DialogTitle>

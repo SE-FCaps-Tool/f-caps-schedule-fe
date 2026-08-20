@@ -1,4 +1,6 @@
 import apiService from "../core";
+import { snakeizeKeys } from "../caseConvert";
+import type { ListMeta, ListResponse } from "@/types/api";
 
 export interface LecturerConflict {
   project_id: number;
@@ -37,13 +39,12 @@ export interface LecturerListParams {
 export const fetchLecturers = {
   /**
    * GET /lecturers — ADMIN, MANAGER.
-   * `page`/`pageSize`/`search` gửi sẵn theo hợp đồng ListResponse<T> — BE hiện chưa hỗ trợ
-   * (luôn trả mảng phẳng đầy đủ), FE tự cắt trang qua lib/api/pagination.ts normalizeListResponse
-   * cho tới khi BE bổ sung `meta`. Xem docs/manager-fe-migration-phases.md cho danh sách API cần bổ sung.
+   * BE trả `{data: [...camelCase], meta: {page,pageSize,total}}` qua success_payload()
+   * (xem docs/be-checklist-open-questions.md mục 6) — unwrap + snakeize để khớp LecturerApiItem.
    */
-  list: async (params?: LecturerListParams): Promise<LecturerApiItem[]> => {
-    const response = await apiService.get<LecturerApiItem[]>("api/v1/lecturers", params);
-    return response.data;
+  list: async (params?: LecturerListParams): Promise<ListResponse<LecturerApiItem>> => {
+    const response = await apiService.get<{ data: unknown[]; meta?: ListMeta }>("api/v1/lecturers", params);
+    return { data: snakeizeKeys<LecturerApiItem[]>(response.data.data), meta: response.data.meta };
   },
 
   /** POST /lecturers — ADMIN only, tạo account + lecturer trong 1 transaction */

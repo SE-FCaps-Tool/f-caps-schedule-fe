@@ -262,11 +262,11 @@ export function ProjectsPage() {
           <p className="mt-1 text-sm text-muted-foreground">{meta ? `${meta.total} đề tài` : "…"}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => notImplemented("Import đề tài")}>
+          <Button onClick={() => notImplemented("Import đề tài")}>
             <Upload />
             Import
           </Button>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Button onClick={() => setCreateOpen(true)}>
             <FilePlus2 />
             Tạo đề tài
           </Button>

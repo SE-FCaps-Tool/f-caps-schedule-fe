@@ -49,7 +49,7 @@ export function CreateAccountDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="sm"><UserPlus />Tạo tài khoản</Button>} />
+      <DialogTrigger render={<Button><UserPlus />Tạo tài khoản</Button>} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Tạo tài khoản</DialogTitle>

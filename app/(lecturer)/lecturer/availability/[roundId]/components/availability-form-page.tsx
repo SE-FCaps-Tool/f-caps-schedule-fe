@@ -15,6 +15,10 @@ import type { LecturerAvailability, PreferredLoad } from "@/lib/api/services/fet
 import { friendlyErrorMessage } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
 
+// Select cần 1 giá trị luôn xác định ngay từ lần render đầu (Base UI khoá controlled/uncontrolled
+// theo lần render đầu tiên) — dùng sentinel thay cho `undefined` khi preferredLoad còn null.
+const UNSET_PREFERRED_LOAD = "__unset";
+
 function AvailabilityForm({ roundId, availability }: { roundId: string; availability: LecturerAvailability }) {
   const submitAvailability = useSubmitAvailability(roundId);
 
@@ -47,9 +51,14 @@ function AvailabilityForm({ roundId, availability }: { roundId: string; availabi
     <div className="mt-6 space-y-6">
       <div className="max-w-xs space-y-1.5">
         <Label>Mức tải mong muốn</Label>
-        <Select value={preferredLoad ?? undefined} onValueChange={(v) => v && setPreferredLoad(v as PreferredLoad)}>
+        <Select
+          value={preferredLoad ?? UNSET_PREFERRED_LOAD}
+          onValueChange={(v) => v && v !== UNSET_PREFERRED_LOAD && setPreferredLoad(v as PreferredLoad)}
+        >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Chọn mức tải">{(v: PreferredLoad) => PREFERRED_LOAD_LABEL[v]}</SelectValue>
+            <SelectValue placeholder="Chọn mức tải">
+              {(v: string) => (v === UNSET_PREFERRED_LOAD ? "Chọn mức tải" : PREFERRED_LOAD_LABEL[v as PreferredLoad])}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {(Object.keys(PREFERRED_LOAD_LABEL) as PreferredLoad[]).map((load) => (

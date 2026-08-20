@@ -1,4 +1,5 @@
 import apiService from "../core";
+import { snakeizeKeys } from "../caseConvert";
 
 /**
  * Phần dưới đây theo capstone-fe-be-implementation-spec.md §9/§74/§76 (Phase 8 — Result &
@@ -122,10 +123,22 @@ export const fetchResults = {
     return response.data;
   },
 
-  /** GET /remediation — tất cả role, Manager thấy tất cả case */
+  /**
+   * GET /remediation — tất cả role, Manager thấy tất cả case.
+   * BE có thể trả mảng phẳng HOẶC `{data: [...], meta}` qua success_payload() tuỳ đã migrate
+   * hay chưa (xem docs/be-checklist-open-questions.md mục 6) — chấp nhận cả 2 dạng cho an toàn.
+   * `snakeizeKeys` không đổi gì nếu field đã là snake_case (chỉ convert ký tự hoa), nên áp
+   * dụng vô điều kiện không rủi ro.
+   */
   remediation: async (): Promise<RemediationCase[]> => {
-    const response = await apiService.get<RemediationCase[]>("api/v1/remediation");
-    return response.data;
+    const response = await apiService.get<unknown>("api/v1/remediation");
+    const raw = response.data;
+    const list = Array.isArray(raw)
+      ? raw
+      : raw && typeof raw === "object" && Array.isArray((raw as { data?: unknown }).data)
+        ? (raw as { data: unknown[] }).data
+        : [];
+    return snakeizeKeys<RemediationCase[]>(list);
   },
 
   /**

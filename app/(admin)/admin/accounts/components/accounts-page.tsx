@@ -55,7 +55,7 @@ export function AccountsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => toast.info("Import CSV/Excel — chưa nối backend")}>
+          <Button onClick={() => toast.info("Import CSV/Excel — chưa nối backend")}>
             <Upload />
             Import CSV
           </Button>

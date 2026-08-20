@@ -9,7 +9,7 @@ import type { ApiError } from "@/types/api";
 export function useRooms() {
   return useQuery({
     queryKey: adminKeys.rooms,
-    queryFn: fetchRooms.list,
+    queryFn: async () => (await fetchRooms.list()).data,
     staleTime: 30 * 1000,
   });
 }

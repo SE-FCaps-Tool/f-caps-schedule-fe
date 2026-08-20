@@ -47,7 +47,7 @@ export function AddRoomDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="sm"><DoorOpen />Thêm phòng</Button>} />
+      <DialogTrigger render={<Button><DoorOpen />Thêm phòng</Button>} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Thêm phòng</DialogTitle>

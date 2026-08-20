@@ -33,7 +33,6 @@ export function RemediationTaskRow({ task }: { task: LecturerRemediation }) {
         <div className="flex shrink-0 items-center gap-2">
           <Button
             variant="outline"
-            size="sm"
             disabled={verify.isPending}
             onClick={() => verify.mutate({ remediationId: task.id, payload: { decision: "FAIL" } })}
             className="text-destructive hover:text-destructive"
@@ -42,7 +41,6 @@ export function RemediationTaskRow({ task }: { task: LecturerRemediation }) {
             Chưa đạt
           </Button>
           <Button
-            size="sm"
             disabled={verify.isPending}
             onClick={() => verify.mutate({ remediationId: task.id, payload: { decision: "PASS" } })}
           >

@@ -9,7 +9,7 @@ import type { ApiError } from "@/types/api";
 export function useLecturers(params?: LecturerListParams) {
   return useQuery({
     queryKey: [...adminKeys.lecturers, params ?? null] as const,
-    queryFn: () => fetchLecturers.list(params),
+    queryFn: async () => (await fetchLecturers.list(params)).data,
     staleTime: 30 * 1000,
   });
 }

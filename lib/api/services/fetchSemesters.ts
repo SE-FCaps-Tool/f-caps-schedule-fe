@@ -1,4 +1,6 @@
 import apiService from "../core";
+import { snakeizeKeys } from "../caseConvert";
+import type { ListMeta, ListResponse } from "@/types/api";
 
 /**
  * 4 trạng thái theo docs/capstone-fe-be-implementation-spec.md §1 (spec đích — BE sẽ
@@ -39,6 +41,8 @@ export interface SemesterListParams {
   status?: SemesterStatus;
   /** "YYYY-YYYY" */
   academicYear?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface SemesterCreatePayload {
@@ -66,14 +70,20 @@ export interface SemesterTransitionPayload {
 }
 
 export const fetchSemesters = {
-  /** GET /semesters — ADMIN, MANAGER. Hỗ trợ search/status/academic_year filter */
-  list: async (params?: SemesterListParams): Promise<SemesterApiItem[]> => {
-    const response = await apiService.get<SemesterApiItem[]>("api/v1/semesters", {
+  /**
+   * GET /semesters — ADMIN, MANAGER. Hỗ trợ search/status/academic_year filter.
+   * BE trả `{data: [...camelCase], meta: {page,pageSize,total}}` qua success_payload()
+   * (xem docs/be-checklist-open-questions.md mục 6) — unwrap + snakeize để khớp SemesterApiItem.
+   */
+  list: async (params?: SemesterListParams): Promise<ListResponse<SemesterApiItem>> => {
+    const response = await apiService.get<{ data: unknown[]; meta?: ListMeta }>("api/v1/semesters", {
       search: params?.search || undefined,
       status: params?.status,
       academic_year: params?.academicYear || undefined,
+      page: params?.page,
+      pageSize: params?.pageSize,
     });
-    return response.data;
+    return { data: snakeizeKeys<SemesterApiItem[]>(response.data.data), meta: response.data.meta };
   },
 
   /** GET /semesters/{id} — ADMIN, MANAGER */
