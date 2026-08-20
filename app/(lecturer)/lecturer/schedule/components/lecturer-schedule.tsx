@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLecturerSessions } from "@/hooks/lecturer/useLecturerPortal";
-import { toLecturerSession } from "./types";
+import { toLecturerSession, type LecturerSession } from "./types";
 import { ExportIcsButton } from "./export-ics-button";
 import { ScheduleListView } from "./schedule-list-view";
 import { ViewToggle, type ScheduleView } from "./view-toggle";
@@ -34,7 +34,10 @@ export function LecturerSchedule() {
   const [weekStart, setWeekStart] = useState(() => mondayOf(TODAY_ISO));
 
   const { data, isLoading, isError } = useLecturerSessions();
-  const sessions = useMemo(() => (data ?? []).map(toLecturerSession), [data]);
+  const sessions = useMemo(
+    () => (data ?? []).map(toLecturerSession).filter((s): s is LecturerSession => s !== null),
+    [data]
+  );
 
   const upcomingCount = useMemo(() => sessions.filter((s) => s.status === "SCHEDULED").length, [sessions]);
 

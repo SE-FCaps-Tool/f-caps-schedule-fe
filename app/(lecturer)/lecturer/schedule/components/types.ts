@@ -36,7 +36,8 @@ export interface LecturerSession {
   status: LecturerScheduleSessionStatus;
 }
 
-export function toLecturerSession(dto: LecturerScheduleSession): LecturerSession {
+export function toLecturerSession(dto: LecturerScheduleSession): LecturerSession | null {
+  if (!dto.round || !dto.group) return null;
   return {
     id: dto.id,
     roundType: dto.round.type,

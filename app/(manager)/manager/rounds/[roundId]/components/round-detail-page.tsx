@@ -373,6 +373,17 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
   const { data: groupsResult } = useGroups(semesterId);
   const { data: registrationSummary } = useRegistrationSummary(roundId);
   const { data: availability } = useRoundMyAvailability(legacyRoundId);
+  const selectedByLecturer = useMemo(() => {
+    const map = new Map<number, Set<number>>();
+    for (const row of availability?.selected_by_lecturer ?? []) {
+      if (row.state !== "AVAILABLE") continue;
+      const lecturerId = Number(row.lecturer_id);
+      const timeslotId = Number(row.timeslot_id);
+      if (!map.has(lecturerId)) map.set(lecturerId, new Set());
+      map.get(lecturerId)!.add(timeslotId);
+    }
+    return map;
+  }, [availability]);
   const { data: readiness } = useSchedulingReadiness(roundId);
   const { data: roundVersions, isLoading: roundVersionsLoading, isError: roundVersionsError } = useRoundScheduleVersions(roundId);
 
@@ -447,7 +458,7 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
   }
 
   function isLecturerAssignedToSlot(lecturerId: number, timeslotId: number) {
-    return availability?.selected_by_lecturer?.[String(lecturerId)]?.includes(timeslotId) ?? false;
+    return selectedByLecturer.get(lecturerId)?.has(timeslotId) ?? false;
   }
 
   return (

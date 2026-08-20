@@ -147,12 +147,30 @@ export interface RoundTimeslot {
   day_date: string;
 }
 
+export interface RoundLecturerAvailabilityEntry {
+  lecturer_id: number;
+  timeslot_id: number;
+  state: "AVAILABLE" | "UNAVAILABLE" | string;
+  load_preference: string | null;
+  source: string;
+}
+
+export interface RoundGroupAvailabilityEntry {
+  group_id: number;
+  timeslot_id: number;
+  selected: boolean;
+  source: string;
+}
+
 export interface RoundMyAvailabilityResponse {
   round: { id: number; type: RoundType; group_selection_mode: boolean; registration_deadline: string | null };
   timeslots: RoundTimeslot[];
-  /** Chỉ có khi caller là ADMIN/MANAGER — audit view */
-  selected_by_lecturer?: Record<string, number[]>;
-  selected_by_group?: Record<string, number[]>;
+  /**
+   * Chỉ có khi caller là ADMIN/MANAGER — audit view. BE xác nhận đây là mảng object
+   * (không phải map theo id), lọc `state === "AVAILABLE"` để biết giảng viên rảnh slot đó.
+   */
+  selected_by_lecturer?: RoundLecturerAvailabilityEntry[];
+  selected_by_group?: RoundGroupAvailabilityEntry[];
 }
 
 type ApiRecord = Record<string, unknown>;
@@ -398,12 +416,12 @@ export const fetchRounds = {
 
   /** POST /rounds/:roundId/actions/open-group-registration — chuyển lượt đăng ký sang Leader sinh viên. */
   openGroupRegistration: async (roundId: string): Promise<void> => {
-    await apiService.post(`api/v1/rounds/${roundId}/actions/open-group-registration`);
+    await apiService.post(`api/v1/rounds/${roundId}/actions/open-group-registration`, {});
   },
 
   /** POST /rounds/:roundId/actions/close-registration — spec §21/§52. OPEN_REGISTRATION → REGISTRATION_CLOSED */
   closeRegistration: async (roundId: string): Promise<void> => {
-    await apiService.post(`api/v1/rounds/${roundId}/actions/close-registration`);
+    await apiService.post(`api/v1/rounds/${roundId}/actions/close-registration`, {});
   },
 
   /** GET /rounds/:roundId/invitations — spec §22 */
@@ -419,7 +437,7 @@ export const fetchRounds = {
 
   /** POST /rounds/:roundId/invitations/:invitationId/remind — spec §22 */
   remindInvitation: async (roundId: string, invitationId: string): Promise<void> => {
-    await apiService.post(`api/v1/rounds/${roundId}/invitations/${invitationId}/remind`);
+    await apiService.post(`api/v1/rounds/${roundId}/invitations/${invitationId}/remind`, {});
   },
 
   /** GET /rounds/:roundId/eligible-projects — spec §23/§48 */

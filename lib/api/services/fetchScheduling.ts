@@ -489,12 +489,12 @@ export const fetchScheduling = {
   /** POST /rounds/:roundId/schedules/:versionId/actions/set-active — spec §26/§64 */
   setActiveVersion: async (roundId: string, versionId: string): Promise<void> => {
     void roundId;
-    await apiService.post(`api/v1/schedule/versions/${Number(versionId)}/activate`);
+    await apiService.post(`api/v1/schedule/versions/${Number(versionId)}/activate`, {});
   },
 
   /** POST /rounds/:roundId/schedules/:versionId/actions/discard — spec §26 */
   discardVersion: async (roundId: string, versionId: string): Promise<void> => {
-    await apiService.post(`api/v1/rounds/${roundId}/schedules/${versionId}/actions/discard`);
+    await apiService.post(`api/v1/rounds/${roundId}/schedules/${versionId}/actions/discard`, {});
   },
 
   /** GET /rounds/:roundId/publish-readiness — spec §29/§69 */

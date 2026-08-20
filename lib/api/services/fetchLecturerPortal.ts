@@ -34,28 +34,29 @@ export interface LecturerAvailability {
   slots: AvailabilitySlot[];
 }
 
+/** BE trả legacy snake_case cho endpoint này (đã xác nhận với BE — không phải spec camelCase). */
 export interface LecturerAvailabilityResponse {
   round: unknown;
   timeslots: {
     id: number | string;
-    startAt: string;
-    endAt: string;
-    dayDate: string;
+    start_at: string;
+    end_at: string;
+    day_date: string;
   }[];
-  lecturerId: number | string;
-  selectedTimeslotIds: (number | string)[];
+  lecturer_id: number | string;
+  selected_timeslot_ids: (number | string)[];
 }
 
 /** Adapt BE availability data without inventing a preferred load not supplied by the API. */
 export function adaptLecturerAvailability(response: LecturerAvailabilityResponse): LecturerAvailability {
-  const selectedIds = new Set(response.selectedTimeslotIds.map(String));
+  const selectedIds = new Set(response.selected_timeslot_ids.map(String));
   return {
     preferredLoad: null,
     slots: response.timeslots.map((slot) => ({
       timeslotId: String(slot.id),
-      date: formatInVietnamTime(slot.startAt, "YYYY-MM-DD"),
-      startTime: formatInVietnamTime(slot.startAt, "HH:mm"),
-      endTime: formatInVietnamTime(slot.endAt, "HH:mm"),
+      date: formatInVietnamTime(slot.start_at, "YYYY-MM-DD"),
+      startTime: formatInVietnamTime(slot.start_at, "HH:mm"),
+      endTime: formatInVietnamTime(slot.end_at, "HH:mm"),
       available: selectedIds.has(String(slot.id)),
     })),
   };
@@ -94,16 +95,16 @@ export const fetchLecturerPortal = {
     await apiService.put(`api/v1/rounds/${roundId}/availability/me`, payload);
   },
 
-  /** GET /lecturer/me/sessions — spec §33 */
+  /** GET /lecturer/me/sessions — spec §33. BE trả flat row (round/group/council chưa lồng nhau) — adapt thủ công. */
   mySessions: async (params: MySessionsParams): Promise<LecturerScheduleSession[]> => {
-    const response = await apiService.get<{ data: LecturerScheduleSession[] }>("api/v1/lecturer/me/sessions", {
+    const response = await apiService.get<{ data: LecturerSessionApi[] }>("api/v1/lecturer/me/sessions", {
       roundId: params.roundId,
       dateFrom: params.dateFrom,
       dateTo: params.dateTo,
       role: params.role,
       status: params.status,
     });
-    return response.data.data;
+    return response.data.data.map(adaptLecturerSession);
   },
 
   /** GET /sessions/:sessionId — spec §35 */
@@ -112,10 +113,15 @@ export const fetchLecturerPortal = {
     return response.data.data;
   },
 
-  /** GET /lecturer/me/supervised-projects — spec §34 */
+  /**
+   * GET /lecturer/me/supervised-projects — spec §34. BE hiện chỉ trả row phẳng
+   * (id/code/title/status project DB ACTIVE|ARCHIVED, không có group/leader/latestResult/
+   * remediation) — contract gap đã báo BE, chưa có ETA. Adapt tạm những field có sẵn,
+   * phần thiếu giữ null để UI hiện fallback thay vì crash.
+   */
   supervisedProjects: async (): Promise<SupervisedProject[]> => {
-    const response = await apiService.get<{ data: SupervisedProject[] }>("api/v1/lecturer/me/supervised-projects");
-    return response.data.data;
+    const response = await apiService.get<{ data: SupervisedProjectApi[] }>("api/v1/lecturer/me/supervised-projects");
+    return response.data.data.map(adaptSupervisedProject);
   },
 
   /** GET /lecturer/me/remediations — spec §36 */
@@ -147,8 +153,8 @@ export interface MySessionsParams {
 
 export interface LecturerScheduleSession {
   id: string;
-  round: { id: string; name: string; type: RoundType };
-  group: { id: string; code: string; projectTitle: string | null };
+  round: { id: string; name: string; type: RoundType } | null;
+  group: { id: string; code: string; projectTitle: string | null } | null;
   date: string;
   startTime: string;
   endTime: string;
@@ -156,6 +162,43 @@ export interface LecturerScheduleSession {
   myRole: LecturerSessionRole;
   council: { id: string; name: string }[];
   status: LecturerScheduleSessionStatus;
+}
+
+/** Row phẳng thật sự BE trả cho GET /lecturer/me/sessions — đã xác nhận với BE. */
+export interface LecturerSessionApi {
+  id: number | string;
+  round_id: number | string;
+  round_type: RoundType;
+  group_id?: number | string | null;
+  group_code?: string | null;
+  project_code?: string | null;
+  start_at: string;
+  end_at: string;
+  room_id?: number | string | null;
+  room_code?: string | null;
+  status: LecturerScheduleSessionStatus;
+  my_role?: LecturerSessionRole;
+  council?: { id: number | string; name: string }[];
+}
+
+/** round.name không có trong response thật — dùng round_type làm fallback hiển thị. */
+export function adaptLecturerSession(dto: LecturerSessionApi): LecturerScheduleSession {
+  return {
+    id: String(dto.id),
+    round: { id: String(dto.round_id), name: dto.round_type, type: dto.round_type },
+    group:
+      dto.group_id == null
+        ? null
+        : { id: String(dto.group_id), code: dto.group_code ?? "", projectTitle: dto.project_code ?? null },
+    date: formatInVietnamTime(dto.start_at, "YYYY-MM-DD"),
+    startTime: formatInVietnamTime(dto.start_at, "HH:mm"),
+    endTime: formatInVietnamTime(dto.end_at, "HH:mm"),
+    roomCode: dto.room_code ?? null,
+    // BE chưa trả field vai trò của lecturer trong session — tạm mặc định REVIEWER, cần BE xác nhận.
+    myRole: dto.my_role ?? "REVIEWER",
+    council: (dto.council ?? []).map((c) => ({ id: String(c.id), name: c.name })),
+    status: dto.status,
+  };
 }
 
 export interface LecturerSessionResult {
@@ -202,6 +245,36 @@ export interface SupervisedProject {
     verifierName: string;
     status: RemediationStatus;
   } | null;
+}
+
+/** Row phẳng thật sự BE trả cho GET /lecturer/me/supervised-projects — đã xác nhận với BE. */
+export interface SupervisedProjectApi {
+  id: number | string;
+  code: string;
+  title: string;
+  /** Trạng thái project DB (ACTIVE|ARCHIVED) — KHÔNG phải 8 enum ProjectStatus của spec §3. */
+  status: string;
+  semester_id?: number | string;
+  semester_code?: string;
+  supervisor_type: "MAIN" | "CO";
+}
+
+/**
+ * BE contract gap: group/leader/nextEvaluation/latestResult/remediation chưa được trả —
+ * giữ null cho tới khi BE bổ sung, UI đã có fallback cho các field null này.
+ */
+export function adaptSupervisedProject(dto: SupervisedProjectApi): SupervisedProject {
+  return {
+    id: String(dto.id),
+    code: dto.code,
+    titleVi: dto.title,
+    supervisorRole: dto.supervisor_type,
+    group: null,
+    projectStatus: dto.status as ProjectStatus,
+    nextEvaluation: null,
+    latestResult: null,
+    remediation: null,
+  };
 }
 
 /**

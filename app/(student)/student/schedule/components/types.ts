@@ -99,7 +99,9 @@ function aggregateRoundStatus(sessions: LeaderSession[]): LeaderSessionStatus {
   return "COMPLETED";
 }
 
-function toScheduleSlot(session: LeaderSession): ScheduleSlot {
+type LeaderSessionWithRound = LeaderSession & { round: NonNullable<LeaderSession["round"]> };
+
+function toScheduleSlot(session: LeaderSessionWithRound): ScheduleSlot {
   const durationMinutes = minutesBetween(session.startTime, session.endTime);
   return {
     id: session.id,
@@ -123,10 +125,11 @@ export function toStudentScheduleData(
   group: { code: string; projectTitleEn: string | null },
   sessions: LeaderSession[]
 ): StudentScheduleData {
-  const byType = new Map<RoundType, LeaderSession[]>();
+  const byType = new Map<RoundType, LeaderSessionWithRound[]>();
   for (const session of sessions) {
+    if (!session.round || !session.round.type) continue;
     const list = byType.get(session.round.type) ?? [];
-    list.push(session);
+    list.push(session as LeaderSessionWithRound);
     byType.set(session.round.type, list);
   }
 

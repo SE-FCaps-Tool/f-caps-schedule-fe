@@ -80,13 +80,43 @@ export type LeaderSessionStatus = "SCHEDULED" | "COMPLETED" | "POSTPONED" | "GRO
 
 export interface LeaderSession {
   id: string;
-  round: { id: string; name: string; type: RoundType };
+  round: { id: string; name: string; type: RoundType } | null;
   date: string;
   startTime: string;
   endTime: string;
   roomCode: string | null;
   council: { name: string }[];
   status: LeaderSessionStatus;
+}
+
+/** Row phẳng thật sự BE trả cho GET /leader/me/sessions — đã xác nhận với BE. */
+export interface LeaderSessionApi {
+  id: number | string;
+  round_id: number | string;
+  round_type: RoundType;
+  group_id?: number | string;
+  group_code?: string;
+  project_code?: string;
+  start_at: string;
+  end_at: string;
+  room_id?: number | string | null;
+  room_code?: string | null;
+  status: LeaderSessionStatus;
+  council?: { name: string }[];
+}
+
+/** round.name và council không có trong response thật — dùng round_type làm fallback, council rỗng. */
+export function adaptLeaderSession(dto: LeaderSessionApi): LeaderSession {
+  return {
+    id: String(dto.id),
+    round: { id: String(dto.round_id), name: dto.round_type, type: dto.round_type },
+    date: formatInVietnamTime(dto.start_at, "YYYY-MM-DD"),
+    startTime: formatInVietnamTime(dto.start_at, "HH:mm"),
+    endTime: formatInVietnamTime(dto.end_at, "HH:mm"),
+    roomCode: dto.room_code ?? null,
+    council: dto.council ?? [],
+    status: dto.status,
+  };
 }
 
 export const fetchLeaderPortal = {
@@ -116,9 +146,9 @@ export const fetchLeaderPortal = {
     await apiService.put(`api/v1/rounds/${roundId}/groups/${groupId}/preferences`, payload);
   },
 
-  /** GET /leader/me/sessions — spec §40. Không show ScheduleVersion/Soft Score/Quota/solver data. */
+  /** GET /leader/me/sessions — spec §40. BE trả flat row (round chưa lồng nhau) — adapt thủ công. */
   mySessions: async (): Promise<LeaderSession[]> => {
-    const response = await apiService.get<{ data: LeaderSession[] }>("api/v1/leader/me/sessions");
-    return response.data.data;
+    const response = await apiService.get<{ data: LeaderSessionApi[] }>("api/v1/leader/me/sessions");
+    return response.data.data.map(adaptLeaderSession);
   },
 };
