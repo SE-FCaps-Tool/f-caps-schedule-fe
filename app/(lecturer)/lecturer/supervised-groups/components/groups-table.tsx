@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -59,6 +59,7 @@ export function GroupsTable({ projects }: { projects: SupervisedProject[] }) {
               tone: "neutral" as const,
             };
             const leader = project.group?.leader ?? null;
+            const members = project.group?.members ?? [];
 
             return (
               <TableRow key={project.id}>
@@ -74,15 +75,51 @@ export function GroupsTable({ projects }: { projects: SupervisedProject[] }) {
 
                 <TableCell className={colDivider}>
                   {leader ? (
-                    <>
-                      <span className="block truncate text-sm font-medium">{leader.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {leader.code} · {project.group?.memberCount ?? 0} thành viên
-                      </span>
-                    </>
+                    <span className="block truncate text-sm font-medium">{leader.name}</span>
                   ) : (
-                    <span className="text-sm text-muted-foreground">
-                      Chưa có trưởng nhóm · {project.group?.memberCount ?? 0} thành viên
+                    <span className="block text-sm text-muted-foreground">Chưa có trưởng nhóm</span>
+                  )}
+                  {members.length > 0 ? (
+                    <Popover>
+                      <PopoverTrigger
+                        render={
+                          <button
+                            type="button"
+                            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                          />
+                        }
+                      >
+                        {leader && `${leader.code} · `}
+                        {project.group?.memberCount ?? 0} thành viên
+                      </PopoverTrigger>
+                      <PopoverContent side="bottom" align="start" className="w-64 p-3">
+                        <p className="text-sm font-medium">Thành viên nhóm</p>
+                        <ul className="mt-2 space-y-1.5">
+                          {members.map((member) => (
+                            <li key={member.id} className="flex items-center gap-1.5">
+                              {member.role === "LEADER" ? (
+                                <Crown className="size-3.5 shrink-0 text-primary" />
+                              ) : (
+                                <span className="size-3.5 shrink-0" />
+                              )}
+                              <span
+                                className={cn(
+                                  "truncate text-sm",
+                                  member.status === "DROPPED" ? "text-muted-foreground line-through" : "text-foreground"
+                                )}
+                              >
+                                {member.name}
+                              </span>
+                              <span className="text-xs text-muted-foreground">{member.code}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      {leader && `${leader.code} · `}
+                      {project.group?.memberCount ?? 0} thành viên
                     </span>
                   )}
                 </TableCell>

@@ -7,6 +7,7 @@ import {
   type AttachRoundResourcesPayload,
   type InviteLecturersPayload,
   type RoundCreatePayload,
+  type RoundUpdatePayload,
 } from "@/lib/api/services/fetchRounds";
 import { managerKeys } from "@/lib/api/managerQueryKeys";
 import { friendlyErrorMessage } from "@/lib/api/errorDetail";
@@ -196,8 +197,22 @@ export function useRoundMyAvailability(roundId: number | null) {
   });
 }
 
-// Chưa migrate: spec chưa có PATCH /rounds/:roundId nào (sửa cấu hình sau khi tạo) — bỏ hẳn
-// useUpdateRoundConfig thay vì đoán endpoint; UI "Chỉnh sửa cấu hình" báo notImplemented.
+/** PATCH /rounds/:roundId — sửa cấu hình khi Round còn DRAFT/OPEN_REGISTRATION (BE checklist A2) */
+export function useUpdateRound() {
+  const invalidate = useInvalidateRounds();
+
+  return useMutation({
+    mutationFn: ({ roundId, payload }: { roundId: string; payload: RoundUpdatePayload }) =>
+      fetchRounds.update(roundId, payload),
+    onSuccess: async (_data, variables) => {
+      await invalidate(variables.roundId);
+      toast.success("Đã cập nhật cấu hình đợt đánh giá");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không cập nhật được cấu hình"));
+    },
+  });
+}
 // Cũng bỏ hẳn "nhập lịch rảnh hộ" (useSubmitLecturerAvailability/useSubmitGroupAvailability cũ)
 // — spec chỉ có PUT /rounds/:roundId/availability/me và .../groups/:groupId/preferences (self-service
 // của Lecturer/Leader), không có endpoint nào cho Manager nhập hộ.

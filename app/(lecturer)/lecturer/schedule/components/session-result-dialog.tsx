@@ -190,7 +190,7 @@ export function SessionResultDialog({
           <ReviewForm sessionId={session.id} onSaved={() => onOpenChange(false)} />
         )}
         {detail && kind === "defense" && (
-          <DefenseForm sessionId={session.id} council={detail.council} onSaved={() => onOpenChange(false)} />
+          <DefenseForm sessionId={session.id} council={detail.council ?? []} onSaved={() => onOpenChange(false)} />
         )}
       </DialogContent>
     </Dialog>

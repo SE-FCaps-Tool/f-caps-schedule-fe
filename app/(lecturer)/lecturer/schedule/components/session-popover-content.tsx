@@ -1,7 +1,7 @@
-import { DoorOpen, Users2 } from "lucide-react";
+import { DoorOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatTimeRange } from "@/lib/utils/formatDate";
-import { ROUND_TYPE_LABEL, MY_ROLE_LABEL, type LecturerSession } from "./types";
+import { ROUND_TYPE_LABEL, type LecturerSession } from "./types";
 import { STATUS_META, toneBadgeClass } from "./tone";
 
 export function SessionPopoverContent({ session }: { session: LecturerSession }) {
@@ -22,16 +22,12 @@ export function SessionPopoverContent({ session }: { session: LecturerSession })
       </div>
 
       <p className="font-mono text-xs text-muted-foreground">{session.groupCode}</p>
-      <p className="text-sm leading-5 text-foreground text-pretty">{session.groupTitleVi}</p>
+      <p className="text-sm leading-5 text-foreground text-pretty">{session.projectCode}</p>
 
       <div className="space-y-1.5 border-t border-border pt-2 text-xs text-muted-foreground">
         <p className="flex items-center gap-1.5">
           <DoorOpen className="size-3.5 shrink-0" />
-          Phòng {session.room} · {MY_ROLE_LABEL[session.myRole]}
-        </p>
-        <p className="flex items-start gap-1.5">
-          <Users2 className="mt-0.5 size-3.5 shrink-0" />
-          Hội đồng: {session.councilMembers.join(", ")}
+          Phòng {session.room}
         </p>
       </div>
     </div>

@@ -9,6 +9,8 @@ import {
   CheckCircle2,
   ChevronLeft,
   Clock,
+  Grid3x3,
+  Hourglass,
   ListChecks,
   Mail,
   MoreHorizontal,
@@ -54,6 +56,7 @@ import {
   useInviteLecturers,
   useRemindInvitation,
 } from "@/hooks/manager/useRounds";
+import { RoundConfigEditDialog } from "./round-config-edit-dialog";
 import {
   useSchedulingReadiness,
   useRoundScheduleVersions,
@@ -364,6 +367,7 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
   const [activeInvitation, setActiveInvitation] = useState<RoundInvitation | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [configEditOpen, setConfigEditOpen] = useState(false);
   const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set());
   const [groupRegistrationOpened, setGroupRegistrationOpened] = useState(false);
 
@@ -424,6 +428,7 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
   const statusMeta = ROUND_STATUS_META[round.status];
   const name = round.name || `${ROUND_TYPE_LABEL[round.type]} — ${currentSemesterId}`;
   const futurePhaseLabel = FUTURE_PHASE_LABEL[round.status];
+  const canEditConfig = round.status === "DRAFT" || round.status === "OPEN_REGISTRATION";
   const roundTimeslots = round.days.flatMap((d) => d.slots.map((s) => ({ ...s, date: d.date })));
   const roundRoomTypes = round.roomTypes;
   const groupRegistrationIsOpen =
@@ -576,8 +581,9 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
             <Button
               variant="outline"
               size="sm"
-              title="Spec chưa có endpoint sửa cấu hình sau khi tạo"
-              onClick={() => notImplemented("Chỉnh sửa cấu hình")}
+              title={canEditConfig ? "Chỉnh sửa cấu hình" : "Chỉ sửa được khi Round còn Nháp hoặc Đang mở đăng ký"}
+              disabled={!canEditConfig}
+              onClick={() => setConfigEditOpen(true)}
             >
               <PencilLine />
               Chỉnh sửa
@@ -597,6 +603,7 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
             />
             <StatBlock label="Thời lượng" value={`${round.durationMinutes} phút`} icon={Clock} tone="sky" />
             <StatBlock label="Số reviewer" value={String(round.reviewerCount)} icon={Users} tone="sky" />
+            <StatBlock label="Nhóm tối đa / slot" value={String(round.maxGroupsPerTimeslot)} icon={Grid3x3} tone="sky" />
             <StatBlock
               label="Nhóm tự chọn lịch"
               value={round.groupSelectionMode ? "Bật" : "Tắt"}
@@ -609,6 +616,14 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
               icon={Award}
               tone={round.resultOwnerMode ? "emerald" : "neutral"}
             />
+            {round.groupSelectionMode && (
+              <StatBlock
+                label="Hạn chọn lịch nhóm"
+                value={round.groupPreferenceDeadline ? formatDate(round.groupPreferenceDeadline) : "Chưa thiết lập"}
+                icon={Hourglass}
+                tone="amber"
+              />
+            )}
           </div>
 
           <div>
@@ -971,6 +986,11 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
         open={publishOpen}
         onOpenChange={setPublishOpen}
         roundId={roundId}
+      />
+      <RoundConfigEditDialog
+        open={configEditOpen}
+        onOpenChange={setConfigEditOpen}
+        round={round}
       />
     </div>
   );

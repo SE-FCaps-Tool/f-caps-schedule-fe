@@ -24,6 +24,7 @@ export function GroupRow({ project }: { project: SupervisedProject }) {
     tone: "neutral" as const,
   };
   const leader = project.group?.leader ?? null;
+  const members = project.group?.members ?? [];
   const result = project.latestResult;
   const resultMeta = result
     ? result.kind === "REVIEW"
@@ -128,13 +129,35 @@ export function GroupRow({ project }: { project: SupervisedProject }) {
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Users2 className="size-4" />
                 {project.group?.memberCount ?? 0} thành viên
-                {leader && (
-                  <span className="ml-1 inline-flex items-center gap-1 text-foreground">
-                    <Crown className="size-3.5 text-primary" />
-                    {leader.name} <span className="text-xs text-muted-foreground">{leader.code}</span>
-                  </span>
-                )}
               </div>
+
+              {members.length > 0 && (
+                <ul className="space-y-1.5">
+                  {members.map((member) => (
+                    <li key={member.id} className="flex items-center gap-1.5">
+                      {member.role === "LEADER" ? (
+                        <Crown className="size-3.5 shrink-0 text-primary" />
+                      ) : (
+                        <span className="size-3.5 shrink-0" />
+                      )}
+                      <span
+                        className={cn(
+                          "truncate text-sm",
+                          member.status === "DROPPED" ? "text-muted-foreground line-through" : "text-foreground"
+                        )}
+                      >
+                        {member.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{member.code}</span>
+                      {member.status === "DROPPED" && (
+                        <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                          Đã rời nhóm
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </motion.div>
         )}

@@ -27,14 +27,14 @@ test("adaptLecturerAvailability maps selected ids and keeps preferredLoad unknow
   assert.deepEqual(
     adaptLecturerAvailability({
       round: {},
-      lecturer_id: 12,
-      selected_timeslot_ids: [76],
+      lecturerId: 12,
+      selectedTimeslotIds: [76],
       timeslots: [
         {
           id: "76",
-          start_at: "2030-02-01T17:30:00Z",
-          end_at: "2030-02-01T18:00:00Z",
-          day_date: "2030-02-02",
+          startAt: "2030-02-01T17:30:00Z",
+          endAt: "2030-02-01T18:00:00Z",
+          dayDate: "2030-02-02",
         },
       ],
     }),
@@ -45,45 +45,34 @@ test("adaptLecturerAvailability maps selected ids and keeps preferredLoad unknow
   );
 });
 
-test("adaptLecturerSession nests round/group from BE's flat row", () => {
+test("adaptLecturerSession maps BE's flat camelCase row (docs/api/lecturer-sessions-fe-guide.md)", () => {
   assert.deepEqual(
     adaptLecturerSession({
       id: 10,
-      round_id: 1,
-      round_type: "REVIEW_1",
-      group_id: 28,
-      group_code: "G01",
-      project_code: "PRJ001",
-      start_at: "2026-08-25T01:00:00Z",
-      end_at: "2026-08-25T02:00:00Z",
-      room_code: "A101",
+      roundId: 1,
+      roundType: "REVIEW_1",
+      groupId: 28,
+      groupCode: "G01",
+      projectCode: "PRJ001",
+      startAt: "2026-08-25T01:00:00Z",
+      endAt: "2026-08-25T02:00:00Z",
+      roomCode: "A101",
       status: "SCHEDULED",
     }),
     {
       id: "10",
-      round: { id: "1", name: "REVIEW_1", type: "REVIEW_1" },
-      group: { id: "28", code: "G01", projectTitle: "PRJ001" },
+      roundId: "1",
+      roundType: "REVIEW_1",
+      groupId: "28",
+      groupCode: "G01",
+      projectCode: "PRJ001",
       date: "2026-08-25",
       startTime: "08:00",
       endTime: "09:00",
       roomCode: "A101",
-      myRole: "REVIEWER",
-      council: [],
       status: "SCHEDULED",
     }
   );
-});
-
-test("adaptLecturerSession keeps group null when BE omits group_id", () => {
-  const result = adaptLecturerSession({
-    id: 11,
-    round_id: 2,
-    round_type: "DEFENSE_1_1",
-    start_at: "2026-08-25T01:00:00Z",
-    end_at: "2026-08-25T02:00:00Z",
-    status: "SCHEDULED",
-  });
-  assert.equal(result.group, null);
 });
 
 test("adaptLeaderSession nests round from BE's flat row", () => {
@@ -113,7 +102,7 @@ test("adaptLeaderSession nests round from BE's flat row", () => {
   );
 });
 
-test("adaptSupervisedProject maps known fields and nulls out fields BE hasn't shipped yet", () => {
+test("adaptSupervisedProject maps group with leader and members, nulls out fields BE hasn't shipped yet", () => {
   assert.deepEqual(
     adaptSupervisedProject({
       id: 23,
@@ -123,12 +112,55 @@ test("adaptSupervisedProject maps known fields and nulls out fields BE hasn't sh
       semester_id: 1,
       semester_code: "SE-2026-2027",
       supervisor_type: "MAIN",
+      group: {
+        id: 7,
+        code: "G01",
+        memberCount: 2,
+        leader: { id: 101, name: "Nguyen Van A", code: "SE180001" },
+        members: [
+          { id: 101, name: "Nguyen Van A", code: "SE180001", role: "LEADER", status: "ACTIVE" },
+          { id: 102, name: "Tran Thi B", code: "SE180002", role: "MEMBER", status: "DROPPED" },
+        ],
+      },
     }),
     {
       id: "23",
       code: "PRJ001",
       titleVi: "Demo project",
       supervisorRole: "MAIN",
+      group: {
+        id: "7",
+        code: "G01",
+        memberCount: 2,
+        leader: { id: "101", name: "Nguyen Van A", code: "SE180001" },
+        members: [
+          { id: "101", name: "Nguyen Van A", code: "SE180001", role: "LEADER", status: "ACTIVE" },
+          { id: "102", name: "Tran Thi B", code: "SE180002", role: "MEMBER", status: "DROPPED" },
+        ],
+      },
+      projectStatus: "ACTIVE",
+      nextEvaluation: null,
+      latestResult: null,
+      remediation: null,
+    }
+  );
+});
+
+test("adaptSupervisedProject keeps group null when BE hasn't formed a group yet", () => {
+  assert.deepEqual(
+    adaptSupervisedProject({
+      id: 24,
+      code: "PRJ002",
+      title: "Demo project 2",
+      status: "ACTIVE",
+      supervisor_type: "CO",
+      group: null,
+    }),
+    {
+      id: "24",
+      code: "PRJ002",
+      titleVi: "Demo project 2",
+      supervisorRole: "CO",
       group: null,
       projectStatus: "ACTIVE",
       nextEvaluation: null,

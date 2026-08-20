@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLecturerSessions } from "@/hooks/lecturer/useLecturerPortal";
-import { toLecturerSession, type LecturerSession } from "./types";
+import { toLecturerSession } from "./types";
 import { ExportIcsButton } from "./export-ics-button";
 import { ScheduleListView } from "./schedule-list-view";
 import { ViewToggle, type ScheduleView } from "./view-toggle";
@@ -34,10 +34,7 @@ export function LecturerSchedule() {
   const [weekStart, setWeekStart] = useState(() => mondayOf(TODAY_ISO));
 
   const { data, isLoading, isError } = useLecturerSessions();
-  const sessions = useMemo(
-    () => (data ?? []).map(toLecturerSession).filter((s): s is LecturerSession => s !== null),
-    [data]
-  );
+  const sessions = useMemo(() => (data ?? []).map(toLecturerSession), [data]);
 
   const upcomingCount = useMemo(() => sessions.filter((s) => s.status === "SCHEDULED").length, [sessions]);
 
@@ -48,9 +45,7 @@ export function LecturerSchedule() {
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-2 duration-500">
         <h1 className="text-2xl font-semibold tracking-tight">Lịch của tôi</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {upcomingCount} phiên sắp diễn ra · vai trò Reviewer / Result Owner theo phân công của Bộ môn.
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{upcomingCount} phiên sắp diễn ra.</p>
       </div>
 
       <div className="mt-6 flex shrink-0 flex-wrap items-center justify-between gap-3">

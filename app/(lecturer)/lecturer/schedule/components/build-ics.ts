@@ -1,4 +1,4 @@
-import { ROUND_TYPE_LABEL, MY_ROLE_LABEL, type LecturerSession } from "./types";
+import { ROUND_TYPE_LABEL, type LecturerSession } from "./types";
 
 function toIcsDate(iso: string) {
   return new Date(iso).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
@@ -20,7 +20,7 @@ export function buildIcsCalendar(sessions: LecturerSession[]) {
     if (session.status === "CANCELLED") continue;
     const summary = `${ROUND_TYPE_LABEL[session.roundType]} · ${session.groupCode}`;
     const location = `Phòng ${session.room}`;
-    const description = `${session.groupTitleVi}\\nVai trò: ${MY_ROLE_LABEL[session.myRole]}\\nHội đồng: ${session.councilMembers.join(", ")}`;
+    const description = `${session.projectCode}`;
 
     lines.push(
       "BEGIN:VEVENT",

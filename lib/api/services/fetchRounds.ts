@@ -112,6 +112,25 @@ export interface RoundCreateResponse {
   status: RoundStatus;
 }
 
+/**
+ * PATCH /rounds/:roundId — BE checklist A2, endpoint đã build (`manager_extensions.py`
+ * `update_round`). BE chỉ nhận đúng các field dưới đây (Pydantic `RoundUpdate`) — không có
+ * `name`/`description`. Round phải ở DRAFT/OPEN_REGISTRATION
+ * (409 `ROUND_CONFIG_LOCKED` nếu không) và `reviewerCount` bị BE khoá cứng theo `type`
+ * (luôn 422 `REVIEWER_COUNT_INVALID` nếu khác giá trị mặc định của loại đợt) nên FE không cho sửa.
+ */
+export interface RoundUpdatePayload {
+  startDate?: string;
+  endDate?: string;
+  durationMinutes?: number;
+  maxGroupsPerTimeslot?: number;
+  registrationDeadline?: string;
+  groupSelectionMode?: boolean;
+  groupPreferenceDeadline?: string | null;
+  resultOwnerMode?: boolean;
+  roomTypes?: RoomType[];
+}
+
 /** capstone-fe-be-implementation-spec.md §5 — thêm EXPIRED/WITHDRAWN so với PENDING/ACCEPTED/REJECTED cũ */
 export type RoundInvitationStatus =
   "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "WITHDRAWN";
@@ -510,6 +529,26 @@ export const fetchRounds = {
       payload,
     );
     return response.data.data;
+  },
+
+  /**
+   * PATCH /rounds/:roundId — sửa cấu hình khi Round còn DRAFT/OPEN_REGISTRATION.
+   * Response BE trả nguyên cột snake_case của bảng `rounds` (không bọc `{data}`, không cùng
+   * shape contract camelCase như `GET /rounds/:roundId`) nên bỏ qua body, để caller invalidate
+   * và refetch qua `getById` lấy dữ liệu đã chuẩn hoá.
+   */
+  update: async (roundId: string, payload: RoundUpdatePayload): Promise<void> => {
+    const body: Record<string, unknown> = {};
+    if (payload.startDate !== undefined) body.start_date = payload.startDate;
+    if (payload.endDate !== undefined) body.end_date = payload.endDate;
+    if (payload.durationMinutes !== undefined) body.session_duration_minutes = payload.durationMinutes;
+    if (payload.maxGroupsPerTimeslot !== undefined) body.max_groups_per_timeslot = payload.maxGroupsPerTimeslot;
+    if (payload.registrationDeadline !== undefined) body.registration_deadline = payload.registrationDeadline;
+    if (payload.groupSelectionMode !== undefined) body.group_selection_mode = payload.groupSelectionMode;
+    if (payload.groupPreferenceDeadline !== undefined) body.group_preference_deadline = payload.groupPreferenceDeadline;
+    if (payload.resultOwnerMode !== undefined) body.result_owner_mode = payload.resultOwnerMode;
+    if (payload.roomTypes !== undefined) body.room_types = payload.roomTypes;
+    await apiService.patch(`api/v1/rounds/${roundId}`, body);
   },
 
   /** POST /rounds/:roundId/actions/open-registration — spec §21/§51. DRAFT → OPEN_REGISTRATION */

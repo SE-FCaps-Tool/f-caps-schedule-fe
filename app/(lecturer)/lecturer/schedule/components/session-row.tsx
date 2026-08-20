@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ChevronDown, ClipboardCheck, DoorOpen, Users2 } from "lucide-react";
+import { ChevronDown, ClipboardCheck, DoorOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatTimeRange } from "@/lib/utils/formatDate";
 import { ROUND_TYPE_LABEL, roundKind, type LecturerSession } from "./types";
@@ -14,7 +14,9 @@ const RESULT_ENTRY_STATUSES: LecturerSession["status"][] = ["SCHEDULED", "COMPLE
 export function SessionRow({ session }: { session: LecturerSession }) {
   const [expanded, setExpanded] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
-  const canEnterResult = session.myRole === "RESULT_OWNER" && RESULT_ENTRY_STATUSES.includes(session.status);
+  // BE tự enforce quyền REVIEWER/RESULT_OWNER khi submit (403 nếu sai) — API list không trả
+  // myRole nên FE không gate trước, chỉ theo status.
+  const canEnterResult = RESULT_ENTRY_STATUSES.includes(session.status);
   const reduceMotion = useReducedMotion();
   const kind = roundKind(session.roundType);
   const statusMeta = STATUS_META[session.status];
@@ -53,9 +55,7 @@ export function SessionRow({ session }: { session: LecturerSession }) {
             <p className="text-sm font-semibold">{ROUND_TYPE_LABEL[session.roundType]}</p>
             <span className="font-mono text-xs text-muted-foreground">{session.groupCode}</span>
           </div>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            Phòng {session.room} · {session.myRole === "RESULT_OWNER" ? "Result Owner" : "Reviewer"}
-          </p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">Phòng {session.room}</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -76,15 +76,11 @@ export function SessionRow({ session }: { session: LecturerSession }) {
             className="overflow-hidden"
           >
             <div className="space-y-2.5 py-3.5 pl-11">
-              <p className="text-sm leading-6 text-foreground text-pretty">{session.groupTitleVi}</p>
+              <p className="text-sm leading-6 text-foreground text-pretty">{session.projectCode}</p>
               <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <DoorOpen className="size-4" />
                   Phòng {session.room}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Users2 className="size-4" />
-                  Hội đồng: {session.councilMembers.join(", ")}
                 </span>
               </div>
               {canEnterResult && (

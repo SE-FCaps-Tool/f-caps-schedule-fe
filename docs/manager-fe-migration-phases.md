@@ -129,8 +129,10 @@ vẫn gọi route/shape cũ (`invitations`, `groupRoster`, `myAvailability`, `re
 migrate đúng khi tới Phase 3/4. `tsc --noEmit` + `eslint` sạch.
 
 **Câu hỏi cần chốt với BE (chưa có trong spec)**:
-- Không có `PATCH /rounds/:roundId` nào — tính năng "Chỉnh sửa cấu hình" sau khi tạo Round
-  hiện bị vô hiệu hoá (báo "chưa có trong spec BE"), giống tình huống Project ở Phase 1.
+- Backend hiện có `PATCH /rounds/:roundId` cho các field cấu hình được phép sửa khi Round còn
+  `DRAFT` hoặc `OPEN_REGISTRATION`. FE đã tích hợp form chỉnh sửa; tên field được chuyển sang
+  snake_case ở service boundary. `name`, `description` và `type` vẫn không sửa trong form này;
+  days/timeslots vẫn read-only vì chưa có contract update nguyên tử tương ứng.
 - Chưa có endpoint transition rõ ràng cho `REGISTRATION_CLOSED → SCHEDULING`,
   `SCHEDULED → PUBLISHED`, `COMPLETED → LOCKED` — spec §57–61/§69–70 mô tả luồng Readiness/
   Generate/Publish riêng chứ không phải một transition endpoint chung; CTA cho các trạng thái

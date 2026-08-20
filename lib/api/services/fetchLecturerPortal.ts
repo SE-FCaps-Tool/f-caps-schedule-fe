@@ -34,29 +34,29 @@ export interface LecturerAvailability {
   slots: AvailabilitySlot[];
 }
 
-/** BE trả legacy snake_case cho endpoint này (đã xác nhận với BE — không phải spec camelCase). */
+/** BE trả camelCase cho endpoint này (đã xác nhận với BE — khác endpoint /my-availability của Manager dùng snake_case). */
 export interface LecturerAvailabilityResponse {
   round: unknown;
   timeslots: {
     id: number | string;
-    start_at: string;
-    end_at: string;
-    day_date: string;
+    startAt: string;
+    endAt: string;
+    dayDate: string;
   }[];
-  lecturer_id: number | string;
-  selected_timeslot_ids: (number | string)[];
+  lecturerId: number | string;
+  selectedTimeslotIds: (number | string)[];
 }
 
 /** Adapt BE availability data without inventing a preferred load not supplied by the API. */
 export function adaptLecturerAvailability(response: LecturerAvailabilityResponse): LecturerAvailability {
-  const selectedIds = new Set(response.selected_timeslot_ids.map(String));
+  const selectedIds = new Set(response.selectedTimeslotIds.map(String));
   return {
     preferredLoad: null,
     slots: response.timeslots.map((slot) => ({
       timeslotId: String(slot.id),
-      date: formatInVietnamTime(slot.start_at, "YYYY-MM-DD"),
-      startTime: formatInVietnamTime(slot.start_at, "HH:mm"),
-      endTime: formatInVietnamTime(slot.end_at, "HH:mm"),
+      date: formatInVietnamTime(slot.startAt, "YYYY-MM-DD"),
+      startTime: formatInVietnamTime(slot.startAt, "HH:mm"),
+      endTime: formatInVietnamTime(slot.endAt, "HH:mm"),
       available: selectedIds.has(String(slot.id)),
     })),
   };
@@ -95,13 +95,16 @@ export const fetchLecturerPortal = {
     await apiService.put(`api/v1/rounds/${roundId}/availability/me`, payload);
   },
 
-  /** GET /lecturer/me/sessions — spec §33. BE trả flat row (round/group/council chưa lồng nhau) — adapt thủ công. */
+  /**
+   * GET /lecturer/me/sessions — spec §33. Contract xác nhận qua
+   * docs/api/lecturer-sessions-fe-guide.md (BE repo): row phẳng, camelCase, không có
+   * council/reviewer/myRole — BE tự lọc theo lecturer đăng nhập, không cần lecturerId.
+   */
   mySessions: async (params: MySessionsParams): Promise<LecturerScheduleSession[]> => {
     const response = await apiService.get<{ data: LecturerSessionApi[] }>("api/v1/lecturer/me/sessions", {
       roundId: params.roundId,
       dateFrom: params.dateFrom,
       dateTo: params.dateTo,
-      role: params.role,
       status: params.status,
     });
     return response.data.data.map(adaptLecturerSession);
@@ -147,56 +150,55 @@ export interface MySessionsParams {
   roundId?: string;
   dateFrom?: string;
   dateTo?: string;
-  role?: LecturerSessionRole;
   status?: LecturerScheduleSessionStatus;
 }
 
 export interface LecturerScheduleSession {
   id: string;
-  round: { id: string; name: string; type: RoundType } | null;
-  group: { id: string; code: string; projectTitle: string | null } | null;
+  roundId: string;
+  roundType: RoundType;
+  groupId: string;
+  groupCode: string;
+  projectCode: string;
   date: string;
   startTime: string;
   endTime: string;
   roomCode: string | null;
-  myRole: LecturerSessionRole;
-  council: { id: string; name: string }[];
   status: LecturerScheduleSessionStatus;
 }
 
-/** Row phẳng thật sự BE trả cho GET /lecturer/me/sessions — đã xác nhận với BE. */
+/**
+ * Row thật BE trả cho GET /lecturer/me/sessions — theo
+ * docs/api/lecturer-sessions-fe-guide.md (BE repo, handoff chính thức). CamelCase, phẳng,
+ * không có round/group lồng nhau; không có council/reviewer/myRole (BE chưa expose cho
+ * Lecturer — POST .../result tự enforce quyền REVIEWER/RESULT_OWNER phía server, trả 403
+ * nếu sai, nên FE không cần biết trước myRole để gate nút "Nhập kết quả").
+ */
 export interface LecturerSessionApi {
-  id: number | string;
-  round_id: number | string;
-  round_type: RoundType;
-  group_id?: number | string | null;
-  group_code?: string | null;
-  project_code?: string | null;
-  start_at: string;
-  end_at: string;
-  room_id?: number | string | null;
-  room_code?: string | null;
+  id: number;
+  roundId: number;
+  startAt: string;
+  endAt: string;
   status: LecturerScheduleSessionStatus;
-  my_role?: LecturerSessionRole;
-  council?: { id: number | string; name: string }[];
+  groupId: number;
+  groupCode: string;
+  projectCode: string;
+  roomCode: string | null;
+  roundType: RoundType;
 }
 
-/** round.name không có trong response thật — dùng round_type làm fallback hiển thị. */
 export function adaptLecturerSession(dto: LecturerSessionApi): LecturerScheduleSession {
   return {
     id: String(dto.id),
-    round: { id: String(dto.round_id), name: dto.round_type, type: dto.round_type },
-    group:
-      dto.group_id == null
-        ? null
-        : { id: String(dto.group_id), code: dto.group_code ?? "", projectTitle: dto.project_code ?? null },
-    date: formatInVietnamTime(dto.start_at, "YYYY-MM-DD"),
-    startTime: formatInVietnamTime(dto.start_at, "HH:mm"),
-    endTime: formatInVietnamTime(dto.end_at, "HH:mm"),
-    roomCode: dto.room_code ?? null,
-    // BE chưa trả field vai trò của lecturer trong session — tạm mặc định REVIEWER, cần BE xác nhận.
-    myRole: dto.my_role ?? "REVIEWER",
-    council: (dto.council ?? []).map((c) => ({ id: String(c.id), name: c.name })),
+    roundId: String(dto.roundId),
+    roundType: dto.roundType,
+    groupId: String(dto.groupId),
+    groupCode: dto.groupCode,
+    projectCode: dto.projectCode,
+    date: formatInVietnamTime(dto.startAt, "YYYY-MM-DD"),
+    startTime: formatInVietnamTime(dto.startAt, "HH:mm"),
+    endTime: formatInVietnamTime(dto.endAt, "HH:mm"),
+    roomCode: dto.roomCode,
     status: dto.status,
   };
 }
@@ -209,6 +211,11 @@ export interface LecturerSessionResult {
 
 export interface LecturerSessionDetail extends LecturerScheduleSession {
   result: LecturerSessionResult | null;
+  /**
+   * GET /sessions/:sessionId hiện chỉ ADMIN/MANAGER gọi được (403 với Lecturer) — BE chưa
+   * có route lecturer-scoped trả council. Giữ optional để UI không vỡ, cần BE bổ sung.
+   */
+  council?: { id: string; name: string }[];
 }
 
 /**
@@ -221,6 +228,14 @@ export interface LecturerSessionDetail extends LecturerScheduleSession {
  */
 export type RemediationStatus = "PENDING" | "PASSED" | "OVERDUE" | "FAILED";
 
+export interface SupervisedProjectGroupMember {
+  id: string;
+  name: string;
+  code: string;
+  role: "LEADER" | "MEMBER";
+  status: "ACTIVE" | "DROPPED";
+}
+
 export interface SupervisedProject {
   id: string;
   code: string;
@@ -231,6 +246,7 @@ export interface SupervisedProject {
     code: string;
     memberCount: number;
     leader: { id: string; name: string; code: string } | null;
+    members: SupervisedProjectGroupMember[];
   } | null;
   projectStatus: ProjectStatus;
   nextEvaluation: { roundType: RoundType; date: string | null } | null;
@@ -247,6 +263,22 @@ export interface SupervisedProject {
   } | null;
 }
 
+export interface SupervisedProjectApiGroupMember {
+  id: number | string;
+  name: string;
+  code: string;
+  role: "LEADER" | "MEMBER";
+  status: "ACTIVE" | "DROPPED";
+}
+
+export interface SupervisedProjectApiGroup {
+  id: number | string;
+  code: string;
+  memberCount: number;
+  leader: { id: number | string; name: string; code: string } | null;
+  members: SupervisedProjectApiGroupMember[];
+}
+
 /** Row phẳng thật sự BE trả cho GET /lecturer/me/supervised-projects — đã xác nhận với BE. */
 export interface SupervisedProjectApi {
   id: number | string;
@@ -257,11 +289,13 @@ export interface SupervisedProjectApi {
   semester_id?: number | string;
   semester_code?: string;
   supervisor_type: "MAIN" | "CO";
+  /** group đã được BE bổ sung (member list + leader) — nextEvaluation/latestResult/remediation vẫn chưa có. */
+  group: SupervisedProjectApiGroup | null;
 }
 
 /**
- * BE contract gap: group/leader/nextEvaluation/latestResult/remediation chưa được trả —
- * giữ null cho tới khi BE bổ sung, UI đã có fallback cho các field null này.
+ * BE contract gap: nextEvaluation/latestResult/remediation chưa được trả — giữ null cho tới
+ * khi BE bổ sung, UI đã có fallback cho các field null này. group giờ đã có leader + members.
  */
 export function adaptSupervisedProject(dto: SupervisedProjectApi): SupervisedProject {
   return {
@@ -269,7 +303,23 @@ export function adaptSupervisedProject(dto: SupervisedProjectApi): SupervisedPro
     code: dto.code,
     titleVi: dto.title,
     supervisorRole: dto.supervisor_type,
-    group: null,
+    group: dto.group
+      ? {
+          id: String(dto.group.id),
+          code: dto.group.code,
+          memberCount: dto.group.memberCount,
+          leader: dto.group.leader
+            ? { id: String(dto.group.leader.id), name: dto.group.leader.name, code: dto.group.leader.code }
+            : null,
+          members: dto.group.members.map((member) => ({
+            id: String(member.id),
+            name: member.name,
+            code: member.code,
+            role: member.role,
+            status: member.status,
+          })),
+        }
+      : null,
     projectStatus: dto.status as ProjectStatus,
     nextEvaluation: null,
     latestResult: null,
