@@ -17,8 +17,7 @@ import { usePageState } from "@/hooks/shared/usePageState";
 
 /**
  * Dùng chung cho Admin (`/admin/master-data/lecturers`) và Manager (`/manager/lecturers`).
- * `backHref`/`backLabel` chỉ hiện breadcrumb khi được truyền — Manager không có hub "Cấu hình"
- * tương ứng nên bỏ qua.
+ * `backHref`/`backLabel` trỏ về hub "Cấu hình" tương ứng của từng khu vực.
  */
 export function LecturersPage({ backHref, backLabel }: { backHref?: string; backLabel?: string }) {
   const { data: lecturers, isLoading, isError } = useLecturers();

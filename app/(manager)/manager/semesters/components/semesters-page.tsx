@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Search, WifiOff } from "lucide-react";
+import { ChevronLeft, Search, WifiOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,8 +17,10 @@ import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { normalizeListResponse } from "@/lib/api/pagination";
 import { usePageState } from "@/hooks/shared/usePageState";
+import { cn } from "@/lib/utils";
 
-export function SemestersPage() {
+/** `backHref`/`backLabel` trỏ về hub "Cấu hình" (`/manager/master-data`), chỉ hiện khi được truyền. */
+export function SemestersPage({ backHref, backLabel }: { backHref?: string; backLabel?: string } = {}) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<SemesterStatus | "ALL">("ALL");
   const { data: semesters, isLoading, isError } = useSemesters({
@@ -43,7 +46,14 @@ export function SemestersPage() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      {backHref && (
+        <Link href={backHref} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ChevronLeft className="size-4" />
+          {backLabel ?? "Quay lại"}
+        </Link>
+      )}
+
+      <div className={cn("flex flex-wrap items-start justify-between gap-4", backHref && "mt-2")}>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Học kỳ</h1>
           <p className="mt-1 text-sm text-muted-foreground">{semesters ? `${meta.total} học kỳ` : "…"}</p>

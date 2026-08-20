@@ -59,7 +59,19 @@ function ConfigCard({
   );
 }
 
-export function ConfigHub() {
+/**
+ * Dùng chung cho Admin (`/admin/master-data`) và Manager (`/manager/master-data`) —
+ * href từng card khác nhau theo cấu trúc route của mỗi khu vực.
+ */
+export function ConfigHub({
+  lecturersHref,
+  semestersHref,
+  roomsHref,
+}: {
+  lecturersHref: string;
+  semestersHref: string;
+  roomsHref: string;
+}) {
   const reduceMotion = useReducedMotion();
   const { data: lecturers } = useLecturers();
   const { data: semesters } = useSemesters();
@@ -78,7 +90,7 @@ export function ConfigHub() {
       >
         <motion.div variants={reduceMotion ? undefined : itemVariants}>
           <ConfigCard
-            href="/admin/master-data/lecturers"
+            href={lecturersHref}
             icon={GraduationCap}
             title="Giảng viên"
             description="Mã giảng viên, tài khoản và trạng thái hoạt động."
@@ -88,7 +100,7 @@ export function ConfigHub() {
         </motion.div>
         <motion.div variants={reduceMotion ? undefined : itemVariants}>
           <ConfigCard
-            href="/admin/master-data/semesters"
+            href={semestersHref}
             icon={CalendarRange}
             title="Học kỳ"
             description="Chỉ một học kỳ được ACTIVE tại một thời điểm."
@@ -98,7 +110,7 @@ export function ConfigHub() {
         </motion.div>
         <motion.div variants={reduceMotion ? undefined : itemVariants}>
           <ConfigCard
-            href="/admin/master-data/rooms"
+            href={roomsHref}
             icon={Building2}
             title="Phòng"
             description="Mã phòng và sức chứa dùng khi xếp lịch bảo vệ."

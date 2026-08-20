@@ -9,5 +9,5 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default function ManagerLecturersPage() {
-  return <LecturersPage />;
+  return <LecturersPage backHref="/manager/master-data" backLabel="Cấu hình" />;
 }
