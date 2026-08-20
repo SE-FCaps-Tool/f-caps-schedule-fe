@@ -34,3 +34,28 @@ export function useCreateLecturer() {
     },
   });
 }
+
+export function useImportLecturers() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => fetchLecturers.importFile(file),
+    onSuccess: async (data) => {
+      if (data.created > 0) {
+        await queryClient.invalidateQueries({ queryKey: adminKeys.lecturers });
+        await queryClient.invalidateQueries({ queryKey: adminKeys.accounts });
+        await queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
+      }
+      if (data.created > 0 && data.skipped === 0) {
+        toast.success(`Đã import ${data.created} giảng viên`);
+      } else if (data.created > 0) {
+        toast.warning(`Đã tạo ${data.created} giảng viên, bỏ qua ${data.skipped} dòng lỗi`);
+      } else {
+        toast.error("Không có giảng viên nào được tạo — kiểm tra danh sách lỗi bên dưới");
+      }
+    },
+    onError: (error: ApiError) => {
+      toast.error(error.message || "Import thất bại");
+    },
+  });
+}

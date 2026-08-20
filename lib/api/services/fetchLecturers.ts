@@ -36,6 +36,28 @@ export interface LecturerListParams {
   pageSize?: number;
 }
 
+export interface LecturerImportError {
+  row: number;
+  code: string;
+  message?: string;
+}
+
+export interface LecturerImportAccount {
+  row: number;
+  lecturer_id: number;
+  lecturer_code: string;
+  email: string;
+  display_name: string;
+  temp_password: string;
+}
+
+export interface LecturerImportResponse {
+  created: number;
+  skipped: number;
+  errors: LecturerImportError[];
+  accounts: LecturerImportAccount[];
+}
+
 export const fetchLecturers = {
   /**
    * GET /lecturers — ADMIN, MANAGER.
@@ -50,6 +72,14 @@ export const fetchLecturers = {
   /** POST /lecturers — ADMIN only, tạo account + lecturer trong 1 transaction */
   create: async (payload: LecturerCreatePayload): Promise<LecturerCreateResponse> => {
     const response = await apiService.post<LecturerCreateResponse>("api/v1/lecturers", payload);
+    return response.data;
+  },
+
+  /** POST /lecturers/import — ADMIN, MANAGER. Nhận file .xlsx theo mẫu lecturers_template.xlsx. */
+  importFile: async (file: File): Promise<LecturerImportResponse> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiService.upload<LecturerImportResponse>("api/v1/lecturers/import", formData);
     return response.data;
   },
 };
