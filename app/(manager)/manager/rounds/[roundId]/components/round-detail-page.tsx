@@ -585,6 +585,16 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
           </div>
 
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+            <StatBlock
+              label="Khoảng thời gian"
+              value={
+                round.startDate && round.endDate
+                  ? `${formatDate(round.startDate, "DD/MM")} – ${formatDate(round.endDate, "DD/MM/YYYY")}`
+                  : "—"
+              }
+              icon={CalendarClock}
+              tone="amber"
+            />
             <StatBlock label="Thời lượng" value={`${round.durationMinutes} phút`} icon={Clock} tone="sky" />
             <StatBlock label="Số reviewer" value={String(round.reviewerCount)} icon={Users} tone="sky" />
             <StatBlock
