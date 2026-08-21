@@ -16,8 +16,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
-import { StatusDot } from "../../../../_shared/status-dot";
-import { ROUND_TYPE_LABEL } from "../../../../_shared/labels";
+import { StatusDot } from "@/app/(manager)/manager/_shared/status-dot";
+import { ROUND_TYPE_LABEL } from "@/app/(manager)/manager/_shared/labels";
 import { useRoundDetail } from "@/hooks/manager/useRounds";
 import { useRoundScheduleVersions } from "@/hooks/manager/useScheduling";
 import {

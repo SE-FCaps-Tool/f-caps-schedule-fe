@@ -16,14 +16,11 @@ import {
   Users,
   FileClock,
   GraduationCap,
-  CalendarRange,
   ClipboardCheck,
   BarChart3,
   Users2,
   ClipboardList,
   User,
-  UserCog,
-  Building2,
   Mail,
   CalendarCheck,
   CalendarDays,
@@ -48,6 +45,16 @@ interface NavItem {
   label: string;
   href: string;
   icon: typeof LayoutDashboard;
+  /** Route con coi là thuộc mục này khi tính active/breadcrumb (vd. hub "Cấu hình" gộp nhiều trang con không lồng path) */
+  matchHrefs?: string[];
+}
+
+function matchesNavHref(href: string, pathname: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function isNavItemActive(item: NavItem, pathname: string) {
+  return matchesNavHref(item.href, pathname) || (item.matchHrefs?.some((h) => matchesNavHref(h, pathname)) ?? false);
 }
 
 interface NavGroup {
@@ -79,11 +86,14 @@ const NAV_CONFIG: Record<UserRole, { areaLabel: string; groups: NavGroup[] }> = 
       {
         label: "Học vụ",
         items: [
-          { label: "Học kỳ", href: "/manager/semesters", icon: CalendarRange },
           { label: "Đề tài", href: "/manager/projects", icon: GraduationCap },
           { label: "Nhóm sinh viên", href: "/manager/groups", icon: Users2 },
-          { label: "Giảng viên", href: "/manager/lecturers", icon: UserCog },
-          { label: "Phòng", href: "/manager/rooms", icon: Building2 },
+          {
+            label: "Cấu hình",
+            href: "/manager/master-data",
+            icon: ShieldCheck,
+            matchHrefs: ["/manager/lecturers", "/manager/rooms", "/manager/semesters"],
+          },
         ],
       },
       {
@@ -221,9 +231,7 @@ export function AppShell({ children, area, headerExtra, disabledHrefs, onDisable
   const { areaLabel, groups } = NAV_CONFIG[area];
   const navItems = groups.flatMap((group) => group.items);
 
-  const activeItem =
-    navItems.find((item) => pathname === item.href) ??
-    navItems.find((item) => pathname.startsWith(`${item.href}/`));
+  const activeItem = navItems.find((item) => isNavItemActive(item, pathname));
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
@@ -244,7 +252,7 @@ export function AppShell({ children, area, headerExtra, disabledHrefs, onDisable
                 </p>
               )}
               {group.items.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const isActive = isNavItemActive(item, pathname);
                 const isDisabled = disabledHrefs?.includes(item.href) ?? false;
 
                 if (isDisabled) {

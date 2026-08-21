@@ -9,5 +9,5 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default function ManagerRoomsPage() {
-  return <RoomsPage />;
+  return <RoomsPage backHref="/manager/master-data" backLabel="Cấu hình" />;
 }

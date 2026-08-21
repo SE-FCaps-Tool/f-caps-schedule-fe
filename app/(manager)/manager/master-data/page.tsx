@@ -4,16 +4,16 @@ import { ConfigHub } from "@/components/master-data/config-hub";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Cấu hình",
-  path: "/admin/master-data",
+  path: "/manager/master-data",
   noindex: true,
 });
 
-export default function AdminConfigPage() {
+export default function ManagerConfigPage() {
   return (
     <ConfigHub
-      lecturersHref="/admin/master-data/lecturers"
-      semestersHref="/admin/master-data/semesters"
-      roomsHref="/admin/master-data/rooms"
+      lecturersHref="/manager/lecturers"
+      semestersHref="/manager/semesters"
+      roomsHref="/manager/rooms"
     />
   );
 }

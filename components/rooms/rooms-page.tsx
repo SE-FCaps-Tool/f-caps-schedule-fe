@@ -18,8 +18,7 @@ type TypeFilter = typeof TYPE_FILTER_ALL | RoomType;
 
 /**
  * Dùng chung cho Admin (`/admin/master-data/rooms`) và Manager (`/manager/rooms`).
- * `backHref`/`backLabel` chỉ hiện breadcrumb khi được truyền — Manager không có hub "Cấu hình"
- * tương ứng nên bỏ qua.
+ * `backHref`/`backLabel` trỏ về hub "Cấu hình" tương ứng của từng khu vực.
  */
 export function RoomsPage({ backHref, backLabel }: { backHref?: string; backLabel?: string }) {
   const { data: rooms, isLoading, isError } = useRooms();

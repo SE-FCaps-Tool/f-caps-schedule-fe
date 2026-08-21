@@ -1,80 +1,64 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Search, WifiOff } from "lucide-react";
+import Link from "next/link";
+import { MoreHorizontal, Search, WifiOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ReasonDialog } from "@/components/shared/reason-dialog";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
-import { StatusDot } from "../../_shared/status-dot";
-import { ROUND_TYPE_LABEL, ROUND_SCHEDULE_VERSION_STATUS_META } from "../../_shared/labels";
-import { useSemesterContext } from "../../_shared/semester-context";
-import { useRounds, useRoundDetail } from "@/hooks/manager/useRounds";
-import { useRoundScheduleVersions } from "@/hooks/manager/useScheduling";
+import { StatusDot } from "@/app/(manager)/manager/_shared/status-dot";
+import { ROUND_SCHEDULE_VERSION_STATUS_META } from "@/app/(manager)/manager/_shared/labels";
+import { useSchedulingReadiness, useRoundScheduleVersions, useGenerateSchedule, useSetActiveScheduleVersion, useDiscardScheduleVersion, useChangeSessionRoom, useReplaceSessionReviewer, usePostponeRoundSession } from "@/hooks/manager/useScheduling";
 import { useRoundSessions, useAvailableRooms } from "@/hooks/manager/useRoomAssignment";
-import {
-  useChangeSessionRoom,
-  useReplaceSessionReviewer,
-  usePostponeRoundSession,
-} from "@/hooks/manager/useScheduling";
-import { ReasonDialog } from "@/components/shared/reason-dialog";
-import { SessionDrawer } from "./session-drawer";
-import { DayGrid, matchesSearch, toDisplaySession } from "./day-grid";
-import type { DisplaySession } from "./types";
+import { SessionDrawer } from "@/app/(manager)/manager/calendar/components/session-drawer";
+import { DayGrid, matchesSearch, toDisplaySession } from "@/app/(manager)/manager/calendar/components/day-grid";
+import type { DisplaySession } from "@/app/(manager)/manager/calendar/components/types";
 import type { AssignableRoom } from "@/lib/api/services/fetchRoomAssignment";
+import type { RoundDetail } from "@/lib/api/services/fetchRounds";
+import { ErrorBlock, LoadingBlock, PanelHeading, ROW_REVEAL_CLASS, rowRevealStyle } from "./round-detail-shared";
+import { RoundAvailabilityHeatmap } from "./round-availability-heatmap";
 
 type ViewMode = "day" | "week" | "list";
 
-export function CalendarPage() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const { currentSemester } = useSemesterContext();
-  const semesterId = currentSemester?.id;
-
-  const { data: roundsResult, isLoading: roundsLoading } = useRounds(semesterId);
-  const rounds = roundsResult?.data;
-  const roundParam = searchParams.get("round");
-  const selectedRoundId = roundParam ?? rounds?.[0]?.id ?? null;
-  const selectedRound = rounds?.find((r) => r.id === selectedRoundId) ?? null;
-
-  const { data: round } = useRoundDetail(selectedRoundId);
-  const { data: versions, isLoading: versionsLoading, isError: versionsError } = useRoundScheduleVersions(selectedRoundId);
-  const { data: rooms } = useAvailableRooms(selectedRoundId);
+/** Cột giữa — quản lý phương án lịch (chạy/kích hoạt/loại bỏ) và lưới Lịch (phòng × giờ) cho phương án đang dùng. */
+export function RoundCalendarPanel({ roundId, round }: { roundId: string; round: RoundDetail }) {
+  const { data: readiness } = useSchedulingReadiness(roundId);
+  const { data: roundVersions, isLoading: roundVersionsLoading, isError: roundVersionsError } = useRoundScheduleVersions(roundId);
+  const generateSchedule = useGenerateSchedule();
+  const setActiveVersion = useSetActiveScheduleVersion();
+  const discardVersion = useDiscardScheduleVersion();
 
   // Ưu tiên phương án đã PUBLISHED (lịch chính thức); chưa publish thì xem trước bản ACTIVE.
   const currentVersion = useMemo(() => {
-    if (!versions || versions.length === 0) return null;
-    return versions.find((v) => v.status === "PUBLISHED") ?? versions.find((v) => v.status === "ACTIVE") ?? null;
-  }, [versions]);
+    if (!roundVersions || roundVersions.length === 0) return null;
+    return roundVersions.find((v) => v.status === "PUBLISHED") ?? roundVersions.find((v) => v.status === "ACTIVE") ?? null;
+  }, [roundVersions]);
 
-  const { data: rawSessions, isLoading: sessionsLoading, isError: sessionsError } = useRoundSessions(
-    selectedRoundId,
-    currentVersion?.id ?? null
-  );
+  const { data: rooms } = useAvailableRooms(roundId);
+  const { data: rawSessions, isLoading: sessionsLoading, isError: sessionsError } = useRoundSessions(roundId, currentVersion?.id ?? null);
 
-  const changeRoom = useChangeSessionRoom(selectedRoundId ?? "", currentVersion?.id ?? null);
-  const replaceReviewer = useReplaceSessionReviewer(selectedRoundId ?? "", currentVersion?.id ?? null);
-  const postponeSession = usePostponeRoundSession(selectedRoundId ?? "", currentVersion?.id ?? null);
+  const changeRoom = useChangeSessionRoom(roundId, currentVersion?.id ?? null);
+  const replaceReviewer = useReplaceSessionReviewer(roundId, currentVersion?.id ?? null);
+  const postponeSession = usePostponeRoundSession(roundId, currentVersion?.id ?? null);
 
   const sessions: DisplaySession[] = useMemo(
     () => (rawSessions ?? []).map((s) => toDisplaySession(s, rooms ?? [])),
     [rawSessions, rooms]
   );
 
-  const dates = useMemo(() => round?.days.map((d) => d.date) ?? [], [round]);
-
+  const dates = useMemo(() => round.days.map((d) => d.date), [round]);
   const timeslotRows = useMemo(() => {
-    if (!round) return [];
     const seen = new Map<string, { start: string; end: string }>();
     for (const day of round.days) {
       for (const slot of day.slots) seen.set(slot.startTime, { start: slot.startTime, end: slot.endTime });
     }
     return Array.from(seen.values()).sort((a, b) => a.start.localeCompare(b.start));
   }, [round]);
-
   const roomColumns = rooms ?? [];
 
   const [dateOverride, setDateOverride] = useState<string | null>(null);
@@ -105,80 +89,118 @@ export function CalendarPage() {
     setPendingRoomMove(null);
   }
 
-  if (roundsLoading) {
-    return <Skeleton className="h-64 w-full" />;
-  }
-
-  if (!rounds || rounds.length === 0) {
-    return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
-        <p className="text-base font-medium">Học kỳ này chưa có đợt đánh giá nào</p>
-        <p className="mt-1 max-w-sm text-sm text-muted-foreground">Tạo đợt đánh giá trước khi xem lịch.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Lịch đánh giá</h1>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-            <Select
-              value={selectedRoundId}
-              onValueChange={(v) => {
-                const params = new URLSearchParams(searchParams.toString());
-                if (v) params.set("round", v);
-                router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-              }}
-            >
-              <SelectTrigger className="h-7 gap-1 border-none bg-transparent px-0 font-medium shadow-none">
-                <SelectValue placeholder="Chọn đợt">{() => (selectedRound ? ROUND_TYPE_LABEL[selectedRound.type] : "Chọn đợt")}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {rounds.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
-                    {ROUND_TYPE_LABEL[r.type]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {currentVersion && (
-              <>
-                <span className="text-muted-foreground/50">·</span>
-                <StatusDot
-                  tone={ROUND_SCHEDULE_VERSION_STATUS_META[currentVersion.status].tone}
-                  label={`V${currentVersion.versionNumber} — ${ROUND_SCHEDULE_VERSION_STATUS_META[currentVersion.status].label}`}
-                />
-                <span className="text-muted-foreground/50">·</span>
-                <span className="text-muted-foreground">{sessions.length} buổi đã xếp</span>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+    <div className="flex flex-col gap-6 overflow-y-auto lg:h-full lg:min-h-0">
+      <div className="shrink-0">
+        <PanelHeading>Lịch</PanelHeading>
 
-      {versionsLoading && <Skeleton className="mt-6 h-64 w-full" />}
-      {versionsError && (
-        <div className="mt-6 flex items-center gap-2 py-10 text-sm text-muted-foreground">
-          <WifiOff className="size-4 shrink-0" />
-          Không tải được các phương án lịch.
-        </div>
-      )}
-      {versions && versions.length === 0 && (
-        <p className="mt-6 py-10 text-center text-sm text-muted-foreground">
-          Đợt này chưa có phương án lịch — vào trang đợt đánh giá để chạy xếp lịch.
-        </p>
-      )}
-      {versions && versions.length > 0 && !currentVersion && (
-        <p className="mt-6 py-10 text-center text-sm text-muted-foreground">
-          Chưa có phương án nào được kích hoạt — vào trang đợt đánh giá để kích hoạt.
-        </p>
-      )}
+        {readiness && !readiness.ready && (
+          <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
+            <p className="font-medium text-amber-700 dark:text-amber-400">Chưa đủ điều kiện chạy xếp lịch</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-amber-700 dark:text-amber-400">
+              {readiness.blockingIssues?.map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {readiness && readiness.warnings?.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+            {readiness.warnings.map((w) => (
+              <span key={w.code} className="rounded-md border border-border px-2 py-1">
+                {w.code}: {w.count}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {roundVersionsLoading && (
+          <div className="mt-3">
+            <LoadingBlock />
+          </div>
+        )}
+        {roundVersionsError && <ErrorBlock label="Không tải được các phương án lịch." />}
+
+        {roundVersions && roundVersions.length > 0 && (
+          <>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {roundVersions.length} phương án đã tạo
+              {currentVersion && ` · V${currentVersion.versionNumber} đang hiển thị trên lưới`}
+            </p>
+
+            <div className="mt-3 overflow-hidden rounded-lg border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-4">Phương án</TableHead>
+                    <TableHead className="text-right">Đã xếp</TableHead>
+                    <TableHead className="text-right">Chưa xếp</TableHead>
+                    <TableHead className="text-right">Điểm</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead className="pr-4 text-right">
+                      <span className="sr-only">Hành động</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {roundVersions.map((version, index) => {
+                    const versionStatusMeta = ROUND_SCHEDULE_VERSION_STATUS_META[version.status];
+                    return (
+                      <TableRow key={version.id} className={ROW_REVEAL_CLASS} style={rowRevealStyle(index)}>
+                        <TableCell className="pl-4 font-mono text-xs font-medium">V{version.versionNumber}</TableCell>
+                        <TableCell className="text-right tabular-nums">{version.scheduledCount}</TableCell>
+                        <TableCell className="text-right tabular-nums">{version.unscheduledCount}</TableCell>
+                        <TableCell className="text-right font-medium tabular-nums">
+                          {version.overallScore != null ? version.overallScore.toFixed(1) : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <StatusDot tone={versionStatusMeta.tone} label={versionStatusMeta.label} />
+                        </TableCell>
+                        <TableCell className="pr-4 text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={
+                                <Button variant="ghost" size="icon-sm" aria-label="Hành động">
+                                  <MoreHorizontal />
+                                </Button>
+                              }
+                            />
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                disabled={version.status !== "DRAFT"}
+                                onClick={() => setActiveVersion.mutate({ roundId, versionId: version.id })}
+                              >
+                                Kích hoạt
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                disabled={version.status !== "DRAFT"}
+                                onClick={() => discardVersion.mutate({ roundId, versionId: version.id })}
+                              >
+                                Loại bỏ
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                disabled={version.status !== "ACTIVE"}
+                                render={<Link href={`/manager/rounds/${roundId}/room-assignment`} />}
+                              >
+                                Gán phòng
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
+      </div>
 
       {currentVersion && (
-        <>
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-1">
               {dates.map((date) => (
                 <button
@@ -223,7 +245,7 @@ export function CalendarPage() {
             </div>
           </div>
 
-          <div className="mt-5 flex-1">
+          <div className="mt-4 min-h-0 flex-1">
             {sessionsLoading && <Skeleton className="h-64 w-full" />}
             {sessionsError && (
               <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
@@ -309,7 +331,20 @@ export function CalendarPage() {
               </div>
             )}
           </div>
-        </>
+        </div>
+      )}
+
+      {!currentVersion && (
+        <div className="min-h-0 flex-1">
+          <RoundAvailabilityHeatmap
+            roundId={roundId}
+            round={round}
+            hasVersions={!!(roundVersions && roundVersions.length > 0)}
+            readiness={readiness}
+            onRunSchedule={() => generateSchedule.mutate(roundId)}
+            runPending={generateSchedule.isPending}
+          />
+        </div>
       )}
 
       <SessionDrawer
@@ -344,4 +379,3 @@ export function CalendarPage() {
     </div>
   );
 }
-
