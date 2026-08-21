@@ -2,9 +2,11 @@
 
 import { AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
+import { formatInVietnamTime } from "@/lib/utils/formatDate";
 import { SessionCard } from "./session-card";
 import type { DisplaySession } from "./types";
 import type { AssignableRoom, RoundSession } from "@/lib/api/services/fetchRoomAssignment";
+import type { ScheduleVersionAssignment } from "@/lib/api/services/fetchScheduling";
 
 /** RoundSession (API) → DisplaySession (dạng dùng cho DayGrid/SessionCard) — dùng chung cho Lịch đánh giá và panel Calendar ở Round Detail. */
 export function toDisplaySession(session: RoundSession, rooms: AssignableRoom[]): DisplaySession {
@@ -22,6 +24,29 @@ export function toDisplaySession(session: RoundSession, rooms: AssignableRoom[])
     roomCode: room?.code ?? (session.roomId ? `#${session.roomId}` : "Chưa gán"),
     reviewers: session.council.map((c) => ({ id: c.lecturerId, name: c.fullName })),
     status: session.status,
+  };
+}
+
+/**
+ * Solver assignment thô (1 version bất kỳ, kể cả DRAFT chưa activate) → DisplaySession — dùng cho
+ * xem trước phương án nháp. Khác `toDisplaySession`: chưa có phòng thật (`room_id` luôn null ở
+ * bước này), nên chỉ dùng được cho view "Danh sách", không đưa vào DayGrid (lưới CHIA CỘT theo
+ * phòng — không có gì để plot khi chưa gán phòng).
+ */
+export function assignmentToDisplaySession(assignment: ScheduleVersionAssignment): DisplaySession {
+  return {
+    id: String(assignment.id),
+    groupId: String(assignment.group_id),
+    groupCode: assignment.group_code,
+    projectTitle: null,
+    date: formatInVietnamTime(assignment.start_at, "YYYY-MM-DD"),
+    start: formatInVietnamTime(assignment.start_at, "HH:mm"),
+    end: formatInVietnamTime(assignment.end_at, "HH:mm"),
+    timeslotId: String(assignment.timeslot_id),
+    roomId: assignment.room_id != null ? String(assignment.room_id) : null,
+    roomCode: assignment.room_id != null ? `#${assignment.room_id}` : "Chưa gán",
+    reviewers: assignment.reviewer_ids.map((id) => ({ id: String(id), name: assignment.reviewer_names[String(id)] ?? `#${id}` })),
+    status: assignment.status,
   };
 }
 
@@ -48,6 +73,7 @@ export function DayGrid({
   draggingId,
   hoveredCell,
   compact,
+  readOnly,
   onDragStart,
   onDragEnd,
   onCellDragOver,
@@ -61,6 +87,8 @@ export function DayGrid({
   draggingId: string | null;
   hoveredCell: { roomId: string; start: string } | null;
   compact?: boolean;
+  /** Xem trước phương án nháp — không kéo-thả/mở chi tiết được, phải kích hoạt trước. */
+  readOnly?: boolean;
   onDragStart: (id: string) => void;
   onDragEnd: () => void;
   onCellDragOver: (cell: { roomId: string; start: string } | null) => void;
@@ -110,13 +138,14 @@ export function DayGrid({
                   )}
                   style={{ height: cellHeight }}
                   onDragOver={(e) => {
-                    if (!session) {
+                    if (!readOnly && !session) {
                       e.preventDefault();
                       onCellDragOver({ roomId: room.id, start: slot.start });
                     }
                   }}
                   onDragLeave={() => onCellDragOver(null)}
                   onDrop={(e) => {
+                    if (readOnly) return;
                     e.preventDefault();
                     onDrop(room, slot.start);
                   }}
@@ -128,12 +157,13 @@ export function DayGrid({
                         session={session}
                         dimmed={!matchesSearch(session, search)}
                         dragging={draggingId === session.id}
+                        readOnly={readOnly}
                         onDragStart={(e) => {
                           e.dataTransfer.setData("text/plain", session.id);
                           onDragStart(session.id);
                         }}
                         onDragEnd={onDragEnd}
-                        onClick={() => onSelect(session.id)}
+                        onClick={() => !readOnly && onSelect(session.id)}
                       />
                     )}
                   </AnimatePresence>

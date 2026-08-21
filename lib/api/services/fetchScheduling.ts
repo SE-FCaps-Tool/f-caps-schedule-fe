@@ -32,20 +32,20 @@ export type UnscheduledReason =
   | "TIMESLOT_CAPACITY_REACHED"
   | "CONTINUITY_CONSTRAINT_FAILED";
 
-export interface ScheduleScores {
-  workload: number;
-  continuity: number;
-  compactness: number;
-}
-
 export interface GenerateScheduleResult {
   versionId: string;
   versionNumber: number;
   status: RoundScheduleVersionStatus;
   scheduledCount: number;
   unscheduledCount: number;
-  overallScore: number;
-  scores: ScheduleScores;
+  /**
+   * S1..S9 thô từ BE (scheduler.py) — không tự suy diễn "overall score": S1 (workload) và S3
+   * (continuity, chỉ áp dụng cho DEFENSE_1_2, luôn 0 với round type khác) là điểm số, còn S4/S5
+   * là cờ nhị phân (vd S4 = buổi sáng hay không) — cộng chung các giá trị này không ra một con
+   * số có ý nghĩa. BE cũng không trả total_score thật ở endpoint này (chỉ lưu trong DB, đọc qua
+   * `RoundScheduleVersionItem.overallScore`/`roundScheduleVersions()` bên dưới).
+   */
+  softScores: Record<string, number>;
 }
 
 export interface RoundScheduleVersionItem {
@@ -103,11 +103,11 @@ export interface ScheduleRunPayload {
   time_limit_seconds?: number;
 }
 
+/** Khớp dataclass `UnscheduledReason` (BE models.py) — KHÔNG có group_id/group_code/reason. */
 export interface UnscheduledGroupReason {
-  group_id: number;
-  group_code?: string;
-  reason: string;
-  [key: string]: unknown;
+  code: string;
+  explanation: string;
+  remediation_hint: string;
 }
 
 export interface ScheduleRunResponse {
@@ -150,9 +150,33 @@ export interface ScheduleSession {
   reviewer_names: Record<string, string>;
 }
 
+/**
+ * Solver assignment thô cho 1 version — tồn tại cho MỌI version (kể cả DRAFT chưa kích hoạt),
+ * nhưng CHƯA có phòng (`room_id` luôn null cho tới khi gán phòng ở bước sau kích hoạt).
+ * Đây là field BE thực sự trả populated trong `GET /schedule/versions/{id}` — không phải `sessions`.
+ */
+export interface ScheduleVersionAssignment {
+  assignment_id: number;
+  id: number;
+  schedule_version_id: number;
+  group_id: number;
+  group_code: string;
+  project_id: number;
+  timeslot_id: number;
+  start_at: string;
+  end_at: string;
+  room_id: number | null;
+  status: string;
+  reviewer_ids: number[];
+  result_owner_ids: number[];
+  reviewer_names: Record<string, string>;
+}
+
 export interface ScheduleVersionDetail extends ScheduleVersionSummary {
+  /** BE trả rỗng cho version chưa kích hoạt (Session/phòng chỉ tạo lúc activate) — không dùng để xem trước nháp. */
   sessions: ScheduleSession[];
-  assignments?: Array<{ group_id?: number; groupId?: number }>;
+  /** Nguồn dữ liệu thật để xem trước 1 version bất kỳ, kể cả DRAFT chưa gán phòng. */
+  assignments: ScheduleVersionAssignment[];
 }
 
 export interface ActivateVersionResponse {
@@ -457,12 +481,7 @@ export const fetchScheduling = {
       status: "DRAFT",
       scheduledCount: result.scheduled_count,
       unscheduledCount: result.unscheduled.length,
-      overallScore: Object.values(result.soft_scores).reduce((sum, score) => sum + score, 0),
-      scores: {
-        workload: result.soft_scores.S1 ?? 0,
-        continuity: result.soft_scores.S3 ?? 0,
-        compactness: result.soft_scores.S4 ?? 0,
-      },
+      softScores: result.soft_scores,
     };
   },
 

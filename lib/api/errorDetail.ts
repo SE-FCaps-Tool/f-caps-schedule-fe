@@ -92,6 +92,8 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   GROUP_SELECTION_DISABLED: "Đợt đánh giá này không mở đăng ký nguyện vọng cho nhóm",
   AUTH_RESOURCE_SCOPE: "Bạn không có quyền truy cập dữ liệu này",
   GROUP_NOT_IN_ROUND: "Nhóm không thuộc đợt đánh giá này",
+  REVIEWER_OVERLAP:
+    "Không kích hoạt được — trùng lịch giảng viên với phương án đang dùng/đã công bố của round khác",
   /** Dùng chung cho 4 kiểu vi phạm khoảng ngày round: xem chi tiết trong `detail.message`/`error.message` gốc nếu cần. */
   TIMESLOT_OUT_OF_RANGE:
     "Ngày hoặc hạn đăng ký phải nằm trong khoảng bắt đầu–kết thúc của đợt, và hạn nhóm phải sau hạn giảng viên",

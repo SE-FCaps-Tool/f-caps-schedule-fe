@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { CalendarClock, Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -14,7 +14,17 @@ import { useGroups } from "@/hooks/manager/useGroups";
 import { useSemesterContext } from "@/app/(manager)/manager/_shared/semester-context";
 import type { RoundDetail, RoundTimeslot } from "@/lib/api/services/fetchRounds";
 import type { SchedulingReadiness } from "@/lib/api/services/fetchScheduling";
-import { ErrorBlock } from "./round-detail-shared";
+import { ErrorBlock, ROW_REVEAL_CLASS, rowRevealStyle } from "./round-detail-shared";
+
+/** Cập nhật mỗi phút — đủ để hàng "giờ hiện tại" nhích theo, không cần tick giây. */
+function useNowInVietnamTime() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  return { date: formatInVietnamTime(now, "YYYY-MM-DD"), time: formatInVietnamTime(now, "HH:mm") };
+}
 
 /**
  * "Bấm một ngày trong khung để đặt hạn đăng ký chọn lịch" — cùng tương tác với bước 2 của wizard
@@ -34,13 +44,25 @@ function addDaysStr(dateStr: string, days: number): string {
 }
 
 /** Thẻ full-width cho 1 giảng viên/nhóm — dùng trong popover chi tiết của {@link TimeslotCell}. */
-function PersonCard({ code, subtitle, tone }: { code: string; subtitle?: string; tone: "orange" | "violet" }) {
+function PersonCard({
+  code,
+  subtitle,
+  tone,
+  index = 0,
+}: {
+  code: string;
+  subtitle?: string;
+  tone: "orange" | "violet";
+  index?: number;
+}) {
   return (
     <div
       className={cn(
-        "w-full rounded-md border px-2 py-1.5",
-        tone === "orange" ? "border-orange-500/30 bg-orange-500/10" : "border-violet-500/30 bg-violet-500/10"
+        "w-full rounded-md border px-2 py-1.5 transition-transform",
+        tone === "orange" ? "border-orange-500/30 bg-orange-500/10" : "border-violet-500/30 bg-violet-500/10",
+        ROW_REVEAL_CLASS
       )}
+      style={rowRevealStyle(index)}
     >
       <p className={cn("truncate text-xs font-semibold", tone === "orange" ? "text-orange-700 dark:text-orange-400" : "text-violet-700 dark:text-violet-400")}>
         {code}
@@ -65,7 +87,7 @@ function SectionBox({
   tone: "orange" | "violet";
   title: string;
   ids: number[];
-  renderCard: (id: number) => ReactNode;
+  renderCard: (id: number, index: number) => ReactNode;
   dateLabel: string;
   timeLabel: string;
 }) {
@@ -75,7 +97,7 @@ function SectionBox({
 
   return (
     <div className={cn("space-y-1 rounded-md p-1", tone === "orange" ? "bg-orange-500/5" : "bg-violet-500/5")}>
-      {visible.map(renderCard)}
+      {visible.map((id, index) => renderCard(id, index))}
       {overflow > 0 && (
         <Popover>
           <PopoverTrigger
@@ -98,7 +120,7 @@ function SectionBox({
                 {title} ({ids.length})
               </p>
             </div>
-            <div className="max-h-72 space-y-1.5 overflow-y-auto">{ids.map(renderCard)}</div>
+            <div className="max-h-72 space-y-1.5 overflow-y-auto">{ids.map((id, index) => renderCard(id, index))}</div>
           </PopoverContent>
         </Popover>
       )}
@@ -118,6 +140,8 @@ function TimeslotCell({
   groupCodeById,
   dateLabel,
   timeLabel,
+  isToday,
+  isNowRow,
 }: {
   lecturerIds: number[];
   groupIds: number[];
@@ -125,21 +149,43 @@ function TimeslotCell({
   groupCodeById: Map<number, string>;
   dateLabel: string;
   timeLabel: string;
+  isToday: boolean;
+  isNowRow: boolean;
 }) {
+  const topBorder = isNowRow ? "border-t-2 border-t-primary/70" : "border-t border-border";
+
   if (lecturerIds.length === 0 && groupIds.length === 0) {
-    return <div className="min-h-full border-t border-l border-border bg-card" aria-label="Chưa có lựa chọn" />;
+    return (
+      <div
+        className={cn("min-h-full border-l border-border bg-background", topBorder, isToday && "bg-foreground/2")}
+        aria-label="Chưa có lựa chọn"
+      />
+    );
   }
 
   return (
-    <div className="flex flex-col gap-1.5 border-t border-l border-border p-1.5">
+    <div
+      className={cn(
+        "flex flex-col gap-1.5 border-l border-border p-1.5 transition-shadow duration-200",
+        topBorder,
+        isToday && "bg-foreground/2",
+        "hover:relative hover:z-10 hover:shadow-md hover:ring-1 hover:ring-border"
+      )}
+    >
       <SectionBox
         tone="orange"
         title="Giảng viên"
         ids={lecturerIds}
         dateLabel={dateLabel}
         timeLabel={timeLabel}
-        renderCard={(id) => (
-          <PersonCard key={id} tone="orange" code={lecturerById.get(id)?.code ?? `GV${id}`} subtitle={lecturerById.get(id)?.fullName} />
+        renderCard={(id, index) => (
+          <PersonCard
+            key={id}
+            tone="orange"
+            code={lecturerById.get(id)?.code ?? `GV${id}`}
+            subtitle={lecturerById.get(id)?.fullName}
+            index={index}
+          />
         )}
       />
       <SectionBox
@@ -148,7 +194,7 @@ function TimeslotCell({
         ids={groupIds}
         dateLabel={dateLabel}
         timeLabel={timeLabel}
-        renderCard={(id) => <PersonCard key={id} tone="violet" code={groupCodeById.get(id) ?? `#${id}`} />}
+        renderCard={(id, index) => <PersonCard key={id} tone="violet" code={groupCodeById.get(id) ?? `#${id}`} index={index} />}
       />
     </div>
   );
@@ -177,6 +223,7 @@ export function RoundAvailabilityHeatmap({
   runPending: boolean;
 }) {
   const reduceMotion = useReducedMotion();
+  const { date: nowDate, time: nowTime } = useNowInVietnamTime();
   const legacyRoundId = Number(roundId);
   const { data: availability, isLoading, isError } = useRoundMyAvailability(legacyRoundId);
   const { data: invitations } = useRoundInvitations(roundId);
@@ -284,21 +331,9 @@ export function RoundAvailabilityHeatmap({
       initial={reduceMotion ? undefined : { opacity: 0, y: 8 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="flex h-full min-h-[26rem] flex-col overflow-hidden rounded-xl border border-border bg-card"
+      className="flex h-full min-h-104 flex-col"
     >
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
-        <span className="inline-flex items-center gap-1.5 rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-1 text-[11px] font-medium text-orange-700 dark:text-orange-400">
-          Giảng viên rảnh
-        </span>
-        <span className="inline-flex items-center gap-1.5 rounded-md border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-[11px] font-medium text-violet-700 dark:text-violet-400">
-          Nhóm đã chọn
-        </span>
-        <span className="inline-flex items-center gap-1.5 rounded-md border border-muted-foreground/40 bg-muted-foreground/15 px-2 py-1 text-[11px] font-medium text-muted-foreground">
-          Không phải khung giờ của round
-        </span>
-      </div>
-
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border p-4">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div className="flex items-center gap-2 text-sm">
           <CalendarClock className="size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
           <p className="text-pretty text-amber-700 dark:text-amber-400">
@@ -309,13 +344,13 @@ export function RoundAvailabilityHeatmap({
                 : "Đợt đã qua giai đoạn chỉnh sửa hạn đăng ký."}
           </p>
         </div>
-        <Button size="sm" disabled={runPending || !canRun} onClick={onRunSchedule}>
+        <Button size="default" variant={"default"} disabled={runPending || !canRun} onClick={onRunSchedule}>
           <Sparkles />
           {runLabel}
         </Button>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col p-4">
+      <div className="flex min-h-0 flex-1 flex-col pt-4">
         {isLoading && <Skeleton className="h-56 w-full" />}
         {isError && <ErrorBlock label="Không tải được lịch rảnh." />}
 
@@ -332,9 +367,10 @@ export function RoundAvailabilityHeatmap({
                 gridTemplateRows: `64px repeat(${timeRows.length}, minmax(64px, 1fr))`,
               }}
             >
-              <div className="sticky top-0 left-0 z-30 border-r border-b border-border bg-card" />
+              <div className="sticky top-0 left-0 z-30 border-r border-b border-border bg-background" />
               {dates.map((date) => {
                 const isDeadline = date === deadlineDate;
+                const isToday = date === nowDate;
                 return (
                   <button
                     key={date}
@@ -343,7 +379,7 @@ export function RoundAvailabilityHeatmap({
                     onClick={() => handlePickDeadline(date)}
                     title={canEditDeadline ? `Đặt ${formatDate(date, "DD/MM/YYYY")} làm hạn đăng ký` : undefined}
                     className={cn(
-                      "sticky top-0 z-20 flex flex-col items-center justify-center gap-1 border-b border-l border-border bg-card py-2 transition-colors",
+                      "sticky top-0 z-20 flex flex-col items-center justify-center gap-1 border-b border-l border-border bg-background py-2 transition-colors",
                       canEditDeadline && "hover:bg-muted",
                       !canEditDeadline && "cursor-default"
                     )}
@@ -351,8 +387,9 @@ export function RoundAvailabilityHeatmap({
                     <span className="text-[11px] font-medium text-muted-foreground capitalize">{formatDate(date, "dd")}</span>
                     <span
                       className={cn(
-                        "flex size-7 items-center justify-center rounded-full text-sm font-semibold tabular-nums",
-                        isDeadline ? "bg-amber-500 text-white" : "text-foreground"
+                        "flex size-7 items-center justify-center rounded-full text-sm font-semibold tabular-nums transition-shadow",
+                        isDeadline ? "bg-amber-500 text-white" : "text-foreground",
+                        !isDeadline && isToday && "ring-2 ring-primary/50"
                       )}
                     >
                       {formatDate(date, "DD")}
@@ -361,53 +398,68 @@ export function RoundAvailabilityHeatmap({
                 );
               })}
 
-              {timeRows.map((row) => (
-                <div key={row.start} className="contents">
-                  <div className="sticky left-0 z-10 flex items-center justify-end border-r border-border bg-card pr-2 text-[11px] font-medium text-muted-foreground tabular-nums">
-                    {row.start}
+              {timeRows.map((row) => {
+                const isNowRow = nowTime >= row.start && nowTime < row.end;
+                return (
+                  <div key={row.start} className="contents">
+                    <div
+                      className={cn(
+                        "sticky left-0 z-10 flex items-center justify-end gap-1.5 border-r border-border bg-background pr-2 text-[11px] font-medium tabular-nums transition-colors",
+                        isNowRow ? "text-primary font-semibold" : "text-muted-foreground"
+                      )}
+                    >
+                      {isNowRow && (
+                        <span className="size-1.5 shrink-0 rounded-full bg-primary motion-safe:animate-pulse" aria-hidden />
+                      )}
+                      {row.start}
+                    </div>
+                    {dates.map((date) => {
+                      const cellKey = `${date}__${row.start}`;
+                      const roundSlot = roundSlotByCell.get(cellKey);
+                      const timeslot = timeslotByCell.get(cellKey);
+                      const isToday = date === nowDate;
+                      const topBorder = isNowRow ? "border-t-2 border-t-primary/70" : "border-t border-border";
+
+                      if (!roundSlot) {
+                        return (
+                          <div
+                            key={`${date}-${row.start}`}
+                            aria-disabled
+                            className={cn("border-l border-primary/20 bg-primary/5", topBorder)}
+                          />
+                        );
+                      }
+
+                      if (!timeslot) {
+                        return (
+                          <div
+                            key={`${date}-${row.start}`}
+                            className={cn("border-l border-border bg-background", topBorder, isToday && "bg-foreground/2")}
+                            title={`Khung giờ ${roundSlot.startTime} – ${roundSlot.endTime}`}
+                          />
+                        );
+                      }
+
+                      const lecturerIds = Array.from(lecturerAvailableByTimeslot.get(timeslot.id) ?? []);
+                      const groupIds = Array.from(groupSelectedByTimeslot.get(timeslot.id) ?? []);
+
+                      return (
+                        <TimeslotCell
+                          key={`${date}-${row.start}`}
+                          lecturerIds={lecturerIds}
+                          groupIds={groupIds}
+                          lecturerById={lecturerById}
+                          groupCodeById={groupCodeById}
+                          dateLabel={formatDate(date, "dddd, DD/MM")}
+                          timeLabel={`${roundSlot.startTime} – ${roundSlot.endTime}`}
+                          isToday={isToday}
+                          isNowRow={isNowRow}
+                        />
+                      );
+                    })}
                   </div>
-                  {dates.map((date) => {
-                    const cellKey = `${date}__${row.start}`;
-                    const roundSlot = roundSlotByCell.get(cellKey);
-                    const timeslot = timeslotByCell.get(cellKey);
-
-                    if (!roundSlot) {
-                      return (
-                        <div
-                          key={`${date}-${row.start}`}
-                          aria-disabled
-                          className="border-t border-l border-primary/20 bg-primary/5"
-                        />
-                      );
-                    }
-
-                    if (!timeslot) {
-                      return (
-                        <div
-                          key={`${date}-${row.start}`}
-                          className="border-t border-l border-border bg-card"
-                          title={`Khung giờ ${roundSlot.startTime} – ${roundSlot.endTime}`}
-                        />
-                      );
-                    }
-
-                    const lecturerIds = Array.from(lecturerAvailableByTimeslot.get(timeslot.id) ?? []);
-                    const groupIds = Array.from(groupSelectedByTimeslot.get(timeslot.id) ?? []);
-
-                    return (
-                      <TimeslotCell
-                        key={`${date}-${row.start}`}
-                        lecturerIds={lecturerIds}
-                        groupIds={groupIds}
-                        lecturerById={lecturerById}
-                        groupCodeById={groupCodeById}
-                        dateLabel={formatDate(date, "dddd, DD/MM")}
-                        timeLabel={`${roundSlot.startTime} – ${roundSlot.endTime}`}
-                      />
-                    );
-                  })}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

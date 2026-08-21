@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
 import { PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/app/(manager)/manager/_shared/status-dot";
+import { useSemesterContext } from "@/app/(manager)/manager/_shared/semester-context";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
-import { RoundConfigEditDialog } from "./round-config-edit-dialog";
 import { PanelHeading } from "./round-detail-shared";
 import type { RegistrationSummary, RoundDetail } from "@/lib/api/services/fetchRounds";
 
@@ -60,8 +60,9 @@ export function RoundInfoSidebar({
   round: RoundDetail;
   registrationSummary: RegistrationSummary | undefined;
 }) {
-  const [configEditOpen, setConfigEditOpen] = useState(false);
+  const { currentSemesterId } = useSemesterContext();
   const canEditConfig = round.status === "DRAFT" || round.status === "OPEN_REGISTRATION";
+  const editHref = `/manager/rounds/${round.id}/edit${currentSemesterId ? `?semester=${currentSemesterId}` : ""}`;
 
   return (
     <div className="space-y-4">
@@ -103,7 +104,8 @@ export function RoundInfoSidebar({
             aria-label="Chỉnh sửa cấu hình"
             title={canEditConfig ? "Chỉnh sửa cấu hình" : "Chỉ sửa được khi Round còn Nháp hoặc Đang mở đăng ký"}
             disabled={!canEditConfig}
-            onClick={() => setConfigEditOpen(true)}
+            nativeButton={!canEditConfig}
+            render={canEditConfig ? <Link href={editHref} /> : undefined}
           >
             <PencilLine />
           </Button>
@@ -153,8 +155,6 @@ export function RoundInfoSidebar({
           <StatusDot tone="red" label="Từ chối / không đạt" />
         </div>
       </div>
-
-      <RoundConfigEditDialog round={round} open={configEditOpen} onOpenChange={setConfigEditOpen} />
     </div>
   );
 }

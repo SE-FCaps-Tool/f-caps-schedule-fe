@@ -2,26 +2,34 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { MoreHorizontal, Search, WifiOff } from "lucide-react";
+import { CheckCircle2, RotateCcw, Search, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ReasonDialog } from "@/components/shared/reason-dialog";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
-import { StatusDot } from "@/app/(manager)/manager/_shared/status-dot";
-import { ROUND_SCHEDULE_VERSION_STATUS_META } from "@/app/(manager)/manager/_shared/labels";
-import { useSchedulingReadiness, useRoundScheduleVersions, useGenerateSchedule, useSetActiveScheduleVersion, useDiscardScheduleVersion, useChangeSessionRoom, useReplaceSessionReviewer, usePostponeRoundSession } from "@/hooks/manager/useScheduling";
+import {
+  useSchedulingReadiness,
+  useRoundScheduleVersions,
+  useScheduleVersion,
+  useGenerateSchedule,
+  useSetActiveScheduleVersion,
+  useDiscardScheduleVersion,
+  useChangeSessionRoom,
+  useReplaceSessionReviewer,
+  usePostponeRoundSession,
+} from "@/hooks/manager/useScheduling";
 import { useRoundSessions, useAvailableRooms } from "@/hooks/manager/useRoomAssignment";
 import { SessionDrawer } from "@/app/(manager)/manager/calendar/components/session-drawer";
-import { DayGrid, matchesSearch, toDisplaySession } from "@/app/(manager)/manager/calendar/components/day-grid";
+import { DayGrid, assignmentToDisplaySession, matchesSearch, toDisplaySession } from "@/app/(manager)/manager/calendar/components/day-grid";
 import type { DisplaySession } from "@/app/(manager)/manager/calendar/components/types";
 import type { AssignableRoom } from "@/lib/api/services/fetchRoomAssignment";
 import type { RoundDetail } from "@/lib/api/services/fetchRounds";
-import { ErrorBlock, LoadingBlock, PanelHeading, ROW_REVEAL_CLASS, rowRevealStyle } from "./round-detail-shared";
+import type { RoundScheduleVersionItem } from "@/lib/api/services/fetchScheduling";
+import { ErrorBlock } from "./round-detail-shared";
 import { RoundAvailabilityHeatmap } from "./round-availability-heatmap";
+import { DraftScheduleGrid } from "./draft-schedule-grid";
 
 type ViewMode = "day" | "week" | "list";
 
@@ -39,17 +47,76 @@ export function RoundCalendarPanel({ roundId, round }: { roundId: string; round:
     return roundVersions.find((v) => v.status === "PUBLISHED") ?? roundVersions.find((v) => v.status === "ACTIVE") ?? null;
   }, [roundVersions]);
 
+  // Bản nháp mới nhất chưa kích hoạt — để đối chiếu với bản hiện tại ngay trên cùng 1 lưới lịch.
+  const latestDraft = useMemo(() => {
+    if (!roundVersions) return null;
+    let best: RoundScheduleVersionItem | null = null;
+    for (const v of roundVersions) {
+      if (v.status !== "DRAFT") continue;
+      if (!best || v.versionNumber > best.versionNumber) best = v;
+    }
+    return best;
+  }, [roundVersions]);
+
+  const hasAnyVersion = currentVersion !== null || latestDraft !== null;
+  const canRun = readiness?.ready ?? false;
+
+  const [previewTab, setPreviewTab] = useState<"current" | "draft">("draft");
+  // Mỗi khi có bản nháp mới (vừa chạy xong), tự mở tab Nháp để manager thấy kết quả ngay — điều
+  // chỉnh state ngay trong lúc render (theo khuyến nghị của React) thay vì dùng effect, tránh
+  // 1 lượt render thừa mỗi khi versionId đổi.
+  const [lastSeenDraftId, setLastSeenDraftId] = useState<string | null>(null);
+  if (latestDraft && latestDraft.id !== lastSeenDraftId) {
+    setLastSeenDraftId(latestDraft.id);
+    setPreviewTab("draft");
+  }
+  const effectiveTab: "current" | "draft" = latestDraft ? previewTab : "current";
+  const previewVersion = effectiveTab === "draft" ? latestDraft : currentVersion;
+  const isPreviewingDraft = effectiveTab === "draft" && latestDraft !== null;
+
+  function handleRunSchedule() {
+    const staleDraftId = latestDraft?.id ?? null;
+    generateSchedule.mutate(roundId, {
+      onSuccess: (data) => {
+        if (staleDraftId && data.versionId !== staleDraftId) {
+          discardVersion.mutate({ roundId, versionId: staleDraftId });
+        }
+      },
+    });
+  }
+
   const { data: rooms } = useAvailableRooms(roundId);
-  const { data: rawSessions, isLoading: sessionsLoading, isError: sessionsError } = useRoundSessions(roundId, currentVersion?.id ?? null);
+  // Session/phòng thật chỉ tồn tại cho bản hiện tại (ACTIVE/PUBLISHED) — BE chỉ tạo Session lúc
+  // kích hoạt, nên chỉ fetch theo currentVersion, không theo previewVersion.
+  const {
+    data: rawSessions,
+    isLoading: currentSessionsLoading,
+    isError: currentSessionsError,
+  } = useRoundSessions(roundId, currentVersion?.id ?? null);
+
+  // Bản nháp chưa kích hoạt chỉ có solver assignment thô (chưa gán phòng) — đọc qua version detail,
+  // không qua /sessions (BE trả rỗng cho version chưa activate).
+  const {
+    data: draftVersionDetail,
+    isLoading: draftLoading,
+    isError: draftError,
+  } = useScheduleVersion(isPreviewingDraft && latestDraft ? Number(latestDraft.id) : null);
 
   const changeRoom = useChangeSessionRoom(roundId, currentVersion?.id ?? null);
   const replaceReviewer = useReplaceSessionReviewer(roundId, currentVersion?.id ?? null);
   const postponeSession = usePostponeRoundSession(roundId, currentVersion?.id ?? null);
 
-  const sessions: DisplaySession[] = useMemo(
+  const currentSessions: DisplaySession[] = useMemo(
     () => (rawSessions ?? []).map((s) => toDisplaySession(s, rooms ?? [])),
     [rawSessions, rooms]
   );
+  const draftSessions: DisplaySession[] = useMemo(
+    () => (draftVersionDetail?.assignments ?? []).map(assignmentToDisplaySession),
+    [draftVersionDetail]
+  );
+  const sessions = isPreviewingDraft ? draftSessions : currentSessions;
+  const sessionsLoading = isPreviewingDraft ? draftLoading : currentSessionsLoading;
+  const sessionsError = isPreviewingDraft ? draftError : currentSessionsError;
 
   const dates = useMemo(() => round.days.map((d) => d.date), [round]);
   const timeslotRows = useMemo(() => {
@@ -92,10 +159,8 @@ export function RoundCalendarPanel({ roundId, round }: { roundId: string; round:
   return (
     <div className="flex flex-col gap-6 overflow-y-auto lg:h-full lg:min-h-0">
       <div className="shrink-0">
-        <PanelHeading>Lịch</PanelHeading>
-
         {readiness && !readiness.ready && (
-          <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
             <p className="font-medium text-amber-700 dark:text-amber-400">Chưa đủ điều kiện chạy xếp lịch</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-amber-700 dark:text-amber-400">
               {readiness.blockingIssues?.map((issue) => (
@@ -114,91 +179,107 @@ export function RoundCalendarPanel({ roundId, round }: { roundId: string; round:
           </div>
         )}
 
-        {roundVersionsLoading && (
-          <div className="mt-3">
-            <LoadingBlock />
-          </div>
-        )}
+        {roundVersionsLoading && <Skeleton className="mt-3 h-9 w-full max-w-md" />}
         {roundVersionsError && <ErrorBlock label="Không tải được các phương án lịch." />}
 
-        {roundVersions && roundVersions.length > 0 && (
-          <>
-            <p className="mt-3 text-sm text-muted-foreground">
-              {roundVersions.length} phương án đã tạo
-              {currentVersion && ` · V${currentVersion.versionNumber} đang hiển thị trên lưới`}
-            </p>
-
-            <div className="mt-3 overflow-hidden rounded-lg border border-border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="pl-4">Phương án</TableHead>
-                    <TableHead className="text-right">Đã xếp</TableHead>
-                    <TableHead className="text-right">Chưa xếp</TableHead>
-                    <TableHead className="text-right">Điểm</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead className="pr-4 text-right">
-                      <span className="sr-only">Hành động</span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {roundVersions.map((version, index) => {
-                    const versionStatusMeta = ROUND_SCHEDULE_VERSION_STATUS_META[version.status];
-                    return (
-                      <TableRow key={version.id} className={ROW_REVEAL_CLASS} style={rowRevealStyle(index)}>
-                        <TableCell className="pl-4 font-mono text-xs font-medium">V{version.versionNumber}</TableCell>
-                        <TableCell className="text-right tabular-nums">{version.scheduledCount}</TableCell>
-                        <TableCell className="text-right tabular-nums">{version.unscheduledCount}</TableCell>
-                        <TableCell className="text-right font-medium tabular-nums">
-                          {version.overallScore != null ? version.overallScore.toFixed(1) : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <StatusDot tone={versionStatusMeta.tone} label={versionStatusMeta.label} />
-                        </TableCell>
-                        <TableCell className="pr-4 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              render={
-                                <Button variant="ghost" size="icon-sm" aria-label="Hành động">
-                                  <MoreHorizontal />
-                                </Button>
-                              }
-                            />
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                disabled={version.status !== "DRAFT"}
-                                onClick={() => setActiveVersion.mutate({ roundId, versionId: version.id })}
-                              >
-                                Kích hoạt
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                disabled={version.status !== "DRAFT"}
-                                onClick={() => discardVersion.mutate({ roundId, versionId: version.id })}
-                              >
-                                Loại bỏ
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                disabled={version.status !== "ACTIVE"}
-                                render={<Link href={`/manager/rounds/${roundId}/room-assignment`} />}
-                              >
-                                Gán phòng
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+        {hasAnyVersion && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+              {currentVersion && (
+                <button
+                  type="button"
+                  onClick={() => setPreviewTab("current")}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    effectiveTab === "current" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Hiện tại (V{currentVersion.versionNumber}
+                  {currentVersion.status === "PUBLISHED" ? " · Đã công bố" : ""})
+                </button>
+              )}
+              {latestDraft && (
+                <button
+                  type="button"
+                  onClick={() => setPreviewTab("draft")}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    effectiveTab === "draft" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Nháp mới (V{latestDraft.versionNumber}) · {latestDraft.scheduledCount} xếp
+                  {latestDraft.unscheduledCount > 0 ? ` · ${latestDraft.unscheduledCount} chưa` : ""}
+                  {latestDraft.overallScore != null ? ` · ${latestDraft.overallScore.toFixed(1)}đ` : ""}
+                </button>
+              )}
             </div>
-          </>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {currentVersion?.status === "ACTIVE" && (
+                <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={`/manager/rounds/${roundId}/room-assignment`} />}>
+                  Gán phòng
+                </Button>
+              )}
+              {latestDraft && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={discardVersion.isPending}
+                  onClick={() => discardVersion.mutate({ roundId, versionId: latestDraft.id })}
+                >
+                  Loại bỏ nháp
+                </Button>
+              )}
+              <Button variant="outline" size="sm" disabled={generateSchedule.isPending || !canRun} onClick={handleRunSchedule}>
+                <RotateCcw />
+                {generateSchedule.isPending ? "Đang chạy..." : "Chạy lại"}
+              </Button>
+              {latestDraft && (
+                <Button size="sm" disabled={setActiveVersion.isPending} onClick={() => setActiveVersion.mutate({ roundId, versionId: latestDraft.id })}>
+                  <CheckCircle2 />
+                  Kích hoạt
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {isPreviewingDraft && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Xem trước bản nháp — kéo-thả và xem chi tiết buổi bị tắt, kích hoạt để chỉnh sửa.
+          </p>
         )}
       </div>
 
-      {currentVersion && (
+      {previewVersion && isPreviewingDraft && (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-medium text-muted-foreground">Lịch xếp theo nháp — chưa gán phòng</p>
+            <div className="relative w-52">
+              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Tìm nhóm, giảng viên..."
+                className="h-8 pl-8 text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 min-h-0 flex-1 overflow-auto">
+            {sessionsLoading && <Skeleton className="h-64 w-full" />}
+            {sessionsError && (
+              <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
+                <WifiOff className="size-4 shrink-0" />
+                Không tải được phương án nháp.
+              </div>
+            )}
+            {!sessionsLoading && !sessionsError && <DraftScheduleGrid round={round} sessions={sessions} search={search} />}
+          </div>
+        </div>
+      )}
+
+      {previewVersion && !isPreviewingDraft && (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-1">
@@ -334,14 +415,14 @@ export function RoundCalendarPanel({ roundId, round }: { roundId: string; round:
         </div>
       )}
 
-      {!currentVersion && (
+      {!hasAnyVersion && (
         <div className="min-h-0 flex-1">
           <RoundAvailabilityHeatmap
             roundId={roundId}
             round={round}
             hasVersions={!!(roundVersions && roundVersions.length > 0)}
             readiness={readiness}
-            onRunSchedule={() => generateSchedule.mutate(roundId)}
+            onRunSchedule={handleRunSchedule}
             runPending={generateSchedule.isPending}
           />
         </div>

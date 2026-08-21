@@ -7,8 +7,7 @@ import { useRoundDetail, useRegistrationSummary } from "@/hooks/manager/useRound
 import { RoundDetailHeader } from "./round-detail-header";
 import { RoundInfoSidebar } from "./round-info-sidebar";
 import { RoundCalendarPanel } from "./round-calendar-panel";
-import { RoundLecturersPanel } from "./round-lecturers-panel";
-import { RoundGroupsPanel } from "./round-groups-panel";
+import { RoundPeoplePanel } from "./round-people-panel";
 import { CollapsibleAsidePanel } from "./collapsible-aside-panel";
 import { ErrorBlock, LoadingBlock } from "./round-detail-shared";
 
@@ -20,8 +19,7 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
   const { data: round, isLoading: roundLoading, isError: roundError } = useRoundDetail(roundId);
   const { data: registrationSummary } = useRegistrationSummary(roundId);
   const reduceMotion = useReducedMotion();
-  const [lecturersOpen, setLecturersOpen] = useState(true);
-  const [groupsOpen, setGroupsOpen] = useState(true);
+  const [peopleOpen, setPeopleOpen] = useState(true);
 
   if (roundLoading) {
     return (
@@ -65,12 +63,8 @@ export function RoundDetailPage({ roundId }: { roundId: string }) {
           <RoundCalendarPanel roundId={roundId} round={round} />
         </main>
 
-        <CollapsibleAsidePanel title="Giảng viên" open={lecturersOpen} onOpenChange={setLecturersOpen}>
-          <RoundLecturersPanel roundId={roundId} onCollapse={() => setLecturersOpen(false)} />
-        </CollapsibleAsidePanel>
-
-        <CollapsibleAsidePanel title="Nhóm" open={groupsOpen} onOpenChange={setGroupsOpen}>
-          <RoundGroupsPanel roundId={roundId} round={round} onCollapse={() => setGroupsOpen(false)} />
+        <CollapsibleAsidePanel title="Giảng viên & Nhóm" open={peopleOpen} onOpenChange={setPeopleOpen}>
+          <RoundPeoplePanel roundId={roundId} round={round} onCollapse={() => setPeopleOpen(false)} />
         </CollapsibleAsidePanel>
       </div>
     </motion.div>

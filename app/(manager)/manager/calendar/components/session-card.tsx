@@ -8,6 +8,7 @@ export function SessionCard({
   session,
   dimmed,
   dragging,
+  readOnly,
   onDragStart,
   onDragEnd,
   onClick,
@@ -15,6 +16,7 @@ export function SessionCard({
   session: DisplaySession;
   dimmed: boolean;
   dragging: boolean;
+  readOnly?: boolean;
   onDragStart: (e: React.DragEvent) => void;
   onDragEnd: () => void;
   onClick: () => void;
@@ -27,9 +29,9 @@ export function SessionCard({
       layout={!reduceMotion}
       layoutId={String(session.id)}
       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-      draggable
+      draggable={!readOnly}
       onClick={onClick}
-      {...({ onDragStart, onDragEnd } as Record<string, unknown>)}
+      {...(readOnly ? {} : ({ onDragStart, onDragEnd } as Record<string, unknown>))}
       className={cn(
         "flex h-full w-full flex-col gap-1 rounded-lg border border-violet-500/25 bg-violet-500/8 p-2 text-left transition-[opacity,box-shadow] hover:border-violet-500/50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         dimmed && "opacity-30",
