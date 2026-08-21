@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+  AlertTriangle,
   Award,
   CalendarCheck,
   ChevronLeft,
@@ -118,10 +119,29 @@ function StepHeader({
 
 export function CreateRoundWizard() {
   const router = useRouter();
-  const { currentSemester, currentSemesterId } = useSemesterContext();
+  const {
+    currentSemester,
+    currentSemesterId,
+    isLoading: isSemesterContextLoading,
+    isError: isSemesterContextError,
+  } = useSemesterContext();
   const createRound = useCreateRound(currentSemester?.id);
   const reduceMotion = useReducedMotion();
   const [step, setStep] = useState<1 | 2>(1);
+
+  // `?semester=` không khớp học kỳ nào (đã bị xoá, hoặc BE chưa có học kỳ nào) —
+  // currentSemester luôn null nên nút "Tạo đợt đánh giá" bị khoá vô thời hạn mà
+  // không có phản hồi gì cho Manager. Log rõ nguyên nhân + báo cho người dùng.
+  const semesterNotFound =
+    !isSemesterContextLoading && !isSemesterContextError && !currentSemester;
+
+  useEffect(() => {
+    if (semesterNotFound) {
+      console.error(
+        `[CreateRoundWizard] Không tạo được đợt đánh giá: học kỳ "${currentSemesterId}" không tồn tại hoặc chưa có học kỳ nào trong hệ thống (GET /api/v1/semesters trả về danh sách rỗng hoặc không chứa mã này).`
+      );
+    }
+  }, [semesterNotFound, currentSemesterId]);
 
   // Bước 1
   const [name, setName] = useState("");
@@ -347,6 +367,23 @@ export function CreateRoundWizard() {
           />
         </div>
       </header>
+
+      {semesterNotFound && (
+        <div className="shrink-0 border-b border-amber-500/30 bg-amber-500/10 px-6 py-3 md:px-8">
+          <div className="mx-auto flex max-w-7xl items-start gap-2 text-sm text-amber-700 dark:text-amber-400">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <p className="text-pretty">
+              Không tìm thấy học kỳ{currentSemesterId ? ` "${currentSemesterId}"` : ""} —
+              đây là lý do nút &ldquo;Tạo đợt đánh giá&rdquo; bị khoá. Hệ thống hiện chưa có học
+              kỳ nào khớp mã này (có thể chưa tạo học kỳ, hoặc học kỳ đã bị xoá/đổi mã). Vào{" "}
+              <Link href="/manager/semesters" className="font-medium underline underline-offset-2">
+                Học kỳ
+              </Link>{" "}
+              để tạo hoặc chọn lại học kỳ hợp lệ.
+            </p>
+          </div>
+        </div>
+      )}
 
       <main className="min-h-0 flex-1 overflow-y-auto px-6 py-6 md:px-8">
         {step === 1 && (
@@ -646,6 +683,11 @@ export function CreateRoundWizard() {
                   type="button"
                   disabled={
                     !payload || !currentSemester?.id || createRound.isPending
+                  }
+                  title={
+                    semesterNotFound
+                      ? `Không tìm thấy học kỳ${currentSemesterId ? ` "${currentSemesterId}"` : ""}`
+                      : undefined
                   }
                   onClick={handleSubmit}
                 >
