@@ -89,31 +89,36 @@ export interface LeaderSession {
   status: LeaderSessionStatus;
 }
 
-/** Row phẳng thật sự BE trả cho GET /leader/me/sessions — đã xác nhận với BE. */
+/**
+ * Row phẳng BE trả cho GET /leader/me/sessions.
+ *
+ * Route xây row từ SQL snake_case nhưng success_payload() của BE chuyển
+ * response public thành camelCase trước khi trả về HTTP.
+ */
 export interface LeaderSessionApi {
   id: number | string;
-  round_id: number | string;
-  round_type: RoundType;
-  group_id?: number | string;
-  group_code?: string;
-  project_code?: string;
-  start_at: string;
-  end_at: string;
-  room_id?: number | string | null;
-  room_code?: string | null;
+  roundId: number | string;
+  roundType: RoundType;
+  groupId?: number | string;
+  groupCode?: string;
+  projectCode?: string;
+  startAt: string;
+  endAt: string;
+  roomId?: number | string | null;
+  roomCode?: string | null;
   status: LeaderSessionStatus;
   council?: { name: string }[];
 }
 
-/** round.name và council không có trong response thật — dùng round_type làm fallback, council rỗng. */
+/** round.name và council không có trong response thật — dùng roundType làm fallback, council rỗng. */
 export function adaptLeaderSession(dto: LeaderSessionApi): LeaderSession {
   return {
     id: String(dto.id),
-    round: { id: String(dto.round_id), name: dto.round_type, type: dto.round_type },
-    date: formatInVietnamTime(dto.start_at, "YYYY-MM-DD"),
-    startTime: formatInVietnamTime(dto.start_at, "HH:mm"),
-    endTime: formatInVietnamTime(dto.end_at, "HH:mm"),
-    roomCode: dto.room_code ?? null,
+    round: { id: String(dto.roundId), name: dto.roundType, type: dto.roundType },
+    date: formatInVietnamTime(dto.startAt, "YYYY-MM-DD"),
+    startTime: formatInVietnamTime(dto.startAt, "HH:mm"),
+    endTime: formatInVietnamTime(dto.endAt, "HH:mm"),
+    roomCode: dto.roomCode ?? null,
     council: dto.council ?? [],
     status: dto.status,
   };

@@ -75,18 +75,18 @@ test("adaptLecturerSession maps BE's flat camelCase row (docs/api/lecturer-sessi
   );
 });
 
-test("adaptLeaderSession nests round from BE's flat row", () => {
+test("adaptLeaderSession maps BE's camelCase flat row for the calendar", () => {
   assert.deepEqual(
     adaptLeaderSession({
       id: 10,
-      round_id: 1,
-      round_type: "REVIEW_1",
-      group_id: 28,
-      group_code: "G01",
-      project_code: "PRJ001",
-      start_at: "2026-08-25T01:00:00Z",
-      end_at: "2026-08-25T02:00:00Z",
-      room_code: "A101",
+      roundId: 1,
+      roundType: "REVIEW_1",
+      groupId: 28,
+      groupCode: "G01",
+      projectCode: "PRJ001",
+      startAt: "2026-08-25T01:00:00Z",
+      endAt: "2026-08-25T02:00:00Z",
+      roomCode: "A101",
       status: "SCHEDULED",
     }),
     {

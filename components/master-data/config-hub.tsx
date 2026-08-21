@@ -2,10 +2,17 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion, type Variants } from "motion/react";
-import { ArrowRight, Building2, CalendarRange, GraduationCap } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  CalendarRange,
+  Clock3,
+  GraduationCap,
+} from "lucide-react";
 import { useLecturers } from "@/hooks/useLecturers";
 import { useSemesters } from "@/hooks/useSemesters";
 import { useRooms } from "@/hooks/useRooms";
+import { useTimeframes } from "@/hooks/useTimeframes";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -14,7 +21,11 @@ const containerVariants: Variants = {
 
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+  },
 };
 
 function ConfigCard({
@@ -46,12 +57,18 @@ function ConfigCard({
 
       <div className="mt-5">
         <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-        <p className="mt-1 text-sm text-muted-foreground text-pretty">{description}</p>
+        <p className="mt-1 text-sm text-muted-foreground text-pretty">
+          {description}
+        </p>
       </div>
 
       <div className="mt-5 border-t border-border pt-3">
         <p className="text-2xl font-semibold tabular-nums">
-          {count === undefined ? <span className="text-muted-foreground/40">—</span> : count}
+          {count === undefined ? (
+            <span className="text-muted-foreground/40">—</span>
+          ) : (
+            count
+          )}
         </p>
         <p className="text-xs text-muted-foreground">{countLabel}</p>
       </div>
@@ -67,26 +84,31 @@ export function ConfigHub({
   lecturersHref,
   semestersHref,
   roomsHref,
+  timeframesHref,
 }: {
   lecturersHref: string;
   semestersHref: string;
   roomsHref: string;
+  timeframesHref: string;
 }) {
   const reduceMotion = useReducedMotion();
   const { data: lecturers } = useLecturers();
   const { data: semesters } = useSemesters();
   const { data: rooms } = useRooms();
+  const { data: timeframes } = useTimeframes();
 
   return (
     <div>
       <h1 className="text-2xl font-semibold tracking-tight">Cấu hình</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Master data dùng chung cho toàn hệ thống xếp lịch.</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Master data dùng chung cho toàn hệ thống xếp lịch.
+      </p>
 
       <motion.div
         variants={reduceMotion ? undefined : containerVariants}
         initial={reduceMotion ? undefined : "hidden"}
         animate={reduceMotion ? undefined : "show"}
-        className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
         <motion.div variants={reduceMotion ? undefined : itemVariants}>
           <ConfigCard
@@ -116,6 +138,16 @@ export function ConfigHub({
             description="Mã phòng và sức chứa dùng khi xếp lịch bảo vệ."
             count={rooms?.length}
             countLabel="phòng"
+          />
+        </motion.div>
+        <motion.div variants={reduceMotion ? undefined : itemVariants}>
+          <ConfigCard
+            href={timeframesHref}
+            icon={Clock3}
+            title="Timeframe"
+            description="Khung giờ, slot và sức chứa dùng chung khi xếp lịch."
+            count={timeframes?.length}
+            countLabel="cấu hình thời gian"
           />
         </motion.div>
       </motion.div>

@@ -92,7 +92,7 @@ const NAV_CONFIG: Record<UserRole, { areaLabel: string; groups: NavGroup[] }> = 
             label: "Cấu hình",
             href: "/manager/master-data",
             icon: ShieldCheck,
-            matchHrefs: ["/manager/lecturers", "/manager/rooms", "/manager/semesters"],
+            matchHrefs: ["/manager/lecturers", "/manager/rooms", "/manager/semesters", "/manager/timeframes"],
           },
         ],
       },

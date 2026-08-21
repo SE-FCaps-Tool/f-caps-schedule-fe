@@ -14,6 +14,7 @@ export default function AdminConfigPage() {
       lecturersHref="/admin/master-data/lecturers"
       semestersHref="/admin/master-data/semesters"
       roomsHref="/admin/master-data/rooms"
+      timeframesHref="/admin/master-data/timeframes"
     />
   );
 }

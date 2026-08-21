@@ -14,6 +14,7 @@ export default function ManagerConfigPage() {
       lecturersHref="/manager/lecturers"
       semestersHref="/manager/semesters"
       roomsHref="/manager/rooms"
+      timeframesHref="/manager/timeframes"
     />
   );
 }
