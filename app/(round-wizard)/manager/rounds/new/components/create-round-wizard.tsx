@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Award,
   CalendarCheck,
+  CalendarClock,
   ChevronLeft,
   DoorOpen,
   FileText,
@@ -21,6 +22,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,17 +40,21 @@ import { cn } from "@/lib/utils";
 import { ROUND_TYPE_LABEL } from "@/app/(manager)/manager/_shared/labels";
 import { useSemesterContext } from "@/app/(manager)/manager/_shared/semester-context";
 import { useCreateRound } from "@/hooks/manager/useRounds";
+import { useTimeframe, useTimeframes } from "@/hooks/useTimeframes";
 import type {
   RoomType,
   RoundCreatePayload,
   RoundDayInput,
   RoundType,
 } from "@/lib/api/services/fetchRounds";
+import type { Timeframe } from "@/lib/api/services/fetchTimeframes";
+import { buildRoundCreatePayload } from "@/lib/api/services/roundTimeframeContract";
 import {
   RoundScheduleCalendar,
   type DayDraft,
   type DeadlineDraft,
 } from "./round-schedule-calendar";
+import { RoundTimeframePreview } from "./round-timeframe-preview";
 
 const ROUND_TYPES: RoundType[] = [
   "REVIEW_1",
@@ -126,6 +139,12 @@ export function CreateRoundWizard() {
     isError: isSemesterContextError,
   } = useSemesterContext();
   const createRound = useCreateRound(currentSemester?.id);
+  const {
+    data: timeframes = [],
+    isLoading: timeframesLoading,
+    isError: timeframesError,
+    refetch: refetchTimeframes,
+  } = useTimeframes();
   const reduceMotion = useReducedMotion();
   const [step, setStep] = useState<1 | 2>(1);
 
@@ -155,6 +174,9 @@ export function CreateRoundWizard() {
   const [resultOwnerMode, setResultOwnerMode] = useState(false);
   const [roomTypes, setRoomTypes] = useState<Set<RoomType>>(new Set());
   const [groupSelectionMode, setGroupSelectionMode] = useState(true);
+  const [scheduleSource, setScheduleSource] = useState<"timeframe" | "manual">("timeframe");
+  const [timeframeId, setTimeframeId] = useState("");
+  const [pendingScheduleSource, setPendingScheduleSource] = useState<"timeframe" | "manual" | null>(null);
 
   // Bước 2 — lịch
   const [startDate, setStartDate] = useState("");
@@ -166,12 +188,41 @@ export function CreateRoundWizard() {
     useState<DeadlineDraft | null>(null);
   const [days, setDays] = useState<DayDraft[]>([]);
 
+  const selectedTimeframeFromList = timeframes.find((item) => String(item.id) === timeframeId) ?? null;
+  const selectedTimeframeId = timeframeId ? Number(timeframeId) : null;
+  const { data: selectedTimeframeDetail, isLoading: timeframeDetailLoading, isError: timeframeDetailError, refetch: refetchTimeframe } =
+    useTimeframe(selectedTimeframeId);
+  const selectedTimeframe: Timeframe | null = selectedTimeframeDetail ?? selectedTimeframeFromList;
+
   const duration = Number(durationMinutes) || 0;
 
   function handleTypeChange(v: RoundType) {
     setType(v);
     setReviewerCount(String(DEFAULT_REVIEWER_COUNT[v]));
     if (!RESULT_OWNER_ALLOWED_TYPES.has(v)) setResultOwnerMode(false);
+  }
+
+  function handleScheduleSourceChange(source: "timeframe" | "manual") {
+    if (source === scheduleSource) return;
+    if (source === "timeframe" && days.length > 0) {
+      setPendingScheduleSource(source);
+      return;
+    }
+    applyScheduleSourceChange(source);
+  }
+
+  function applyScheduleSourceChange(source: "timeframe" | "manual") {
+    setScheduleSource(source);
+    if (source === "timeframe" && selectedTimeframe) {
+      setDurationMinutes(String(selectedTimeframe.groupDurationMinutes));
+    }
+  }
+
+  function handleTimeframeChange(value: string | null) {
+    const nextId = value ?? "";
+    setTimeframeId(nextId);
+    const next = timeframes.find((item) => String(item.id) === nextId);
+    if (next) setDurationMinutes(String(next.groupDurationMinutes));
   }
 
   function toggleRoomType(rt: RoomType) {
@@ -264,21 +315,30 @@ export function CreateRoundWizard() {
     );
   }
 
+  const totalSlots = days.reduce((sum, d) => sum + d.slots.length, 0);
+  const slotsValid = days.length >= 1 && days.every((d) => d.slots.length >= 1);
+
+  const timeframeValid =
+    scheduleSource === "timeframe" &&
+    selectedTimeframe !== null &&
+    timeframeId !== "" &&
+    !timeframeDetailLoading &&
+    !timeframeDetailError &&
+    selectedTimeframe.groupDurationMinutes === duration;
+
   const step1Valid =
     name.trim() !== "" &&
     duration > 0 &&
     Number(reviewerCount) > 0 &&
     Number(maxGroupsPerTimeslot) > 0 &&
-    roomTypes.size >= 1;
-
-  const totalSlots = days.reduce((sum, d) => sum + d.slots.length, 0);
-  const slotsValid = days.length >= 1 && days.every((d) => d.slots.length >= 1);
+    roomTypes.size >= 1 &&
+    (scheduleSource === "manual" || timeframeValid);
 
   const step2Valid =
     startDate !== "" &&
     endDate !== "" &&
     registrationDeadline != null &&
-    slotsValid;
+    (scheduleSource === "timeframe" ? timeframeValid : slotsValid);
 
   const payload: RoundCreatePayload | null = useMemo(() => {
     if (!step1Valid || !step2Valid || !registrationDeadline) return null;
@@ -286,21 +346,25 @@ export function CreateRoundWizard() {
       date: d.date,
       slots: d.slots,
     }));
-    return {
-      name,
-      type,
-      description: description || undefined,
-      startDate,
-      endDate,
-      durationMinutes: duration,
-      reviewerCount: Number(reviewerCount),
-      maxGroupsPerTimeslot: Number(maxGroupsPerTimeslot),
-      registrationDeadline: `${registrationDeadline.date}T${registrationDeadline.time}:00+07:00`,
-      groupSelectionMode,
-      resultOwnerMode: RESULT_OWNER_ALLOWED_TYPES.has(type) && resultOwnerMode,
-      roomTypes: Array.from(roomTypes),
-      days: dayInputs,
-    };
+    return buildRoundCreatePayload(
+      {
+        name,
+        type,
+        description: description || undefined,
+        startDate,
+        endDate,
+        durationMinutes: duration,
+        reviewerCount: Number(reviewerCount),
+        maxGroupsPerTimeslot: Number(maxGroupsPerTimeslot),
+        registrationDeadline: `${registrationDeadline.date}T${registrationDeadline.time}:00+07:00`,
+        groupSelectionMode,
+        resultOwnerMode: RESULT_OWNER_ALLOWED_TYPES.has(type) && resultOwnerMode,
+        roomTypes: Array.from(roomTypes),
+      },
+      scheduleSource === "timeframe"
+        ? { mode: "timeframe", timeframeId: Number(timeframeId) }
+        : { mode: "manual", days: dayInputs },
+    );
   }, [
     step1Valid,
     step2Valid,
@@ -317,6 +381,8 @@ export function CreateRoundWizard() {
     groupSelectionMode,
     resultOwnerMode,
     roomTypes,
+    scheduleSource,
+    timeframeId,
   ]);
 
   function handleSubmit() {
@@ -439,6 +505,78 @@ export function CreateRoundWizard() {
                       rows={4}
                     />
                   </div>
+                  <div className="space-y-2.5 border-t border-border pt-4">
+                    <div>
+                      <Label>Nguồn tạo lịch</Label>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Chọn Timeframe để Backend tự sinh timeslot, hoặc nhập lịch thủ công như trước.
+                      </p>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Nguồn tạo lịch">
+                      {([
+                        { value: "timeframe", label: "Dùng Timeframe", description: "Cấu hình dùng chung" },
+                        { value: "manual", label: "Nhập thủ công", description: "Tự chọn từng slot" },
+                      ] as const).map((option) => {
+                        const selected = scheduleSource === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            onClick={() => handleScheduleSourceChange(option.value)}
+                            className={cn(
+                              "rounded-xl border p-3 text-left transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                              selected
+                                ? "border-primary bg-primary/5"
+                                : "border-border bg-background hover:bg-muted/50",
+                            )}
+                          >
+                            <span className="flex items-center gap-2 text-sm font-medium">
+                              <span className={cn("flex size-6 items-center justify-center rounded-md", selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+                                {option.value === "timeframe" ? <CalendarClock className="size-3.5" aria-hidden /> : <CalendarCheck className="size-3.5" aria-hidden />}
+                              </span>
+                              {option.label}
+                            </span>
+                            <span className="mt-1 block pl-8 text-xs text-muted-foreground">{option.description}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {scheduleSource === "timeframe" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="round-timeframe">Timeframe</Label>
+                        <Select value={timeframeId} onValueChange={handleTimeframeChange}>
+                          <SelectTrigger id="round-timeframe" className="w-full" disabled={timeframesLoading || timeframesError || timeframes.length === 0}>
+                            <SelectValue>
+                              {(value: string) => {
+                                const item = timeframes.find((timeframe) => String(timeframe.id) === value);
+                                return item?.name ?? (timeframesLoading ? "Đang tải Timeframe…" : "Chọn Timeframe");
+                              }}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {timeframes.map((timeframe) => (
+                              <SelectItem key={timeframe.id} value={String(timeframe.id)}>
+                                <span>{timeframe.name}</span>
+                                <span className="text-xs text-muted-foreground">{timeframe.type}</span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {timeframesError && (
+                          <p className="text-xs text-destructive">
+                            Không tải được danh sách Timeframe. <button type="button" className="font-medium underline underline-offset-2" onClick={() => refetchTimeframes()}>Thử lại</button>
+                          </p>
+                        )}
+                        {!timeframesLoading && !timeframesError && timeframes.length === 0 && (
+                          <p className="text-xs text-amber-700 dark:text-amber-300">
+                            Chưa có Timeframe đang dùng. Hãy <Link href="/manager/timeframes" className="font-medium underline underline-offset-2">tạo cấu hình trước</Link> hoặc chuyển sang nhập thủ công.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-5 overflow-y-auto p-6">
@@ -459,6 +597,7 @@ export function CreateRoundWizard() {
                             value={durationMinutes}
                             onChange={(e) => setDurationMinutes(e.target.value)}
                             className="bg-background pr-11"
+                            disabled={scheduleSource === "timeframe"}
                             required
                           />
                           <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted-foreground">
@@ -505,6 +644,11 @@ export function CreateRoundWizard() {
                         </div>
                       </div>
                     </div>
+                    {scheduleSource === "timeframe" && selectedTimeframe && (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Thời lượng được lấy từ Timeframe: {selectedTimeframe.groupDurationMinutes} phút/nhóm.
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -639,28 +783,67 @@ export function CreateRoundWizard() {
               <StepHeader
                 icon={Settings2}
                 title="Lịch đợt đánh giá"
-                description={`Chọn khoảng ngày, hạn đăng ký chọn lịch và khung giờ ngay trên lịch. Mỗi khung giờ dài ${duration} phút.`}
+                description={
+                  scheduleSource === "timeframe"
+                    ? "Chọn khoảng ngày và hạn đăng ký. Backend sẽ sinh timeslot từ Timeframe đã chọn."
+                    : `Chọn khoảng ngày, hạn đăng ký chọn lịch và khung giờ ngay trên lịch. Mỗi khung giờ dài ${duration} phút.`
+                }
               />
             </div>
 
             <div className="min-h-0 flex-1">
-              <RoundScheduleCalendar
-                duration={duration}
-                startDate={startDate}
-                endDate={endDate}
-                pendingStart={pendingStart}
-                pendingEnd={pendingEnd}
-                confirmOpen={confirmOpen}
-                onHeaderClickRange={handleHeaderClickRange}
-                onConfirmRange={confirmRange}
-                onCancelRangeConfirm={cancelRangeConfirm}
-                onResetRange={resetRange}
-                registrationDeadline={registrationDeadline}
-                onRegistrationDeadlineChange={setRegistrationDeadline}
-                days={days}
-                onAddSlot={addSlot}
-                onRemoveSlot={removeSlot}
-              />
+              {scheduleSource === "manual" ? (
+                <RoundScheduleCalendar
+                  duration={duration}
+                  startDate={startDate}
+                  endDate={endDate}
+                  pendingStart={pendingStart}
+                  pendingEnd={pendingEnd}
+                  confirmOpen={confirmOpen}
+                  onHeaderClickRange={handleHeaderClickRange}
+                  onConfirmRange={confirmRange}
+                  onCancelRangeConfirm={cancelRangeConfirm}
+                  onResetRange={resetRange}
+                  registrationDeadline={registrationDeadline}
+                  onRegistrationDeadlineChange={setRegistrationDeadline}
+                  days={days}
+                  onAddSlot={addSlot}
+                  onRemoveSlot={removeSlot}
+                />
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid gap-4 rounded-2xl border border-border bg-card p-4 sm:grid-cols-3 sm:p-5">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="timeframe-round-start-date">Ngày bắt đầu</Label>
+                      <Input id="timeframe-round-start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="timeframe-round-end-date">Ngày kết thúc</Label>
+                      <Input id="timeframe-round-end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+                      {startDate && endDate && startDate > endDate && <p className="text-xs text-destructive">Ngày kết thúc phải sau ngày bắt đầu.</p>}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="timeframe-registration-deadline">Hạn đăng ký chọn lịch</Label>
+                      <Input
+                        id="timeframe-registration-deadline"
+                        type="datetime-local"
+                        value={registrationDeadline ? `${registrationDeadline.date}T${registrationDeadline.time}` : ""}
+                        onChange={(event) => {
+                          const [date, time] = event.target.value.split("T");
+                          setRegistrationDeadline(date && time ? { date, time } : null);
+                        }}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <RoundTimeframePreview
+                    timeframe={selectedTimeframe}
+                    isLoading={timeframeDetailLoading}
+                    isError={timeframeDetailError}
+                    onRetry={() => refetchTimeframe()}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="mt-4 shrink-0">
@@ -673,9 +856,14 @@ export function CreateRoundWizard() {
                   >
                     ← Sửa thông tin
                   </Button>
-                  {days.length > 0 && (
+                  {scheduleSource === "manual" && days.length > 0 && (
                     <p className="text-sm text-muted-foreground">
                       {days.length} ngày · {totalSlots} khung giờ
+                    </p>
+                  )}
+                  {scheduleSource === "timeframe" && selectedTimeframe && (
+                    <p className="text-sm text-muted-foreground">
+                      {selectedTimeframe.blocksPerDay} timeline/ngày · {selectedTimeframe.capacityPerDay} nhóm/ngày
                     </p>
                   )}
                 </div>
@@ -711,6 +899,37 @@ export function CreateRoundWizard() {
           </div>
         )}
       </main>
+
+      <Dialog
+        open={pendingScheduleSource !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingScheduleSource(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Chuyển sang dùng Timeframe?</DialogTitle>
+            <DialogDescription>
+              Các slot thủ công hiện tại sẽ tạm thời không được gửi khi tạo Round.
+              Chúng vẫn được giữ trong form nếu bạn quay lại chế độ nhập thủ công.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPendingScheduleSource(null)}>
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (pendingScheduleSource) applyScheduleSourceChange(pendingScheduleSource);
+                setPendingScheduleSource(null);
+              }}
+            >
+              Dùng Timeframe
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

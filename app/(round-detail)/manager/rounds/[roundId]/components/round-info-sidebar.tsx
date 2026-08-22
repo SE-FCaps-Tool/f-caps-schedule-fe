@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { PencilLine } from "lucide-react";
+import { CalendarClock, PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/app/(manager)/manager/_shared/status-dot";
 import { useSemesterContext } from "@/app/(manager)/manager/_shared/semester-context";
+import { useTimeframe } from "@/hooks/useTimeframes";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
 import { PanelHeading } from "./round-detail-shared";
@@ -63,6 +64,9 @@ export function RoundInfoSidebar({
   const { currentSemesterId } = useSemesterContext();
   const canEditConfig = round.status === "DRAFT" || round.status === "OPEN_REGISTRATION";
   const editHref = `/manager/rounds/${round.id}/edit${currentSemesterId ? `?semester=${currentSemesterId}` : ""}`;
+  const timeframeId = round.timeframeId ? Number(round.timeframeId) : null;
+  const { data: timeframe, isLoading: timeframeLoading } = useTimeframe(timeframeId);
+  const totalSlots = round.days.reduce((sum, day) => sum + day.slots.length, 0);
 
   return (
     <div className="space-y-4">
@@ -119,10 +123,24 @@ export function RoundInfoSidebar({
                 : "—"
             }
           />
+          <StatRow label="Nguồn lịch" value={round.timeframeId ? "Timeframe" : "Nhập thủ công"} />
           <StatRow label="Nhóm tối đa / slot" value={round.maxGroupsPerTimeslot} />
           <StatRow label="Nhóm tự chọn lịch" value={<OnOffBadge on={round.groupSelectionMode} />} />
           <StatRow label="Chỉ định Result Owner" value={<OnOffBadge on={round.resultOwnerMode} />} />
         </div>
+        {round.timeframeId && (
+          <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
+            <CalendarClock className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            <div className="min-w-0 text-xs leading-5">
+              <p className="truncate font-medium text-foreground">
+                {timeframeLoading ? "Đang tải Timeframe…" : timeframe?.name ?? `Timeframe #${round.timeframeId}`}
+              </p>
+              <p className="text-muted-foreground">
+                Revision đã ghim: {round.timeframeVersionId ?? "—"} · {totalSlots} timeslot đã sinh
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-3 border-t border-border pt-4">

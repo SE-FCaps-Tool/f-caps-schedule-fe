@@ -1,4 +1,5 @@
 import apiService from "../core";
+import { normalizeRoundTimeframeMetadata } from "./roundTimeframeContract";
 
 export type RoundType =
   "REVIEW_1" | "REVIEW_2" | "DEFENSE_1_1" | "DEFENSE_1_2" | "DEFENSE_2";
@@ -57,6 +58,8 @@ export interface RoundListItem {
   groupSelectionMode: boolean;
   groupPreferenceDeadline: string | null;
   roomTypes: RoomType[];
+  timeframeId?: string | null;
+  timeframeVersionId?: string | null;
 }
 
 export interface RoundListMeta {
@@ -85,6 +88,8 @@ export interface RoundDetail {
   registrationPhase?: RegistrationPhase;
   resultOwnerMode: boolean;
   roomTypes: RoomType[];
+  timeframeId: string | null;
+  timeframeVersionId: string | null;
   days: RoundDay[];
 }
 
@@ -103,7 +108,10 @@ export interface RoundCreatePayload {
   groupPreferenceDeadline?: string;
   resultOwnerMode: boolean;
   roomTypes: RoomType[];
-  days: RoundDayInput[];
+  /** Mutually exclusive with timeframeId. */
+  days?: RoundDayInput[];
+  /** Backend materializes days/timeslots from the active Timeframe revision. */
+  timeframeId?: number;
 }
 
 export interface RoundCreateResponse {
@@ -129,6 +137,8 @@ export interface RoundUpdatePayload {
   groupPreferenceDeadline?: string | null;
   resultOwnerMode?: boolean;
   roomTypes?: RoomType[];
+  /** Change the pinned Timeframe while the Round is still DRAFT. */
+  timeframeId?: number;
 }
 
 /** capstone-fe-be-implementation-spec.md §5 — thêm EXPIRED/WITHDRAWN so với PENDING/ACCEPTED/REJECTED cũ */
@@ -302,6 +312,7 @@ function normalizeRoundListItem(value: unknown): RoundListItem {
       pick(record, "groupPreferenceDeadline", "group_preference_deadline"),
     ),
     roomTypes: Array.isArray(roomTypes) ? roomTypes.filter(isRoomType) : [],
+    ...normalizeRoundTimeframeMetadata(record),
   };
 }
 
@@ -367,6 +378,7 @@ function normalizeRoundDetail(value: unknown): RoundDetail {
       pick(record, "resultOwnerMode", "result_owner_mode"),
     ),
     roomTypes: Array.isArray(roomTypes) ? roomTypes.filter(isRoomType) : [],
+    ...normalizeRoundTimeframeMetadata(record),
     days: normalizeRoundDays(pick(record, "days", "round_days")),
   };
 }
@@ -548,6 +560,7 @@ export const fetchRounds = {
     if (payload.groupPreferenceDeadline !== undefined) body.group_preference_deadline = payload.groupPreferenceDeadline;
     if (payload.resultOwnerMode !== undefined) body.result_owner_mode = payload.resultOwnerMode;
     if (payload.roomTypes !== undefined) body.room_types = payload.roomTypes;
+    if (payload.timeframeId !== undefined) body.timeframe_id = payload.timeframeId;
     await apiService.patch(`api/v1/rounds/${roundId}`, body);
   },
 

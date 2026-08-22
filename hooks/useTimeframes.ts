@@ -26,6 +26,15 @@ export function useTimeframes(includeArchived = false) {
   });
 }
 
+export function useTimeframe(id?: number | null) {
+  return useQuery({
+    queryKey: ["timeframes", "detail", id ?? null] as const,
+    queryFn: () => fetchTimeframes.getById(id as number),
+    enabled: id != null,
+    staleTime: 30 * 1000,
+  });
+}
+
 export function useTimeframePreview() {
   return useMutation({
     mutationFn: (payload: TimeframePreviewRequest) => fetchTimeframes.preview(payload),

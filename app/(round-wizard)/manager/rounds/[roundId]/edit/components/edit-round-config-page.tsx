@@ -3,17 +3,33 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, DoorOpen, FileText, Lock, Settings2, Timer } from "lucide-react";
+import { CalendarClock, ChevronLeft, DoorOpen, FileText, Lock, Settings2, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { StatusDot } from "@/app/(manager)/manager/_shared/status-dot";
 import { ROUND_STATUS_META, ROUND_TYPE_LABEL } from "@/app/(manager)/manager/_shared/labels";
 import { useSemesterContext } from "@/app/(manager)/manager/_shared/semester-context";
 import { useRoundDetail, useUpdateRound } from "@/hooks/manager/useRounds";
+import { useTimeframe, useTimeframes } from "@/hooks/useTimeframes";
 import { formatDate, formatInVietnamTime, formatTimeRange } from "@/lib/utils/formatDate";
 import { cn } from "@/lib/utils";
 import { ErrorBlock } from "@/app/(round-detail)/manager/rounds/[roundId]/components/round-detail-shared";
@@ -63,6 +79,7 @@ function StepHeader({
 function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref: string }) {
   const router = useRouter();
   const updateRound = useUpdateRound();
+  const { data: timeframes = [], isLoading: timeframesLoading, isError: timeframesError, refetch: refetchTimeframes } = useTimeframes();
 
   const [startDate, setStartDate] = useState(round.startDate);
   const [endDate, setEndDate] = useState(round.endDate);
@@ -72,6 +89,15 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
   const [groupSelectionMode, setGroupSelectionMode] = useState(round.groupSelectionMode);
   const [resultOwnerMode, setResultOwnerMode] = useState(round.resultOwnerMode);
   const [roomTypes, setRoomTypes] = useState<Set<RoomType>>(new Set(round.roomTypes));
+  const [timeframeId, setTimeframeId] = useState(round.timeframeId ?? "");
+
+  const selectedTimeframeFromList = timeframes.find((item) => String(item.id) === timeframeId) ?? null;
+  const selectedTimeframeNumericId = timeframeId ? Number(timeframeId) : null;
+  const { data: selectedTimeframeDetail } = useTimeframe(selectedTimeframeNumericId);
+  const selectedTimeframe = selectedTimeframeDetail ?? selectedTimeframeFromList;
+  const canChangeTimeframe = round.status === "DRAFT";
+  const timeframeChanged = timeframeId !== (round.timeframeId ?? "");
+  const [pendingTimeframeId, setPendingTimeframeId] = useState<string | null>(null);
 
   function toggleRoomType(rt: RoomType) {
     setRoomTypes((prev) => {
@@ -82,6 +108,24 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
     });
   }
 
+  function handleTimeframeChange(value: string | null) {
+    if (!canChangeTimeframe) return;
+    const nextId = value ?? "";
+    if (nextId === timeframeId) return;
+    const next = timeframes.find((item) => String(item.id) === nextId);
+    if (!next) return;
+    setPendingTimeframeId(nextId);
+  }
+
+  function confirmTimeframeChange() {
+    if (!pendingTimeframeId) return;
+    const next = timeframes.find((item) => String(item.id) === pendingTimeframeId);
+    if (!next) return;
+    setTimeframeId(pendingTimeframeId);
+    setDurationMinutes(String(next.groupDurationMinutes));
+    setPendingTimeframeId(null);
+  }
+
   const duration = Number(durationMinutes) || 0;
   const maxGroups = Number(maxGroupsPerTimeslot) || 0;
   const isValid =
@@ -89,6 +133,7 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
     endDate !== "" &&
     startDate <= endDate &&
     duration > 0 &&
+    (!selectedTimeframe || selectedTimeframe.groupDurationMinutes === duration) &&
     maxGroups > 0 &&
     registrationDeadline !== "" &&
     roomTypes.size >= 1;
@@ -106,6 +151,7 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
       groupSelectionMode,
       resultOwnerMode,
       roomTypes: Array.from(roomTypes),
+      ...(timeframeId ? { timeframeId: Number(timeframeId) } : {}),
     };
     updateRound.mutate(
       { roundId: round.id, payload },
@@ -118,7 +164,7 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
       <StepHeader
         icon={Settings2}
         title="Cấu hình đợt đánh giá"
-        description="Thông số buổi, loại phòng và lịch đăng ký. Tên, loại đợt và khung giờ đã tạo không thể sửa ở đây."
+        description="Thông số buổi, Timeframe, loại phòng và lịch đăng ký. Các thay đổi Timeframe tuân theo trạng thái Round."
       />
 
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -140,6 +186,68 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
               <Label>Mô tả</Label>
               <Textarea value={round.description ?? ""} rows={4} disabled placeholder="Không có mô tả" />
             </div>
+            <div className="space-y-2 border-t border-border pt-4">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <CalendarClock className="size-3.5" aria-hidden />
+                Nguồn lịch
+              </div>
+              {timeframeId ? (
+                <div className="space-y-2">
+                  <Label htmlFor="edit-round-timeframe">Timeframe đã ghim</Label>
+                  <Select value={timeframeId} onValueChange={handleTimeframeChange}>
+                    <SelectTrigger id="edit-round-timeframe" className="w-full" disabled={!canChangeTimeframe || timeframesLoading || timeframesError || timeframes.length === 0}>
+                      <SelectValue>
+                        {(value: string) => timeframes.find((item) => String(item.id) === value)?.name ?? "Timeframe hiện tại"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeframes.map((timeframe) => (
+                        <SelectItem key={timeframe.id} value={String(timeframe.id)}>
+                          <span>{timeframe.name}</span>
+                          <span className="text-xs text-muted-foreground">{timeframe.type}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Revision đã ghim: {timeframeChanged ? "sẽ cập nhật khi lưu" : round.timeframeVersionId ?? "—"} · {selectedTimeframe?.groupDurationMinutes ?? round.durationMinutes} phút/nhóm
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="edit-round-timeframe">Chuyển sang Timeframe</Label>
+                  <Select value={timeframeId} onValueChange={handleTimeframeChange}>
+                    <SelectTrigger id="edit-round-timeframe" className="w-full" disabled={!canChangeTimeframe || timeframesLoading || timeframesError || timeframes.length === 0}>
+                      <SelectValue>{timeframesLoading ? "Đang tải Timeframe…" : "Chọn Timeframe"}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeframes.map((timeframe) => (
+                        <SelectItem key={timeframe.id} value={String(timeframe.id)}>
+                          <span>{timeframe.name}</span>
+                          <span className="text-xs text-muted-foreground">{timeframe.type}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!timeframesLoading && !timeframesError && timeframes.length === 0 && (
+                    <p className="text-xs text-muted-foreground">Chưa có Timeframe active. Round hiện dùng lịch thủ công.</p>
+                  )}
+                </div>
+              )}
+              {timeframesError && (
+                <p className="text-xs text-destructive">
+                  Không tải được Timeframe. <button type="button" className="font-medium underline underline-offset-2" onClick={() => refetchTimeframes()}>Thử lại</button>
+                </p>
+              )}
+              {timeframeChanged && selectedTimeframe && (
+                <p className="rounded-lg bg-amber-500/10 px-2.5 py-2 text-xs leading-5 text-amber-800 dark:text-amber-300">
+                  Lưu thay đổi sẽ tạo lại timeslot theo Timeframe mới. Backend sẽ từ chối nếu Round đã có availability hoặc preference.
+                </p>
+              )}
+              {!canChangeTimeframe && (
+                <p className="text-xs text-muted-foreground">Timeframe chỉ có thể đổi khi Round còn ở trạng thái Nháp.</p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-5 p-6">
@@ -158,6 +266,7 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
                       value={durationMinutes}
                       onChange={(e) => setDurationMinutes(e.target.value)}
                       className="bg-background pr-11"
+                      disabled={Boolean(timeframeId)}
                       required
                     />
                     <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted-foreground">
@@ -192,7 +301,9 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
                 </div>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                Reviewer/buổi cố định theo loại đợt — BE từ chối nếu khác giá trị mặc định.
+                {timeframeId
+                  ? "Thời lượng được lấy từ Timeframe đã chọn."
+                  : "Reviewer/buổi cố định theo loại đợt — BE từ chối nếu khác giá trị mặc định."}
               </p>
             </div>
 
@@ -342,6 +453,31 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
           </Button>
         </div>
       </div>
+
+      <Dialog
+        open={pendingTimeframeId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingTimeframeId(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Đổi Timeframe của Round?</DialogTitle>
+            <DialogDescription>
+              Backend sẽ tạo lại toàn bộ timeslot theo cấu hình mới. Thao tác này chỉ
+              thực hiện được khi Round còn ở Nháp và sẽ thay thế lịch thủ công hiện tại.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPendingTimeframeId(null)}>
+              Hủy
+            </Button>
+            <Button type="button" onClick={confirmTimeframeChange}>
+              Đổi Timeframe
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

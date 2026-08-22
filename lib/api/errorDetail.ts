@@ -71,6 +71,16 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   ROUND_INVALID_STATE: "Đợt đánh giá đang ở trạng thái không cho phép thao tác này",
   ROUND_INVALID_TIMESLOT: "Timeslot không hợp lệ cho đợt đánh giá này",
   ROUND_ROOM_TYPE_REQUIRED: "Đợt đánh giá cần chọn ít nhất một loại phòng",
+  TIMEFRAME_NOT_FOUND: "Timeframe không tồn tại, đã archive hoặc chưa có revision hợp lệ",
+  TIMEFRAME_SESSION_DURATION_MISMATCH:
+    "Thời lượng buổi phải khớp với thời lượng một nhóm trong Timeframe",
+  ROUND_TIMEFRAME_LOCKED:
+    "Không thể tạo lại timeslot từ Timeframe sau khi Round đã mở đăng ký",
+  ROUND_TIMEFRAME_REGENERATION_BLOCKED:
+    "Không thể đổi Timeframe vì Round đã có dữ liệu availability hoặc preference",
+  ROUND_TIMEFRAME_UNBIND_NOT_ALLOWED:
+    "Không thể bỏ Timeframe khỏi Round đã sinh timeslot",
+  ROUND_CONFIG_LOCKED: "Cấu hình Round đã khóa và không thể chỉnh sửa ở trạng thái hiện tại",
   INVITATION_NOT_PENDING: "Lời mời không còn ở trạng thái Đang chờ",
   INVITATION_NOT_ACCEPTED: "Giảng viên chưa nhận lời mời",
   GROUP_NOT_ELIGIBLE: "Nhóm chưa đủ điều kiện tham gia đợt này",
