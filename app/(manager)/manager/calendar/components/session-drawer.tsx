@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Users } from "lucide-react";
+import { Clock3, DoorOpen, UserRoundCog, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -51,7 +51,7 @@ function ChangeRoomDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader icon={DoorOpen} iconTone="sky">
             <DialogTitle>Đổi phòng</DialogTitle>
             <DialogDescription>{session.groupCode}</DialogDescription>
           </DialogHeader>
@@ -118,7 +118,7 @@ function ReplaceReviewerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader icon={UserRoundCog} iconTone="violet">
             <DialogTitle>Thay reviewer</DialogTitle>
             <DialogDescription>{session.groupCode} — Council cũ vẫn giữ nguyên, hệ thống tạo council mới thay thế.</DialogDescription>
           </DialogHeader>
@@ -205,7 +205,7 @@ function PostponeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader icon={Clock3} iconTone="amber">
             <DialogTitle>Hoãn buổi</DialogTitle>
             <DialogDescription>
               {session.groupCode} — buổi gốc chuyển sang &ldquo;Đã hoãn&rdquo; và giữ nguyên, không xoá. Tạo buổi bù riêng sau khi hoãn.

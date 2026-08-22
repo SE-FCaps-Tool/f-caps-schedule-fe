@@ -8,11 +8,13 @@ import {
   CalendarRange,
   Clock3,
   GraduationCap,
+  Users,
 } from "lucide-react";
 import { useLecturers } from "@/hooks/useLecturers";
 import { useSemesters } from "@/hooks/useSemesters";
 import { useRooms } from "@/hooks/useRooms";
 import { useTimeframes } from "@/hooks/useTimeframes";
+import { useCommittees } from "@/hooks/useCommittees";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -85,17 +87,20 @@ export function ConfigHub({
   semestersHref,
   roomsHref,
   timeframesHref,
+  committeesHref,
 }: {
   lecturersHref: string;
   semestersHref: string;
   roomsHref: string;
   timeframesHref: string;
+  committeesHref: string;
 }) {
   const reduceMotion = useReducedMotion();
   const { data: lecturers } = useLecturers();
   const { data: semesters } = useSemesters();
   const { data: rooms } = useRooms();
   const { data: timeframes } = useTimeframes();
+  const { data: committees } = useCommittees();
 
   return (
     <div>
@@ -108,7 +113,7 @@ export function ConfigHub({
         variants={reduceMotion ? undefined : containerVariants}
         initial={reduceMotion ? undefined : "hidden"}
         animate={reduceMotion ? undefined : "show"}
-        className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
       >
         <motion.div variants={reduceMotion ? undefined : itemVariants}>
           <ConfigCard
@@ -148,6 +153,16 @@ export function ConfigHub({
             description="Khung giờ, slot và sức chứa dùng chung khi xếp lịch."
             count={timeframes?.length}
             countLabel="cấu hình thời gian"
+          />
+        </motion.div>
+        <motion.div variants={reduceMotion ? undefined : itemVariants}>
+          <ConfigCard
+            href={committeesHref}
+            icon={Users}
+            title="Hội đồng"
+            description="Danh mục nhóm giảng viên nháp, dùng để thêm vào Round sau này."
+            count={committees?.length}
+            countLabel="hội đồng"
           />
         </motion.div>
       </motion.div>

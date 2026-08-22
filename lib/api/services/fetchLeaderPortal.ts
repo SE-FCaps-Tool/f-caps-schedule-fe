@@ -1,7 +1,7 @@
 import apiService from "../core";
 import type { RoundType, RoundStatus } from "./fetchRounds";
 import type { ProjectStatus } from "./fetchProjects";
-import type { ReviewResult, DefenseResult } from "./fetchResults";
+import type { RoundResult } from "./fetchResults";
 import type { RemediationStatus } from "./fetchLecturerPortal";
 import { formatInVietnamTime } from "@/lib/utils/formatDate";
 
@@ -33,7 +33,7 @@ export interface LeaderDashboard {
   latestResult: {
     roundType: RoundType;
     kind: "REVIEW" | "DEFENSE";
-    value: ReviewResult | DefenseResult;
+    value: RoundResult;
     date: string;
   } | null;
   remediation: { deadline: string; status: RemediationStatus } | null;

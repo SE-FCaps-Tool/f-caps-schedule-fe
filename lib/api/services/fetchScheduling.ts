@@ -40,7 +40,7 @@ export interface GenerateScheduleResult {
   unscheduledCount: number;
   /**
    * S1..S9 thô từ BE (scheduler.py) — không tự suy diễn "overall score": S1 (workload) và S3
-   * (continuity, chỉ áp dụng cho DEFENSE_1_2, luôn 0 với round type khác) là điểm số, còn S4/S5
+   * (continuity, chỉ áp dụng cho DEFENSE_1, luôn 0 với round type khác) là điểm số, còn S4/S5
    * là cờ nhị phân (vd S4 = buổi sáng hay không) — cộng chung các giá trị này không ra một con
    * số có ý nghĩa. BE cũng không trả total_score thật ở endpoint này (chỉ lưu trong DB, đọc qua
    * `RoundScheduleVersionItem.overallScore`/`roundScheduleVersions()` bên dưới).
@@ -385,7 +385,7 @@ export const fetchScheduling = {
 
   /**
    * POST /schedule/versions/{version_id}/sessions/{session_id}/result-owner — MANAGER only.
-   * Chỉ khi round bật result_owner_mode và type DEFENSE_1_1/DEFENSE_2.
+   * Chỉ khi round bật result_owner_mode và type REVIEW_3/DEFENSE_2.
    */
   setResultOwner: async (
     versionId: number,

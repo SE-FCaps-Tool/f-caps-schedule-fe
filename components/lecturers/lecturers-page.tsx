@@ -1,18 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, Search, WifiOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { useLecturers } from "@/hooks/useLecturers";
+import { useLecturersPage } from "@/hooks/useLecturers";
 import { LecturersTable } from "./lecturers-table";
 import { AddLecturerDialog } from "./add-lecturer-dialog";
 import { ImportLecturersDialog } from "./import-lecturers-dialog";
 import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { normalizeListResponse } from "@/lib/api/pagination";
+import { useDebouncedValue } from "@/hooks/shared/useDebouncedValue";
 import { usePageState } from "@/hooks/shared/usePageState";
 
 /**
@@ -20,24 +21,20 @@ import { usePageState } from "@/hooks/shared/usePageState";
  * `backHref`/`backLabel` trỏ về hub "Cấu hình" tương ứng của từng khu vực.
  */
 export function LecturersPage({ backHref, backLabel }: { backHref?: string; backLabel?: string }) {
-  const { data: lecturers, isLoading, isError } = useLecturers();
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
   const { containerRef, pageSize } = useAutoPageSize();
-  const [page, setPage] = usePageState(search, pageSize);
+  const [page, setPage] = usePageState(debouncedSearch, pageSize);
 
-  const filtered = useMemo(() => {
-    if (!lecturers) return [];
-    const q = search.trim().toLowerCase();
-    if (!q) return lecturers;
-    return lecturers.filter(
-      (l) =>
-        l.lecturer_code.toLowerCase().includes(q) ||
-        l.display_name.toLowerCase().includes(q) ||
-        l.email.toLowerCase().includes(q)
-    );
-  }, [lecturers, search]);
+  const { data: lecturersResult, isLoading, isError } = useLecturersPage({
+    search: debouncedSearch || undefined,
+    page,
+    pageSize,
+  });
 
-  const { items: pageItems, meta } = normalizeListResponse(filtered, { page, pageSize });
+  const { items: pageItems, meta } = lecturersResult
+    ? normalizeListResponse(lecturersResult, { page, pageSize })
+    : { items: [], meta: null };
 
   return (
     <div>
@@ -51,7 +48,7 @@ export function LecturersPage({ backHref, backLabel }: { backHref?: string; back
       <div className={cn("flex flex-wrap items-start justify-between gap-4", backHref && "mt-2")}>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Giảng viên</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{lecturers ? `${meta.total} giảng viên` : "…"}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{meta ? `${meta.total} giảng viên` : "…"}</p>
         </div>
         <div className="flex items-center gap-2">
           <ImportLecturersDialog />
@@ -77,8 +74,8 @@ export function LecturersPage({ backHref, backLabel }: { backHref?: string; back
             Không tải được danh sách giảng viên. Thử tải lại trang.
           </div>
         )}
-        {lecturers && <LecturersTable lecturers={pageItems} />}
-        {lecturers && <DataTablePagination meta={meta} onPageChange={setPage} />}
+        {meta && <LecturersTable lecturers={pageItems} />}
+        {meta && <DataTablePagination meta={meta} onPageChange={setPage} />}
       </div>
     </div>
   );

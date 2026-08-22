@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { ErrorBlock } from "@/app/(round-detail)/manager/rounds/[roundId]/components/round-detail-shared";
 import type { RoomType, RoundDetail, RoundType, RoundUpdatePayload } from "@/lib/api/services/fetchRounds";
 
-const RESULT_OWNER_ALLOWED_TYPES = new Set<RoundType>(["DEFENSE_1_1", "DEFENSE_2"]);
+const RESULT_OWNER_ALLOWED_TYPES = new Set<RoundType>(["REVIEW_3", "DEFENSE_2"]);
 
 const ROOM_TYPE_LABEL: Record<RoomType, string> = {
   NORMAL: "Phòng thường",
@@ -265,7 +265,7 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {RESULT_OWNER_ALLOWED_TYPES.has(round.type)
                     ? "Một reviewer được chỉ định nhập kết quả chính thức cho buổi."
-                    : "Chỉ áp dụng cho đợt Defense 1.1 / Defense 2."}
+                    : "Chỉ áp dụng cho đợt Review 3 / Defense 2."}
                 </p>
               </div>
             </div>

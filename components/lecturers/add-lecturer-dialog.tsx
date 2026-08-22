@@ -46,8 +46,8 @@ export function AddLecturerDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button><UserPlus />Thêm giảng viên</Button>} />
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto sm:max-w-lg">
+        <DialogHeader icon={UserPlus} iconTone="sky">
           <DialogTitle>Thêm giảng viên</DialogTitle>
           <DialogDescription>
             Tạo đồng thời tài khoản và hồ sơ giảng viên. Mã giảng viên dùng xuyên suốt hệ thống xếp lịch.

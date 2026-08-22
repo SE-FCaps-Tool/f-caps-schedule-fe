@@ -46,18 +46,16 @@ import {
 const ROUND_TYPES: RoundType[] = [
   "REVIEW_1",
   "REVIEW_2",
-  "DEFENSE_1_1",
-  "DEFENSE_1_2",
+  "REVIEW_3",
+  "DEFENSE_1",
   "DEFENSE_2",
 ];
 
 /**
- * BE chỉ chấp nhận resultOwnerMode=true cho DEFENSE_1_1/DEFENSE_2 (422 nếu không).
- * DEFENSE_1_2 lẽ ra cũng là "Defense" theo PRD nhưng BE đang loại trừ tạm thời — xem
- * docs/be-checklist-open-questions.md. Không tự ý thêm DEFENSE_1_2 vào đây cho tới khi BE xác nhận lại.
+ * BE chỉ chấp nhận resultOwnerMode=true cho REVIEW_3/DEFENSE_2 (422 nếu không).
  */
 const RESULT_OWNER_ALLOWED_TYPES = new Set<RoundType>([
-  "DEFENSE_1_1",
+  "REVIEW_3",
   "DEFENSE_2",
 ]);
 
@@ -65,8 +63,8 @@ const RESULT_OWNER_ALLOWED_TYPES = new Set<RoundType>([
 const DEFAULT_REVIEWER_COUNT: Record<RoundType, number> = {
   REVIEW_1: 2,
   REVIEW_2: 2,
-  DEFENSE_1_1: 3,
-  DEFENSE_1_2: 5,
+  REVIEW_3: 3,
+  DEFENSE_1: 5,
   DEFENSE_2: 5,
 };
 
@@ -404,7 +402,7 @@ export function CreateRoundWizard() {
                     <Input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Defense 1.1"
+                      placeholder="Review 3"
                       autoFocus
                       required
                     />
@@ -607,7 +605,7 @@ export function CreateRoundWizard() {
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {RESULT_OWNER_ALLOWED_TYPES.has(type)
                           ? "Một reviewer được chỉ định nhập kết quả chính thức cho buổi."
-                          : "Chỉ áp dụng cho đợt Defense 1.1 / Defense 2."}
+                          : "Chỉ áp dụng cho đợt Review 3 / Defense 2."}
                       </p>
                     </div>
                   </div>

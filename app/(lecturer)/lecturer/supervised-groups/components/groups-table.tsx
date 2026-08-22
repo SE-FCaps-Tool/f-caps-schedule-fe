@@ -5,13 +5,11 @@ import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { ReviewResult, DefenseResult } from "@/lib/api/services/fetchResults";
 import type { SupervisedProject } from "@/lib/api/services/fetchLecturerPortal";
 import {
   ROUND_TYPE_LABEL,
   PROJECT_STATUS_META,
-  REVIEW_RESULT_META,
-  DEFENSE_RESULT_META,
+  getRoundResultMeta,
   REMEDIATION_STATUS_META,
 } from "../../_shared/labels";
 import { toneBadgeClass } from "./tone";
@@ -22,10 +20,7 @@ function LatestResultCell({ result }: { result: SupervisedProject["latestResult"
   if (!result) {
     return <TableCell className={cn(colDivider, "text-center text-sm text-muted-foreground/50")}>—</TableCell>;
   }
-  const meta =
-    result.kind === "REVIEW"
-      ? REVIEW_RESULT_META[result.value as ReviewResult]
-      : DEFENSE_RESULT_META[result.value as DefenseResult];
+  const meta = getRoundResultMeta(result.roundType, result.value);
   return (
     <TableCell className={colDivider}>
       <span className={cn("rounded-full px-2.5 py-1 text-sm font-semibold text-nowrap", toneBadgeClass[meta.tone])}>

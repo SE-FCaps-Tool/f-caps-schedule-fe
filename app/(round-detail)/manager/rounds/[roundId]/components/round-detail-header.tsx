@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, ChevronLeft } from "lucide-react";
+import { CheckCircle2, ChevronLeft, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -41,7 +41,7 @@ function PublishDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+        <DialogHeader icon={Send} iconTone="primary">
           <DialogTitle>Công bố lịch</DialogTitle>
           <DialogDescription>
             Sau khi công bố, lịch sẽ hiển thị cho giảng viên và sinh viên; mọi thay đổi sau đó phải qua các thao tác

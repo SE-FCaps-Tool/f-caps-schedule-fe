@@ -6,8 +6,8 @@ export type ScheduleTone = "neutral" | "orange" | "emerald" | "amber" | "sky" | 
 export const ROUND_TYPE_LABEL: Record<RoundType, string> = {
   REVIEW_1: "Review 1",
   REVIEW_2: "Review 2",
-  DEFENSE_1_1: "Defense 1.1",
-  DEFENSE_1_2: "Defense 1.2",
+  REVIEW_3: "Review 3",
+  DEFENSE_1: "Defense 1",
   DEFENSE_2: "Defense 2",
 };
 

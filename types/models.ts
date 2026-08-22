@@ -120,8 +120,8 @@ export interface ConflictDeclaration {
 export type RoundType =
   | "REVIEW_1"
   | "REVIEW_2"
-  | "DEFENSE_1_1"
-  | "DEFENSE_1_2"
+  | "REVIEW_3"
+  | "DEFENSE_1"
   | "DEFENSE_2";
 
 export type RoundStatus =

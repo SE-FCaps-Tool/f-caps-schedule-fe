@@ -988,7 +988,7 @@ export function RoundScheduleCalendar({
         onOpenChange={(open) => !open && onCancelRangeConfirm()}
       >
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
+          <DialogHeader icon={CalendarRange} iconTone="primary">
             <DialogTitle>Xác nhận khoảng ngày</DialogTitle>
             <DialogDescription>
               {pendingStart && pendingEnd && (

@@ -18,7 +18,7 @@ export function RemediationTaskRow({ task }: { task: LecturerRemediation }) {
     <div className="flex flex-wrap items-center gap-4 border-b border-border py-3.5 first:border-t last:border-b-0">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <p className="text-sm font-semibold">Khắc phục Defense 1.1</p>
+          <p className="text-sm font-semibold">Khắc phục Review 3</p>
           <span className="font-mono text-xs text-muted-foreground">{task.group.code}</span>
         </div>
         {task.group.projectTitle && (

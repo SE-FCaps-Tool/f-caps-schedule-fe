@@ -19,7 +19,7 @@ export function RemediationBanner({ remediation }: { remediation: NonNullable<Le
   return (
     <div className="rounded-lg bg-amber-50/60 p-3.5 dark:bg-amber-500/5">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium">Hạn khắc phục Defense 1.1</p>
+        <p className="text-sm font-medium">Hạn khắc phục Review 3</p>
         <span
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",

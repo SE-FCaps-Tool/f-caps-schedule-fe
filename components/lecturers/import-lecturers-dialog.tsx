@@ -156,8 +156,8 @@ export function ImportLecturersDialog() {
       }}
     >
       <DialogTrigger render={<Button size="sm" variant="outline"><Upload />Import Excel</Button>} />
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto sm:max-w-lg">
+        <DialogHeader icon={FileSpreadsheet} iconTone="emerald">
           <DialogTitle>Import giảng viên từ Excel</DialogTitle>
           <DialogDescription>
             Dùng đúng mẫu lecturers_template.xlsx (cột STT, Mã giảng viên, Họ và tên, Email). Mỗi

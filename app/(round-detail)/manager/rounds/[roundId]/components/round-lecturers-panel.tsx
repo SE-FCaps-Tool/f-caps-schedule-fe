@@ -66,7 +66,7 @@ function InviteLecturersDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader icon={UserPlus} iconTone="sky">
             <DialogTitle>Mời giảng viên</DialogTitle>
             <DialogDescription>Chọn giảng viên chưa được mời cho đợt này.</DialogDescription>
           </DialogHeader>

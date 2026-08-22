@@ -6,10 +6,29 @@ import { fetchLecturers, type LecturerCreatePayload, type LecturerListParams } f
 import { adminKeys } from "@/lib/api/adminQueryKeys";
 import type { ApiError } from "@/types/api";
 
+/**
+ * Danh sách phẳng cho combobox/select chọn giảng viên (không có UI phân trang) — cần cả
+ * "roster" để lọc tại chỗ. BE mặc định pageSize=20 nếu không truyền, nên vẫn phải xin đủ.
+ */
+const ROSTER_PAGE_SIZE = 200;
+
 export function useLecturers(params?: LecturerListParams) {
+  const effectiveParams = { pageSize: ROSTER_PAGE_SIZE, ...params };
   return useQuery({
     queryKey: [...adminKeys.lecturers, params ?? null] as const,
-    queryFn: async () => (await fetchLecturers.list(params)).data,
+    queryFn: async () => (await fetchLecturers.list(effectiveParams)).data,
+    staleTime: 30 * 1000,
+  });
+}
+
+/**
+ * Dùng cho bảng có UI phân trang thật (lecturers-page.tsx) — trả nguyên `{data, meta}` từ BE,
+ * page/pageSize/search đi thẳng vào request, không tự fetch-rồi-cắt phía client.
+ */
+export function useLecturersPage(params: LecturerListParams) {
+  return useQuery({
+    queryKey: [...adminKeys.lecturers, "page", params] as const,
+    queryFn: () => fetchLecturers.list(params),
     staleTime: 30 * 1000,
   });
 }

@@ -236,7 +236,7 @@ export function AddSemesterDialog() {
     >
       <DialogTrigger render={<Button><CalendarPlus />Tạo học kỳ</Button>} />
       <DialogContent className="sm:max-w-lg overflow-hidden">
-        <DialogHeader>
+        <DialogHeader icon={CalendarPlus} iconTone="violet">
           <div className="flex items-center gap-2">
             {step > 1 && (
               <Button

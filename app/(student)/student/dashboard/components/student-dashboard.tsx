@@ -6,13 +6,11 @@ import { cn } from "@/lib/utils";
 import { formatDate, formatTimeRange } from "@/lib/utils/formatDate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLeaderDashboard } from "@/hooks/student/useLeaderPortal";
-import type { ReviewResult, DefenseResult } from "@/lib/api/services/fetchResults";
 import {
   ROUND_TYPE_LABEL,
   ROUND_STATUS_LABEL,
   PROJECT_STATUS_META,
-  REVIEW_RESULT_META,
-  DEFENSE_RESULT_META,
+  getRoundResultMeta,
   PREFERENCE_STATUS_LABEL,
 } from "../../_shared/labels";
 import { toneBadgeClass } from "../../_shared/status-dot";
@@ -121,20 +119,19 @@ export function StudentDashboard() {
               label="Kết quả gần nhất"
               value={
                 data.latestResult ? (
+                  (() => {
+                    const resultMeta = getRoundResultMeta(data.latestResult.roundType, data.latestResult.value);
+                    return (
                   <span
                     className={cn(
                       "rounded-full px-2.5 py-1 text-xs font-semibold",
-                      toneBadgeClass[
-                        data.latestResult.kind === "REVIEW"
-                          ? REVIEW_RESULT_META[data.latestResult.value as ReviewResult].tone
-                          : DEFENSE_RESULT_META[data.latestResult.value as DefenseResult].tone
-                      ]
+                      resultMeta ? toneBadgeClass[resultMeta.tone] : toneBadgeClass.neutral,
                     )}
                   >
-                    {data.latestResult.kind === "REVIEW"
-                      ? REVIEW_RESULT_META[data.latestResult.value as ReviewResult].label
-                      : DEFENSE_RESULT_META[data.latestResult.value as DefenseResult].label}
+                    {resultMeta?.label ?? data.latestResult.value}
                   </span>
+                    );
+                  })()
                 ) : (
                   "Chưa có kết quả"
                 )

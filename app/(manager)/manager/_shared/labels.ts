@@ -19,8 +19,8 @@ export const ROUND_STATUS_META: Record<RoundStatus, { label: string; tone: Statu
 export const ROUND_TYPE_LABEL: Record<RoundType, string> = {
   REVIEW_1: "Review 1",
   REVIEW_2: "Review 2",
-  DEFENSE_1_1: "Defense 1.1",
-  DEFENSE_1_2: "Defense 1.2",
+  REVIEW_3: "Review 3",
+  DEFENSE_1: "Defense 1",
   DEFENSE_2: "Defense 2",
 };
 
@@ -64,6 +64,28 @@ export const DEFENSE_CONCLUSION_META: Record<DefenseConclusion, { label: string;
   LEVEL_3: { label: "Mức 3", tone: "orange" },
   LEVEL_4: { label: "Mức 4", tone: "red" },
 };
+
+export const DEFENSE_1_RESULT_META = {
+  COMPLETED: { label: "Hoàn thành", tone: "emerald" as const },
+};
+
+export const DEFENSE_2_RESULT_META = {
+  PASS: { label: "Đạt", tone: "emerald" as const },
+  FAIL: { label: "Không đạt", tone: "red" as const },
+};
+
+export function getRoundResultMeta(roundType: RoundType, result: string) {
+  if (roundType === "REVIEW_1" || roundType === "REVIEW_2") {
+    return REVIEW_RESULT_META[result as ReviewResult];
+  }
+  if (roundType === "REVIEW_3") {
+    return DEFENSE_CONCLUSION_META[result as DefenseConclusion];
+  }
+  if (roundType === "DEFENSE_1") {
+    return DEFENSE_1_RESULT_META[result as keyof typeof DEFENSE_1_RESULT_META];
+  }
+  return DEFENSE_2_RESULT_META[result as keyof typeof DEFENSE_2_RESULT_META];
+}
 
 export type RemediationStatus = "OPEN" | "OVERDUE" | "PASSED" | "FAILED";
 

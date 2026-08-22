@@ -10,9 +10,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLecturerSessionDetail, useSubmitLecturerSessionResult } from "@/hooks/lecturer/useLecturerPortal";
-import type { ReviewResult, DefenseResult, SubmitSessionResultPayload } from "@/lib/api/services/fetchResults";
-import { REVIEW_RESULT_META, DEFENSE_RESULT_META, ROUND_TYPE_LABEL } from "../../_shared/labels";
-import { roundKind, type LecturerSession } from "./types";
+import type {
+  ReviewResult,
+  Review3Result,
+  Defense1Result,
+  Defense2Result,
+  SubmitSessionResultPayload,
+} from "@/lib/api/services/fetchResults";
+import {
+  REVIEW_RESULT_META,
+  DEFENSE_RESULT_META,
+  DEFENSE_1_RESULT_META,
+  DEFENSE_2_RESULT_META,
+  ROUND_TYPE_LABEL,
+} from "../../_shared/labels";
+import { type LecturerSession } from "./types";
 
 function ReviewForm({ sessionId, onSaved }: { sessionId: string; onSaved: () => void }) {
   const submit = useSubmitLecturerSessionResult();
@@ -57,7 +69,7 @@ function ReviewForm({ sessionId, onSaved }: { sessionId: string; onSaved: () => 
   );
 }
 
-function DefenseForm({
+function Review3Form({
   sessionId,
   council,
   onSaved,
@@ -67,7 +79,7 @@ function DefenseForm({
   onSaved: () => void;
 }) {
   const submit = useSubmitLecturerSessionResult();
-  const [result, setResult] = useState<DefenseResult | "">("");
+  const [result, setResult] = useState<Review3Result | "">("");
   const [note, setNote] = useState("");
   const [deadline, setDeadline] = useState("");
   const [verifierId, setVerifierId] = useState("");
@@ -87,14 +99,14 @@ function DefenseForm({
     <div className="space-y-4">
       <div className="space-y-1.5">
         <Label>Kết luận</Label>
-        <Select value={result} onValueChange={(v) => v && setResult(v as DefenseResult)}>
+        <Select value={result} onValueChange={(v) => v && setResult(v as Review3Result)}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Chọn kết luận">
-              {(v: DefenseResult) => DEFENSE_RESULT_META[v].label}
+              {(v: Review3Result) => DEFENSE_RESULT_META[v].label}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {(Object.keys(DEFENSE_RESULT_META) as DefenseResult[]).map((r) => (
+            {(Object.keys(DEFENSE_RESULT_META) as Review3Result[]).map((r) => (
               <SelectItem key={r} value={r}>
                 {DEFENSE_RESULT_META[r].label}
               </SelectItem>
@@ -151,6 +163,85 @@ function DefenseForm({
   );
 }
 
+function FixedResultForm({
+  sessionId,
+  result,
+  label,
+  onSaved,
+}: {
+  sessionId: string;
+  result: Defense1Result;
+  label: string;
+  onSaved: () => void;
+}) {
+  const submit = useSubmitLecturerSessionResult();
+  const [note, setNote] = useState("");
+
+  function handleSubmit() {
+    const payload: SubmitSessionResultPayload = { result, note: note || undefined };
+    submit.mutate({ sessionId, payload }, { onSuccess: onSaved });
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label>Kết luận</Label>
+        <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-medium">{label}</div>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Ghi chú</Label>
+        <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} />
+      </div>
+      <DialogFooter>
+        <Button disabled={submit.isPending} onClick={handleSubmit}>
+          {submit.isPending ? "Đang lưu..." : "Lưu kết quả"}
+        </Button>
+      </DialogFooter>
+    </div>
+  );
+}
+
+function Defense2Form({ sessionId, onSaved }: { sessionId: string; onSaved: () => void }) {
+  const submit = useSubmitLecturerSessionResult();
+  const [result, setResult] = useState<Defense2Result | "">("");
+  const [note, setNote] = useState("");
+
+  function handleSubmit() {
+    if (!result) return;
+    const payload: SubmitSessionResultPayload = { result, note: note || undefined };
+    submit.mutate({ sessionId, payload }, { onSuccess: onSaved });
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label>Kết luận</Label>
+        <Select value={result} onValueChange={(v) => v && setResult(v as Defense2Result)}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Chọn kết luận">
+              {(v: Defense2Result) => DEFENSE_2_RESULT_META[v].label}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(DEFENSE_2_RESULT_META) as Defense2Result[]).map((r) => (
+              <SelectItem key={r} value={r}>{DEFENSE_2_RESULT_META[r].label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Ghi chú</Label>
+        <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} />
+      </div>
+      <DialogFooter>
+        <Button disabled={!result || submit.isPending} onClick={handleSubmit}>
+          {submit.isPending ? "Đang lưu..." : "Lưu kết quả"}
+        </Button>
+      </DialogFooter>
+    </div>
+  );
+}
+
 export function SessionResultDialog({
   session,
   open,
@@ -161,8 +252,6 @@ export function SessionResultDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { data: detail, isLoading, isError } = useLecturerSessionDetail(open ? session.id : null);
-  const kind = roundKind(session.roundType);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
@@ -186,11 +275,22 @@ export function SessionResultDialog({
           </div>
         )}
 
-        {detail && kind === "review" && (
+        {detail && (session.roundType === "REVIEW_1" || session.roundType === "REVIEW_2") && (
           <ReviewForm sessionId={session.id} onSaved={() => onOpenChange(false)} />
         )}
-        {detail && kind === "defense" && (
-          <DefenseForm sessionId={session.id} council={detail.council ?? []} onSaved={() => onOpenChange(false)} />
+        {detail && session.roundType === "REVIEW_3" && (
+          <Review3Form sessionId={session.id} council={detail.council ?? []} onSaved={() => onOpenChange(false)} />
+        )}
+        {detail && session.roundType === "DEFENSE_1" && (
+          <FixedResultForm
+            sessionId={session.id}
+            result="COMPLETED"
+            label={DEFENSE_1_RESULT_META.COMPLETED.label}
+            onSaved={() => onOpenChange(false)}
+          />
+        )}
+        {detail && session.roundType === "DEFENSE_2" && (
+          <Defense2Form sessionId={session.id} onSaved={() => onOpenChange(false)} />
         )}
       </DialogContent>
     </Dialog>

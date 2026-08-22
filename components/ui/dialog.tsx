@@ -5,7 +5,7 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { XIcon } from "lucide-react"
+import { XIcon, type LucideIcon } from "lucide-react"
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -80,13 +80,48 @@ function DialogContent({
   )
 }
 
-function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+const dialogIconTones = {
+  primary: "bg-primary/10 text-primary",
+  sky: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+  violet: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
+  emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  amber: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  destructive: "bg-destructive/10 text-destructive",
+  muted: "bg-muted text-muted-foreground",
+} as const
+
+function DialogHeader({
+  className,
+  icon: Icon,
+  iconTone = "primary",
+  children,
+  ...props
+}: React.ComponentProps<"div"> & {
+  icon?: LucideIcon
+  iconTone?: keyof typeof dialogIconTones
+}) {
   return (
     <div
       data-slot="dialog-header"
       className={cn("flex flex-col gap-2", className)}
       {...props}
-    />
+    >
+      {Icon ? (
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className={cn(
+              "flex size-10 shrink-0 items-center justify-center rounded-xl",
+              dialogIconTones[iconTone],
+            )}
+          >
+            <Icon className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">{children}</div>
+        </div>
+      ) : (
+        children
+      )}
+    </div>
   )
 }
 

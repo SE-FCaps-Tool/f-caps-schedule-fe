@@ -45,7 +45,7 @@ export function ReportsPage() {
   const exportResults = useExportResults();
 
   const defenseOutcomes = useMemo(
-    () => (outcomes?.rows ?? []).filter((r) => r.type === "DEFENSE_1_1"),
+    () => (outcomes?.rows ?? []).filter((r) => r.type === "REVIEW_3"),
     [outcomes]
   );
   const defenseTotal = defenseOutcomes.reduce((sum, r) => sum + r.count, 0);
@@ -143,7 +143,7 @@ export function ReportsPage() {
       </div>
 
       <div className="mt-8">
-        <SectionHeading>Kết quả — Defense 1.1</SectionHeading>
+        <SectionHeading>Kết quả — Review 3</SectionHeading>
         {outcomesLoading && <Skeleton className="mt-3 h-24 w-full" />}
         {outcomesError && (
           <div className="mt-3 flex items-center gap-2 py-6 text-sm text-muted-foreground">
@@ -152,7 +152,7 @@ export function ReportsPage() {
           </div>
         )}
         {outcomes && defenseOutcomes.length === 0 && (
-          <p className="mt-3 py-6 text-sm text-muted-foreground">Chưa có kết quả Defense 1.1 nào trong học kỳ này.</p>
+          <p className="mt-3 py-6 text-sm text-muted-foreground">Chưa có kết quả Review 3 nào trong học kỳ này.</p>
         )}
         {defenseOutcomes.length > 0 && (
           <div className="mt-3 space-y-3">

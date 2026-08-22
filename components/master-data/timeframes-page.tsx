@@ -477,7 +477,7 @@ function PreviewPanel({
   }
 
   return (
-    <div className="flex h-full min-h-80 flex-col rounded-xl border border-primary/20 bg-primary/[0.035] p-4 sm:p-5">
+    <div className="flex min-h-80 min-w-0 flex-col overflow-hidden rounded-xl border border-primary/20 bg-primary/[0.035] p-4 sm:min-h-0 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium text-primary">Kết quả tính thử</p>
@@ -602,7 +602,7 @@ function PreviewPanel({
           </div>
           <div
             aria-label="Timeline các slot trong ngày"
-            className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1"
+            className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1 [scrollbar-gutter:stable]"
           >
             {Array.from(
               {
@@ -751,7 +751,7 @@ function CreationModePicker({
   onChoose: (mode: Exclude<CreationMode, "choose">) => void;
 }) {
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div className="min-h-0 flex-1 animate-in fade-in-0 slide-in-from-bottom-1 overflow-y-auto duration-300 motion-reduce:animate-none">
       <div className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-8 sm:py-10">
         <div className="mx-auto max-w-2xl text-center">
           <span className="mx-auto flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -790,7 +790,7 @@ function CreationModePicker({
           </span>
           <span className="mt-auto flex items-center gap-2 pt-6 text-xs font-medium text-primary">
             <span className="size-1.5 rounded-full bg-primary" aria-hidden />
-            Preview tự động từ backend
+            Preview tự động từ khung giờ và công thức
           </span>
         </button>
 
@@ -1225,14 +1225,27 @@ function TimeframeDialog({
     else create.mutate(payload, options);
   }
 
+  const isChoosing = !timeframe && mode === "choose";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[calc(100dvh-1rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-6xl">
+      <DialogContent
+        className="flex max-h-[calc(100dvh-1rem)] flex-col gap-0 overflow-hidden p-0"
+        style={{
+          maxWidth: isChoosing
+            ? "min(42rem, calc(100% - 2rem))"
+            : "min(72rem, calc(100% - 2rem))",
+        }}
+      >
         <form
           onSubmit={handleSubmit}
           className="flex min-h-0 flex-1 flex-col"
         >
-          <DialogHeader className="sticky top-0 z-10 shrink-0 border-b border-border bg-popover px-5 py-4 pr-12 sm:px-6">
+          <DialogHeader
+            icon={Clock3}
+            iconTone="primary"
+            className="sticky top-0 z-10 shrink-0 border-b border-border bg-popover px-5 py-4 pr-12 sm:px-6"
+          >
             <div className="flex items-center justify-between gap-3">
               <DialogTitle>
                 {timeframe
@@ -1265,10 +1278,13 @@ function TimeframeDialog({
           </DialogHeader>
 
           {!timeframe && mode === "choose" ? (
-            <CreationModePicker onChoose={selectMode} />
+            <CreationModePicker key="choose" onChoose={selectMode} />
           ) : mode === "manual" ? (
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-2">
+            <div
+              key="manual"
+              className="min-h-0 flex-1 animate-in fade-in-0 slide-in-from-bottom-1 overflow-y-auto duration-300 motion-reduce:animate-none"
+            >
+              <div className="grid items-stretch gap-6 p-5 sm:p-6 lg:grid-cols-2">
                 <ManualTimelineEditor
                   name={draft.name}
                   reason={draft.reason ?? ""}
@@ -1293,8 +1309,11 @@ function TimeframeDialog({
               </div>
             </div>
           ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-2">
+          <div
+            key="quick"
+            className="min-h-0 flex-1 animate-in fade-in-0 slide-in-from-bottom-1 overflow-y-auto duration-300 motion-reduce:animate-none"
+          >
+            <div className="grid items-stretch gap-6 p-5 sm:p-6 lg:grid-cols-2">
               <div className="space-y-5">
                 <div>
                 <div className="space-y-1.5">
@@ -1540,7 +1559,7 @@ function ArchiveDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader icon={Archive} iconTone="amber">
             <DialogTitle>Archive timeframe?</DialogTitle>
             <DialogDescription>
               “{timeframe?.name}” sẽ không còn xuất hiện trong danh sách đang
@@ -1598,7 +1617,7 @@ function TimeframeDetailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
+        <DialogHeader icon={Eye} iconTone="sky">
           <div className="flex items-start justify-between gap-4 pr-8">
             <div className="min-w-0">
               <DialogTitle className="truncate">{timeframe.name}</DialogTitle>

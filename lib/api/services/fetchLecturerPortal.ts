@@ -1,6 +1,6 @@
 import apiService from "../core";
 import type { RoundType, RoundInvitationStatus } from "./fetchRounds";
-import type { ReviewResult, DefenseResult } from "./fetchResults";
+import type { RoundResult } from "./fetchResults";
 import type { ProjectStatus } from "./fetchProjects";
 import { formatInVietnamTime } from "@/lib/utils/formatDate";
 
@@ -205,7 +205,7 @@ export function adaptLecturerSession(dto: LecturerSessionApi): LecturerScheduleS
 
 export interface LecturerSessionResult {
   type: "REVIEW" | "DEFENSE";
-  value: ReviewResult | DefenseResult;
+  value: RoundResult;
   note: string | null;
 }
 
@@ -253,7 +253,7 @@ export interface SupervisedProject {
   latestResult: {
     roundType: RoundType;
     kind: "REVIEW" | "DEFENSE";
-    value: ReviewResult | DefenseResult;
+    value: RoundResult;
     date: string;
   } | null;
   remediation: {
@@ -329,7 +329,7 @@ export function adaptSupervisedProject(dto: SupervisedProjectApi): SupervisedPro
 
 /**
  * spec §36 (Phase 9d — Remediation). Không có JSON mẫu — field suy luận từ domain: mỗi
- * remediation gắn với 1 Group (được tạo khi Defense 1.1 LEVEL_2, spec §75), verifier là
+ * remediation gắn với 1 Group (được tạo khi Review 3 LEVEL_2, spec §75), verifier là
  * Lecturer hiện tại (đã được chỉ định lúc submit result §74) nên không cần field verifier
  * riêng ở đây. Verify dùng lại `fetchResults.verifyRemediation` đã có từ Phase 8 (cùng route
  * POST /remediations/:remediationId/verify).

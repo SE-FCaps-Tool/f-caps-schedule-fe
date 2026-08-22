@@ -10,7 +10,12 @@ import { snakeizeKeys } from "../caseConvert";
  */
 
 export type ReviewResult = "PASS" | "NEEDS_FIX" | "FAIL";
-export type DefenseResult = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "LEVEL_4";
+export type Review3Result = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "LEVEL_4";
+/** @deprecated Use Review3Result for the renamed REVIEW_3 round. */
+export type DefenseResult = Review3Result;
+export type Defense1Result = "COMPLETED";
+export type Defense2Result = "PASS" | "FAIL";
+export type RoundResult = ReviewResult | Review3Result | Defense1Result | Defense2Result;
 
 export interface SubmitReviewResultPayload {
   result: ReviewResult;
@@ -18,7 +23,7 @@ export interface SubmitReviewResultPayload {
 }
 
 export interface SubmitDefenseResultPayload {
-  result: DefenseResult;
+  result: Review3Result;
   note?: string;
   /** Bắt buộc khi result = LEVEL_2 (spec §74) */
   remediation?: {
@@ -27,7 +32,21 @@ export interface SubmitDefenseResultPayload {
   };
 }
 
-export type SubmitSessionResultPayload = SubmitReviewResultPayload | SubmitDefenseResultPayload;
+export interface SubmitDefense1ResultPayload {
+  result: Defense1Result;
+  note?: string;
+}
+
+export interface SubmitDefense2ResultPayload {
+  result: Defense2Result;
+  note?: string;
+}
+
+export type SubmitSessionResultPayload =
+  | SubmitReviewResultPayload
+  | SubmitDefenseResultPayload
+  | SubmitDefense1ResultPayload
+  | SubmitDefense2ResultPayload;
 
 /** spec §76 — Manager/Lecturer xác nhận case khắc phục. PASS: D12_CONDITIONAL → ELIGIBLE_D12 */
 export interface VerifyRemediationPayload {

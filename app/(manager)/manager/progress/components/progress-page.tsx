@@ -83,7 +83,7 @@ export function ProgressPage() {
                   <TableHead className="pl-4">Nhóm</TableHead>
                   <TableHead>Review 1</TableHead>
                   <TableHead>Review 2</TableHead>
-                  <TableHead>Defense 1.1</TableHead>
+                  <TableHead>Review 3</TableHead>
                   <TableHead className="pr-4">Tiếp theo</TableHead>
                 </TableRow>
               </TableHeader>
@@ -110,7 +110,7 @@ export function ProgressPage() {
                       <ReviewCell outcome={group.review_2} />
                     </TableCell>
                     <TableCell>
-                      <DefenseCell outcome={group.defense_1_1} />
+                      <DefenseCell outcome={group.review_3} />
                     </TableCell>
                     <TableCell className={cn("pr-4", group.group_status === "FAILED" ? "font-medium text-destructive" : "text-muted-foreground")}>
                       {group.next_step}

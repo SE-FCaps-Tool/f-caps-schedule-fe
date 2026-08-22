@@ -48,8 +48,8 @@ export function AddRoomDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button><DoorOpen />Thêm phòng</Button>} />
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto sm:max-w-lg">
+        <DialogHeader icon={DoorOpen} iconTone="sky">
           <DialogTitle>Thêm phòng</DialogTitle>
           <DialogDescription>Mã phòng phải là duy nhất trong toàn hệ thống.</DialogDescription>
         </DialogHeader>

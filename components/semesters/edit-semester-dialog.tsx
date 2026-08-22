@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CalendarDays } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +38,7 @@ function EditSemesterForm({ semester, onOpenChange }: { semester: SemesterApiIte
 
   return (
     <form onSubmit={handleSubmit}>
-      <DialogHeader>
+      <DialogHeader icon={CalendarDays} iconTone="violet">
         <DialogTitle>Chỉnh sửa học kỳ</DialogTitle>
         <DialogDescription>Không đổi được trạng thái ở đây — dùng hành động Đóng học kỳ / Đặt làm hiện tại.</DialogDescription>
       </DialogHeader>

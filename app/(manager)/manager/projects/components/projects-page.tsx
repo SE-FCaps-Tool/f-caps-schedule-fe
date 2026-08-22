@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { FilePlus2, MoreHorizontal, Pencil, Search, Upload, WifiOff } from "lucide-react";
+import { FilePlus2, MoreHorizontal, Pencil, Search, Upload, UserRoundPlus, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -133,9 +133,9 @@ function CreateProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto sm:max-w-lg">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader icon={FilePlus2} iconTone="violet">
             <DialogTitle>Tạo đề tài</DialogTitle>
             <DialogDescription>Đề tài mới thuộc học kỳ hiện tại, cần đúng một GVHD chính. Trạng thái khởi tạo: Nháp.</DialogDescription>
           </DialogHeader>
@@ -206,9 +206,9 @@ function EditProjectSupervisorsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto sm:max-w-lg">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader icon={UserRoundPlus} iconTone="sky">
             <DialogTitle>Gán giảng viên cho đề tài</DialogTitle>
             <DialogDescription>
               {project ? `${project.code} — ${project.nameVi}` : "Chọn giảng viên hướng dẫn chính và phụ."}

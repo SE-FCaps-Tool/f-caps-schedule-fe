@@ -35,7 +35,8 @@ export interface GroupProgressRow {
   project_name: string;
   review_1: string | null;
   review_2: string | null;
-  defense_1_1: string | null;
+  review_3: string | null;
+  defense_1: string | null;
   group_status: string;
   next_step: string;
 }

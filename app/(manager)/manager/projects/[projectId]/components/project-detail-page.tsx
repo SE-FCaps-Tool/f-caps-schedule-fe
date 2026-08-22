@@ -7,12 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusDot } from "../../../_shared/status-dot";
 import {
   PROJECT_STATUS_META,
-  REVIEW_RESULT_META,
-  DEFENSE_CONCLUSION_META,
+  getRoundResultMeta,
   ROUND_TYPE_LABEL,
   type ProjectProgressState,
-  type ReviewResult,
-  type DefenseConclusion,
 } from "../../../_shared/labels";
 import { useProjectDetail, useProjectProgression, useProjectResults } from "@/hooks/manager/useProjects";
 import { formatDate, formatDateTime } from "@/lib/utils/formatDate";
@@ -37,8 +34,7 @@ function ErrorBlock({ label }: { label: string }) {
 
 function resultTone(round: string, result: string | null) {
   if (!result) return null;
-  if (round.startsWith("REVIEW")) return REVIEW_RESULT_META[result as ReviewResult] ?? null;
-  return DEFENSE_CONCLUSION_META[result as DefenseConclusion] ?? null;
+  return getRoundResultMeta(round as Parameters<typeof getRoundResultMeta>[0], result) ?? null;
 }
 
 export function ProjectDetailPage({ projectId }: { projectId: string }) {

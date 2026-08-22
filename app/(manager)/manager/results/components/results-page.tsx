@@ -23,7 +23,7 @@ import { normalizeListResponse } from "@/lib/api/pagination";
 const NEXT_STEP: Record<RemediationCase["status"], string> = {
   OPEN: "Chờ phản biện xác nhận",
   OVERDUE: "Chờ Manager xử lý (quá hạn)",
-  PASSED: "Defense 1.2",
+  PASSED: "Defense 1",
   FAILED: "FAILED",
 };
 
@@ -86,7 +86,7 @@ export function ResultsPage() {
               </TableHeader>
               <TableBody>
                 {pageItems.map((row) => {
-                  // Remediation case chỉ được tạo khi Defense 1.1 outcome = LEVEL_2 (§6 manager-api.md)
+                  // Remediation case chỉ được tạo khi Review 3 outcome = LEVEL_2 (§6 manager-api.md)
                   const resultMeta = DEFENSE_CONCLUSION_META.LEVEL_2;
                   const remediationMeta = REMEDIATION_STATUS_META[row.status];
                   const verifier = lecturers?.find((l) => l.id === row.verifier_lecturer_id);

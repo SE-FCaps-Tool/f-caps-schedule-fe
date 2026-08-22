@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MessageSquareText } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -50,8 +51,8 @@ export function ReasonDialog({
         if (!next) setReason("");
       }}
     >
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader icon={MessageSquareText} iconTone={destructive ? "destructive" : "amber"}>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>

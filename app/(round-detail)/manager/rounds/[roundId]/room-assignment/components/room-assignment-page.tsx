@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Sparkles, WifiOff } from "lucide-react";
+import { ChevronLeft, DoorOpen, Sparkles, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -55,7 +55,7 @@ function AssignRoomDialog({
     <Dialog open={session !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader icon={DoorOpen} iconTone="sky">
             <DialogTitle>Gán phòng</DialogTitle>
             <DialogDescription>
               {session?.group.code} · {session ? formatDate(session.date, "DD/MM") : ""} · {session?.startTime}–{session?.endTime}

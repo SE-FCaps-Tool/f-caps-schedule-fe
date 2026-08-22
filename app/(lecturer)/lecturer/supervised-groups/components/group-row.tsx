@@ -6,12 +6,10 @@ import { AlertTriangle, ChevronDown, Crown, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
 import type { SupervisedProject } from "@/lib/api/services/fetchLecturerPortal";
-import type { ReviewResult, DefenseResult } from "@/lib/api/services/fetchResults";
 import {
   ROUND_TYPE_LABEL,
   PROJECT_STATUS_META,
-  REVIEW_RESULT_META,
-  DEFENSE_RESULT_META,
+  getRoundResultMeta,
   REMEDIATION_STATUS_META,
 } from "../../_shared/labels";
 import { toneBadgeClass, toneDotClass } from "./tone";
@@ -26,11 +24,7 @@ export function GroupRow({ project }: { project: SupervisedProject }) {
   const leader = project.group?.leader ?? null;
   const members = project.group?.members ?? [];
   const result = project.latestResult;
-  const resultMeta = result
-    ? result.kind === "REVIEW"
-      ? REVIEW_RESULT_META[result.value as ReviewResult]
-      : DEFENSE_RESULT_META[result.value as DefenseResult]
-    : null;
+  const resultMeta = result ? getRoundResultMeta(result.roundType, result.value) : null;
 
   return (
     <div className="border-b border-border first:border-t last:border-b-0">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, MoreHorizontal, Search, UsersRound, WifiOff } from "lucide-react";
+import { AlertTriangle, Crown, FolderKanban, MoreHorizontal, Search, UserMinus, UsersRound, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,9 +93,9 @@ function CreateGroupDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto sm:max-w-lg">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader icon={UsersRound} iconTone="sky">
             <DialogTitle>Tạo nhóm</DialogTitle>
             <DialogDescription>Gắn đề tài sau, ở bước riêng.</DialogDescription>
           </DialogHeader>
@@ -214,7 +214,7 @@ function SetLeaderDialog({ group, onOpenChange }: { group: GroupListItem | null;
     <Dialog open={group !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader icon={Crown} iconTone="amber">
             <DialogTitle>Gán/đổi Leader</DialogTitle>
             <DialogDescription>{group?.code}</DialogDescription>
           </DialogHeader>
@@ -284,7 +284,7 @@ function MemberLeaveDialog({ group, onOpenChange }: { group: GroupListItem | nul
     <Dialog open={group !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader icon={UserMinus} iconTone="destructive">
             <DialogTitle>Đánh dấu sinh viên rời nhóm</DialogTitle>
             <DialogDescription>{group?.code}</DialogDescription>
           </DialogHeader>
@@ -360,7 +360,7 @@ function AssignProjectDialog({
     <Dialog open={group !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader icon={FolderKanban} iconTone="violet">
             <DialogTitle>Gắn đề tài</DialogTitle>
             <DialogDescription>{group?.code}</DialogDescription>
           </DialogHeader>

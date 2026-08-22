@@ -50,8 +50,8 @@ export function CreateAccountDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button><UserPlus />Tạo tài khoản</Button>} />
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto sm:max-w-lg">
+        <DialogHeader icon={UserPlus} iconTone="violet">
           <DialogTitle>Tạo tài khoản</DialogTitle>
           <DialogDescription>Tạo tài khoản đơn lẻ. Dùng &quot;Import CSV&quot; cho tạo hàng loạt.</DialogDescription>
         </DialogHeader>
