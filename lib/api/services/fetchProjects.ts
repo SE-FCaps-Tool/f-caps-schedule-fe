@@ -24,7 +24,7 @@ export interface ProjectListItem {
   id: string;
   code: string;
   nameVi: string;
-  nameEn?: string | null;
+  nameEn: string | null;
   status: ProjectStatus;
   mainSupervisor: ProjectSupervisor | null;
   coSupervisor: ProjectSupervisor | null;
@@ -72,7 +72,7 @@ export interface ProjectDetail {
   id: string;
   code: string;
   nameVi: string;
-  nameEn?: string | null;
+  nameEn: string | null;
   status: ProjectStatus;
   mainSupervisor: ProjectSupervisor | null;
   coSupervisor: ProjectSupervisor | null;

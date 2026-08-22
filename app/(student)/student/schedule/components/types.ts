@@ -6,9 +6,13 @@ export type ScheduleTone = "neutral" | "orange" | "emerald" | "amber" | "sky" | 
 export const ROUND_TYPE_LABEL: Record<RoundType, string> = {
   REVIEW_1: "Review 1",
   REVIEW_2: "Review 2",
-  REVIEW_3: "Review 3",
-  DEFENSE_1: "Defense 1",
+  REVIEW_1_1: "Review 1.1",
+  REVIEW_2_1: "Review 2.1",
+  DEFENSE_1_1: "Defense 1.1",
+  DEFENSE_1_2: "Defense 1.2",
   DEFENSE_2: "Defense 2",
+  REVIEW_3: "Defense 1.1 (legacy)",
+  DEFENSE_1: "Defense 1.2 (legacy)",
 };
 
 export const SESSION_STATUS_LABEL: Record<LeaderSessionStatus, string> = {
@@ -79,7 +83,7 @@ export interface ScheduleRound {
 }
 
 export interface StudentScheduleData {
-  group: { code: string; projectTitleEn: string | null };
+  group: { code: string; projectTitleEn: string | null; projectTitleVi: string };
   nextSessionId: string;
   initialRoundId: string;
   rounds: ScheduleRound[];
@@ -122,7 +126,7 @@ function toScheduleSlot(session: LeaderSessionWithRound): ScheduleSlot {
 }
 
 export function toStudentScheduleData(
-  group: { code: string; projectTitleEn: string | null },
+  group: { code: string; projectTitleEn: string | null; projectTitleVi: string },
   sessions: LeaderSession[]
 ): StudentScheduleData {
   const byType = new Map<RoundType, LeaderSessionWithRound[]>();

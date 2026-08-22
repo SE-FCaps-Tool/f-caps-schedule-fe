@@ -45,7 +45,7 @@ export function ReportsPage() {
   const exportResults = useExportResults();
 
   const defenseOutcomes = useMemo(
-    () => (outcomes?.rows ?? []).filter((r) => r.type === "REVIEW_3"),
+    () => (outcomes?.rows ?? []).filter((r) => r.type === "DEFENSE_1_1" || r.type === "REVIEW_3"),
     [outcomes]
   );
   const defenseTotal = defenseOutcomes.reduce((sum, r) => sum + r.count, 0);

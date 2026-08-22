@@ -8,9 +8,13 @@ import type { StatusTone } from "./status-dot";
 export const ROUND_TYPE_LABEL: Record<RoundType, string> = {
   REVIEW_1: "Review 1",
   REVIEW_2: "Review 2",
-  REVIEW_3: "Review 3",
-  DEFENSE_1: "Defense 1",
+  REVIEW_1_1: "Review 1.1",
+  REVIEW_2_1: "Review 2.1",
+  DEFENSE_1_1: "Defense 1.1",
+  DEFENSE_1_2: "Defense 1.2",
   DEFENSE_2: "Defense 2",
+  REVIEW_3: "Defense 1.1 (legacy)",
+  DEFENSE_1: "Defense 1.2 (legacy)",
 };
 
 export const ROUND_STATUS_LABEL: Record<RoundStatus, string> = {
@@ -61,13 +65,13 @@ export const DEFENSE_2_RESULT_META: Record<Defense2Result, { label: string; tone
 };
 
 export function getRoundResultMeta(roundType: RoundType, result: RoundResult) {
-  if (roundType === "REVIEW_1" || roundType === "REVIEW_2") {
+  if (roundType === "REVIEW_1" || roundType === "REVIEW_2" || roundType === "REVIEW_1_1" || roundType === "REVIEW_2_1") {
     return REVIEW_RESULT_META[result as ReviewResult];
   }
-  if (roundType === "REVIEW_3") {
+  if (roundType === "REVIEW_3" || roundType === "DEFENSE_1_1") {
     return DEFENSE_RESULT_META[result as Review3Result];
   }
-  if (roundType === "DEFENSE_1") {
+  if (roundType === "DEFENSE_1" || roundType === "DEFENSE_1_2") {
     return DEFENSE_1_RESULT_META[result as Defense1Result];
   }
   return DEFENSE_2_RESULT_META[result as Defense2Result];

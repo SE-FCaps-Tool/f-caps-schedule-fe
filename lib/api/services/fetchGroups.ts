@@ -26,6 +26,8 @@ export interface GroupListItem {
     id: string;
     code: string;
     name: string;
+    nameVi: string;
+    nameEn: string | null;
     status: string;
   } | null;
   warnings: GroupWarning[];

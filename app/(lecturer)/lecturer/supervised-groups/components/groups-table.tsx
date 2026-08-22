@@ -65,7 +65,9 @@ export function GroupsTable({ projects }: { projects: SupervisedProject[] }) {
                       {project.supervisorRole === "MAIN" ? "Chính" : "Đồng HD"}
                     </span>
                   </div>
-                  <p className="mt-0.5 max-w-72 truncate text-sm text-muted-foreground">{project.titleVi}</p>
+                  <p className="mt-0.5 max-w-72 truncate text-sm text-muted-foreground" title={project.titleVi}>
+                    {project.titleEn?.trim() || project.titleVi}
+                  </p>
                 </TableCell>
 
                 <TableCell className={colDivider}>

@@ -4,13 +4,19 @@ import type { LecturerScheduleSession, LecturerScheduleSessionStatus } from "@/l
 export const ROUND_TYPE_LABEL: Record<RoundType, string> = {
   REVIEW_1: "Review 1",
   REVIEW_2: "Review 2",
-  REVIEW_3: "Review 3",
-  DEFENSE_1: "Defense 1",
+  REVIEW_1_1: "Review 1.1",
+  REVIEW_2_1: "Review 2.1",
+  DEFENSE_1_1: "Defense 1.1",
+  DEFENSE_1_2: "Defense 1.2",
   DEFENSE_2: "Defense 2",
+  REVIEW_3: "Defense 1.1 (legacy)",
+  DEFENSE_1: "Defense 1.2 (legacy)",
 };
 
 export function roundKind(type: RoundType): "review" | "defense" {
-  return type === "REVIEW_1" || type === "REVIEW_2" ? "review" : "defense";
+  return type === "REVIEW_1" || type === "REVIEW_2" || type === "REVIEW_1_1" || type === "REVIEW_2_1"
+    ? "review"
+    : "defense";
 }
 
 export interface LecturerSession {

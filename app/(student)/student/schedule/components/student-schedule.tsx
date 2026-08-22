@@ -14,7 +14,11 @@ export function StudentSchedule() {
   const data = useMemo(() => {
     if (!dashboard || !dashboard.group || !sessions) return null;
     return toStudentScheduleData(
-      { code: dashboard.group.code, projectTitleEn: dashboard.project?.titleEn ?? null },
+      {
+        code: dashboard.group.code,
+        projectTitleEn: dashboard.project?.titleEn ?? null,
+        projectTitleVi: dashboard.project?.titleVi ?? "",
+      },
       sessions
     );
   }, [dashboard, sessions]);

@@ -43,7 +43,9 @@ export function GroupRow({ project }: { project: SupervisedProject }) {
               {project.supervisorRole === "MAIN" ? "GVHD chính" : "Đồng hướng dẫn"}
             </span>
           </div>
-          <p className="mt-0.5 truncate text-sm text-muted-foreground">{project.titleVi}</p>
+          <p className="mt-0.5 truncate text-sm text-muted-foreground" title={project.titleVi}>
+            {project.titleEn?.trim() || project.titleVi}
+          </p>
           <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
             {leader ? (
               <span className="inline-flex items-center gap-1">

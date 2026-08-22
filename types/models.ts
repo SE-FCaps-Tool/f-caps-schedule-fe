@@ -82,7 +82,7 @@ export interface Project {
   id: string;
   projectCode: string; // [Kỳ][Ngành][STT], VD SU26SE017
   titleVi: string;
-  titleEn: string;
+  titleEn: string | null;
   semesterId: string;
   majorId: string;
   previousProjectId?: string | null; // retake kỳ sau
@@ -120,9 +120,14 @@ export interface ConflictDeclaration {
 export type RoundType =
   | "REVIEW_1"
   | "REVIEW_2"
+  | "REVIEW_1_1"
+  | "REVIEW_2_1"
+  | "DEFENSE_1_1"
+  | "DEFENSE_1_2"
+  | "DEFENSE_2"
+  // Legacy values returned by older BE rows.
   | "REVIEW_3"
-  | "DEFENSE_1"
-  | "DEFENSE_2";
+  | "DEFENSE_1";
 
 export type RoundStatus =
   | "DRAFT"

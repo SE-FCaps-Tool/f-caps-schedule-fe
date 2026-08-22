@@ -275,13 +275,18 @@ export function SessionResultDialog({
           </div>
         )}
 
-        {detail && (session.roundType === "REVIEW_1" || session.roundType === "REVIEW_2") && (
+        {detail && (
+          session.roundType === "REVIEW_1" ||
+          session.roundType === "REVIEW_2" ||
+          session.roundType === "REVIEW_1_1" ||
+          session.roundType === "REVIEW_2_1"
+        ) && (
           <ReviewForm sessionId={session.id} onSaved={() => onOpenChange(false)} />
         )}
-        {detail && session.roundType === "REVIEW_3" && (
+        {detail && (session.roundType === "REVIEW_3" || session.roundType === "DEFENSE_1_1") && (
           <Review3Form sessionId={session.id} council={detail.council ?? []} onSaved={() => onOpenChange(false)} />
         )}
-        {detail && session.roundType === "DEFENSE_1" && (
+        {detail && (session.roundType === "DEFENSE_1" || session.roundType === "DEFENSE_1_2") && (
           <FixedResultForm
             sessionId={session.id}
             result="COMPLETED"

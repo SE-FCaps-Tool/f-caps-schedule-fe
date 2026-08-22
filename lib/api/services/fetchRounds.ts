@@ -1,7 +1,16 @@
 import apiService from "../core";
 
 export type RoundType =
-  "REVIEW_1" | "REVIEW_2" | "REVIEW_3" | "DEFENSE_1" | "DEFENSE_2";
+  | "REVIEW_1"
+  | "REVIEW_2"
+  | "REVIEW_1_1"
+  | "REVIEW_2_1"
+  | "DEFENSE_1_1"
+  | "DEFENSE_1_2"
+  | "DEFENSE_2"
+  // Legacy values returned by older BE rows.
+  | "REVIEW_3"
+  | "DEFENSE_1";
 
 /** capstone-fe-be-implementation-spec.md §4 — CANCELLED thay cho POSTPONED cũ */
 export type RoundStatus =

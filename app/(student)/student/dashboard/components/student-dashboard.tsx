@@ -53,10 +53,9 @@ export function StudentDashboard() {
         <div className="mt-6 max-w-xl space-y-6">
           {data.project && (
             <div>
-              <p className="text-sm text-foreground text-pretty">{data.project.titleVi}</p>
-              {data.project.titleEn && (
-                <p className="mt-0.5 text-sm text-muted-foreground italic text-pretty">{data.project.titleEn}</p>
-              )}
+              <p className="text-sm text-foreground text-pretty" title={data.project.titleVi}>
+                {data.project.titleEn?.trim() || data.project.titleVi}
+              </p>
             </div>
           )}
 

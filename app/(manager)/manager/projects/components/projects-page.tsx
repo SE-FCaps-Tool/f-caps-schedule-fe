@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -312,11 +313,11 @@ export function ProjectsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-4">Mã đề tài</TableHead>
-                  <TableHead>Tên đề tài</TableHead>
+                  <TableHead className="w-px pl-4 whitespace-nowrap">Mã đề tài</TableHead>
+                  <TableHead className="w-1/2">Tên đề tài</TableHead>
                   <TableHead>GVHD</TableHead>
-                  <TableHead>Nhóm</TableHead>
-                  <TableHead>Trạng thái</TableHead>
+                  <TableHead className="w-px whitespace-nowrap">Nhóm</TableHead>
+                  <TableHead className="w-px whitespace-nowrap">Trạng thái</TableHead>
                   <TableHead className="pr-4 text-right">
                     <span className="sr-only">Hành động</span>
                   </TableHead>
@@ -334,21 +335,28 @@ export function ProjectsPage() {
                   const stateMeta = PROJECT_STATUS_META[project.status as ProjectProgressState];
                   return (
                     <TableRow key={project.id}>
-                      <TableCell className="pl-4 p-0">
+                      <TableCell className="w-px pl-4 p-0 whitespace-nowrap">
                         <Link href={`/manager/projects/${project.id}`} className="block px-4 py-2 font-mono text-xs font-medium">
                           {project.code}
                         </Link>
                       </TableCell>
-                      <TableCell className="max-w-64 truncate font-medium" title={project.nameVi}>
-                        {project.nameVi}
+                      <TableCell className="max-w-0 py-2.5 font-medium whitespace-normal">
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={<span className="block break-words">{project.nameEn?.trim() || project.nameVi}</span>}
+                          />
+                          <TooltipContent className="rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+                            {project.nameVi}
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {project.mainSupervisor
                           ? `${project.mainSupervisor.fullName}${project.coSupervisor ? ` + ${project.coSupervisor.fullName}` : ""}`
                           : "—"}
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{project.group?.code ?? "—"}</TableCell>
-                      <TableCell>
+                      <TableCell className="w-px font-mono text-xs whitespace-nowrap text-muted-foreground">{project.group?.code ?? "—"}</TableCell>
+                      <TableCell className="w-px whitespace-nowrap">
                         <StatusDot tone={stateMeta.tone} label={stateMeta.label} />
                       </TableCell>
                       <TableCell className="pr-4 text-right">

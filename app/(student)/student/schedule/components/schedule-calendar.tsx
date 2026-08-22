@@ -790,9 +790,11 @@ export function ScheduleCalendar({ data }: { data: StudentScheduleData }) {
             </div>
           </div>
 
-          {data.group.projectTitleEn && (
+          {(data.group.projectTitleEn || data.group.projectTitleVi) && (
             <div className="border-t border-border pt-4">
-              <p className="text-sm font-semibold text-pretty">{data.group.projectTitleEn}</p>
+              <p className="text-sm font-semibold text-pretty" title={data.group.projectTitleVi}>
+                {data.group.projectTitleEn?.trim() || data.group.projectTitleVi}
+              </p>
             </div>
           )}
         </aside>

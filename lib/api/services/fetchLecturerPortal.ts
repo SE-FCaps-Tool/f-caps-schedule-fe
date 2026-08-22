@@ -240,6 +240,7 @@ export interface SupervisedProject {
   id: string;
   code: string;
   titleVi: string;
+  titleEn: string | null;
   supervisorRole: "MAIN" | "CO";
   group: {
     id: string;
@@ -284,6 +285,10 @@ export interface SupervisedProjectApi {
   id: number | string;
   code: string;
   title: string;
+  title_vi?: string | null;
+  title_en?: string | null;
+  titleVi?: string | null;
+  titleEn?: string | null;
   /** Trạng thái project DB (ACTIVE|ARCHIVED) — KHÔNG phải 8 enum ProjectStatus của spec §3. */
   status: string;
   semester_id?: number | string;
@@ -301,7 +306,8 @@ export function adaptSupervisedProject(dto: SupervisedProjectApi): SupervisedPro
   return {
     id: String(dto.id),
     code: dto.code,
-    titleVi: dto.title,
+    titleVi: dto.title_vi ?? dto.titleVi ?? dto.title,
+    titleEn: dto.title_en ?? dto.titleEn ?? null,
     supervisorRole: dto.supervisor_type,
     group: dto.group
       ? {

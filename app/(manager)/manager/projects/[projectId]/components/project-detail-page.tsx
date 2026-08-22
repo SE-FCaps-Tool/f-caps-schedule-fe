@@ -68,7 +68,9 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
       </Link>
 
       <div className="mt-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{project.nameVi}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight" title={project.nameVi}>
+          {project.nameEn?.trim() || project.nameVi}
+        </h1>
         <div className="mt-1.5 flex items-center gap-2 text-sm">
           <span className="font-mono text-muted-foreground">{project.code}</span>
           <span className="text-muted-foreground/50">·</span>

@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { ErrorBlock } from "@/app/(round-detail)/manager/rounds/[roundId]/components/round-detail-shared";
 import type { RoomType, RoundDetail, RoundType, RoundUpdatePayload } from "@/lib/api/services/fetchRounds";
 
-const RESULT_OWNER_ALLOWED_TYPES = new Set<RoundType>(["REVIEW_3", "DEFENSE_2"]);
+const RESULT_OWNER_ALLOWED_TYPES = new Set<RoundType>(["DEFENSE_1_1", "DEFENSE_2"]);
 
 const ROOM_TYPE_LABEL: Record<RoomType, string> = {
   NORMAL: "Phòng thường",

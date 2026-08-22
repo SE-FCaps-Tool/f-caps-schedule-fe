@@ -373,14 +373,14 @@ function AssignProjectDialog({
                   <SelectValue placeholder="Chọn đề tài">
                     {(v: string) => {
                       const p = projects.find((p) => p.id === v);
-                      return p ? `${p.code} — ${p.nameVi}` : "Chọn đề tài";
+                      return p ? `${p.code} — ${p.nameEn?.trim() || p.nameVi}` : "Chọn đề tài";
                     }}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {projects.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.code} — {p.nameVi}
+                      {p.code} — {p.nameEn?.trim() || p.nameVi}
                     </SelectItem>
                   ))}
                 </SelectContent>

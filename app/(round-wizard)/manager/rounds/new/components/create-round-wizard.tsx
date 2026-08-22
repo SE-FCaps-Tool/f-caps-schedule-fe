@@ -44,25 +44,29 @@ import {
 } from "./round-schedule-calendar";
 
 const ROUND_TYPES: RoundType[] = [
-  "REVIEW_1",
-  "REVIEW_2",
-  "REVIEW_3",
-  "DEFENSE_1",
+  "REVIEW_1_1",
+  "REVIEW_2_1",
+  "DEFENSE_1_1",
+  "DEFENSE_1_2",
   "DEFENSE_2",
 ];
 
 /**
- * BE chỉ chấp nhận resultOwnerMode=true cho REVIEW_3/DEFENSE_2 (422 nếu không).
+ * BE chỉ chấp nhận resultOwnerMode=true cho Defense 1.1/Defense 2 (422 nếu không).
  */
 const RESULT_OWNER_ALLOWED_TYPES = new Set<RoundType>([
-  "REVIEW_3",
+  "DEFENSE_1_1",
   "DEFENSE_2",
 ]);
 
 /** Mặc định reviewer/buổi theo loại đợt — spec §20 Step 1 */
 const DEFAULT_REVIEWER_COUNT: Record<RoundType, number> = {
+  REVIEW_1_1: 2,
+  REVIEW_2_1: 2,
   REVIEW_1: 2,
   REVIEW_2: 2,
+  DEFENSE_1_1: 3,
+  DEFENSE_1_2: 5,
   REVIEW_3: 3,
   DEFENSE_1: 5,
   DEFENSE_2: 5,
@@ -143,11 +147,11 @@ export function CreateRoundWizard() {
 
   // Bước 1
   const [name, setName] = useState("");
-  const [type, setType] = useState<RoundType>("REVIEW_1");
+  const [type, setType] = useState<RoundType>("REVIEW_1_1");
   const [description, setDescription] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("60");
   const [reviewerCount, setReviewerCount] = useState(
-    String(DEFAULT_REVIEWER_COUNT.REVIEW_1),
+    String(DEFAULT_REVIEWER_COUNT.REVIEW_1_1),
   );
   const [maxGroupsPerTimeslot, setMaxGroupsPerTimeslot] = useState("3");
   const [resultOwnerMode, setResultOwnerMode] = useState(false);
