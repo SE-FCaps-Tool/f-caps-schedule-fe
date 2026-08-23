@@ -1,6 +1,6 @@
 # FE Handoff — Round Detail và đăng ký tuần tự
 
-Ngày cập nhật: 2026-08-20
+Ngày cập nhật: 2026-08-23
 
 Tài liệu này mô tả các thay đổi BE mà FE cần tích hợp. FE không cần tự tính
 supervisor/COI hay số reviewer khả dụng trong phạm vi thay đổi này.
@@ -114,8 +114,13 @@ Các field liên quan không đổi tên:
 Validation mới:
 
 - Deadline phải có timezone offset, ví dụ `+07:00` hoặc `Z`.
-- Khi `groupSelectionMode=true`, cả hai deadline đều bắt buộc.
-- `groupPreferenceDeadline` phải lớn hơn `registrationDeadline`.
+- `registrationDeadline` là bắt buộc; `groupPreferenceDeadline` là tuỳ chọn
+  cho luồng Student chọn preference.
+- Nếu gửi `groupPreferenceDeadline`, deadline này phải lớn hơn
+  `registrationDeadline`.
+- Ngày lịch của `registrationDeadline` và `groupPreferenceDeadline` phải vào
+  hoặc trước `startDate` của khoảng ngày chấm; `endDate` chỉ giới hạn các ngày
+  và slot chấm, không giới hạn deadline đăng ký.
 - Khi `groupSelectionMode=false`, không có giai đoạn Student chọn preference.
 
 Request sai trả `422 VALIDATION_ERROR` theo error envelope chuẩn.

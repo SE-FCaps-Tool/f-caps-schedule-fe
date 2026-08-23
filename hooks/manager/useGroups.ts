@@ -7,6 +7,7 @@ import {
   type AssignProjectPayload,
   type ChangeLeaderPayload,
   type GroupCreatePayload,
+  type GroupListItem,
   type GroupListParams,
   type MemberLeavePayload,
 } from "@/lib/api/services/fetchGroups";
@@ -14,11 +15,41 @@ import { managerKeys } from "@/lib/api/managerQueryKeys";
 import { friendlyErrorMessage } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
 
+const GROUP_LOOKUP_PAGE_SIZE = 200;
+
+async function fetchAllGroups(semesterId: string) {
+  const groups: GroupListItem[] = [];
+  let page = 1;
+
+  while (true) {
+    const response = await fetchGroups.list(semesterId, {
+      page,
+      pageSize: GROUP_LOOKUP_PAGE_SIZE,
+    });
+    groups.push(...response.data);
+
+    if (!response.meta || response.data.length === 0 || groups.length >= response.meta.total) {
+      return groups;
+    }
+    page += 1;
+  }
+}
+
 /** GET /semesters/:semesterId/groups — spec §11/§41 */
 export function useGroups(semesterId?: number | null, params?: GroupListParams) {
   return useQuery({
     queryKey: [...managerKeys.groups(semesterId), params ?? null] as const,
     queryFn: () => fetchGroups.list(String(semesterId), params),
+    enabled: semesterId != null,
+    staleTime: 30 * 1000,
+  });
+}
+
+/** Lookup metadata cho toàn bộ nhóm của học kỳ, tải tuần tự theo giới hạn phân trang của BE. */
+export function useAllGroups(semesterId?: string | null) {
+  return useQuery({
+    queryKey: [...managerKeys.groups(semesterId ? Number(semesterId) : null), "all"] as const,
+    queryFn: () => fetchAllGroups(semesterId as string),
     enabled: semesterId != null,
     staleTime: 30 * 1000,
   });

@@ -1,14 +1,31 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchLecturers } from "@/lib/api/services/fetchLecturers";
+import { fetchLecturers, type LecturerApiItem } from "@/lib/api/services/fetchLecturers";
 import { useInfiniteScroll } from "@/hooks/shared/useInfiniteScroll";
+
+const LECTURER_LOOKUP_PAGE_SIZE = 200;
+
+async function fetchAllLecturers() {
+  const lecturers: LecturerApiItem[] = [];
+  let page = 1;
+
+  while (true) {
+    const response = await fetchLecturers.list({ page, pageSize: LECTURER_LOOKUP_PAGE_SIZE });
+    lecturers.push(...response.data);
+
+    if (!response.meta || response.data.length === 0 || lecturers.length >= response.meta.total) {
+      return lecturers;
+    }
+    page += 1;
+  }
+}
 
 /** GET /lecturers — dùng cho các nơi cần cả danh sách 1 lần (mời, đổi reviewer...) */
 export function useLecturers() {
   return useQuery({
     queryKey: ["manager", "lecturers"] as const,
-    queryFn: async () => (await fetchLecturers.list()).data,
+    queryFn: fetchAllLecturers,
     staleTime: 5 * 60 * 1000,
   });
 }

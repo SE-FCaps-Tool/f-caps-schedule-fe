@@ -5,9 +5,9 @@ import { WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { DateField } from "@/components/shared/date-field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLecturerSessionDetail, useSubmitLecturerSessionResult } from "@/hooks/lecturer/useLecturerPortal";
 import type {
@@ -122,11 +122,11 @@ function Review3Form({
           </p>
           <div className="space-y-1.5">
             <Label htmlFor="remediation-deadline" className="text-xs">Hạn khắc phục</Label>
-            <Input
+            <DateField
               id="remediation-deadline"
-              type="date"
+              ariaLabel="Hạn khắc phục"
               value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
+              onChange={setDeadline}
               className="h-9 bg-background"
             />
           </div>

@@ -4,12 +4,40 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   fetchRoomAssignment,
+  type AssignableRoom,
   type AssignRoomPayload,
   type AvailableRoomsParams,
   type RoomSuggestion,
 } from "@/lib/api/services/fetchRoomAssignment";
+import { fetchRooms, type RoomApiItem } from "@/lib/api/services/fetchRooms";
 import { friendlyErrorMessage } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
+
+const ROOM_CATALOG_PAGE_SIZE = 200;
+
+function adaptCatalogRoom(room: RoomApiItem): AssignableRoom {
+  return {
+    id: String(room.id),
+    code: room.code,
+    type: room.type ?? "NORMAL",
+    status: room.status ?? "ACTIVE",
+  };
+}
+
+async function fetchRoomCatalog() {
+  const rooms: AssignableRoom[] = [];
+  let page = 1;
+
+  while (true) {
+    const response = await fetchRooms.list({ page, pageSize: ROOM_CATALOG_PAGE_SIZE });
+    rooms.push(...response.data.map(adaptCatalogRoom));
+
+    if (!response.meta || response.data.length === 0 || rooms.length >= response.meta.total) {
+      return rooms;
+    }
+    page += 1;
+  }
+}
 
 /** GET /rounds/:roundId/sessions?versionId= — spec §27 */
 export function useRoundSessions(roundId: string | null, versionId: string | null) {
@@ -28,6 +56,16 @@ export function useAvailableRooms(roundId: string | null, params?: AvailableRoom
     queryFn: () => fetchRoomAssignment.availableRooms(roundId as string, params),
     enabled: roundId !== null,
     staleTime: 15 * 1000,
+  });
+}
+
+/** Room catalog cho lịch PUBLISHED; không mang ngữ nghĩa availability của version ACTIVE. */
+export function useRoomCatalog(enabled: boolean) {
+  return useQuery({
+    queryKey: ["manager", "rooms", "catalog"] as const,
+    queryFn: fetchRoomCatalog,
+    enabled,
+    staleTime: 30 * 1000,
   });
 }
 

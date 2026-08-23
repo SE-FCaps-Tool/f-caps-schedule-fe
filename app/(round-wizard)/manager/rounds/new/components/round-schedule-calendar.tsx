@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { CalendarRange, ChevronLeft, ChevronRight, Clock3 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DateField } from "@/components/shared/date-field";
+import { TimeField } from "@/components/shared/time-field";
 import {
   Dialog,
   DialogContent,
@@ -122,10 +123,8 @@ type Phase = "range" | "deadline" | "slots";
 function computePhase(
   startDate: string,
   endDate: string,
-  registrationDeadline: DeadlineDraft | null,
 ): Phase {
   if (!startDate || !endDate) return "range";
-  if (!registrationDeadline) return "deadline";
   return "slots";
 }
 
@@ -165,13 +164,6 @@ const LEGEND_ITEMS: {
     dot: "bg-primary",
     badge: "bg-primary/10 text-primary",
     solid: "bg-primary text-primary-foreground",
-  },
-  {
-    key: "deadline",
-    label: "Hạn đăng ký chọn lịch",
-    dot: "bg-amber-500",
-    badge: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-    solid: "bg-amber-500 text-white",
   },
 ];
 
@@ -237,7 +229,7 @@ export function RoundScheduleCalendar({
     minutes: number;
   } | null>(null);
 
-  const phase = computePhase(startDate, endDate, registrationDeadline);
+  const phase = computePhase(startDate, endDate);
   const defaultMode: Mode = phase === "deadline" ? "deadline" : "slot";
   const activeMode: Mode = manualMode ?? defaultMode;
   const bannerPhase: Phase =
@@ -955,31 +947,53 @@ export function RoundScheduleCalendar({
         </div>
       )}
 
-      {registrationDeadline && (
-        <div className="flex flex-wrap items-center gap-4 border-t border-border px-4 py-3 text-xs">
-          <div className="flex items-center gap-2">
-            <span
-              className="size-2.5 shrink-0 rounded-full bg-amber-500"
-              aria-hidden
-            />
-            <span className="text-muted-foreground">
-              Hạn đăng ký chọn lịch:{" "}
-              <span className="font-medium text-foreground">
-                {formatDate(registrationDeadline.date, "DD/MM/YYYY")}
-              </span>
-            </span>
-            <Input
-              type="time"
-              value={registrationDeadline.time}
-              onChange={(e) =>
+      {phase !== "range" && (
+        <div className="flex flex-wrap items-end gap-4 border-t border-border px-4 py-3">
+          <div className="space-y-1.5">
+            <label htmlFor="manual-registration-deadline-date" className="text-xs font-medium text-foreground">
+              Hạn đăng ký chọn lịch
+            </label>
+            <DateField
+              id="manual-registration-deadline-date"
+              ariaLabel="Ngày hạn đăng ký chọn lịch"
+              value={registrationDeadline?.date ?? ""}
+              max={startDate || undefined}
+              onChange={(date) =>
                 onRegistrationDeadlineChange({
-                  ...registrationDeadline,
-                  time: e.target.value,
+                  date,
+                  time: registrationDeadline?.time ?? "23:59",
                 })
               }
-              className="h-7 w-24 px-2 text-xs"
+              className="h-11 w-44"
+              aria-describedby="manual-registration-deadline-help"
             />
           </div>
+          <div className="space-y-1.5">
+            <label htmlFor="manual-registration-deadline-time" className="text-xs font-medium text-foreground">
+              Giờ hạn đăng ký
+            </label>
+            <TimeField
+              id="manual-registration-deadline-time"
+              size="default"
+              ariaLabel="Giờ hạn đăng ký chọn lịch"
+              value={registrationDeadline?.time ?? "23:59"}
+              onChange={(time) =>
+                onRegistrationDeadlineChange({
+                  date: registrationDeadline?.date ?? "",
+                  time,
+                })
+              }
+              className="min-h-11 w-36"
+              />
+          </div>
+          <p id="manual-registration-deadline-help" className="pb-1 text-xs text-muted-foreground">
+            Deadline có thể đặt trước hoặc đúng ngày bắt đầu chấm; lịch bên trên chỉ dùng để thêm khung giờ.
+          </p>
+          {registrationDeadline && startDate && registrationDeadline.date > startDate && (
+            <p className="basis-full text-xs text-destructive">
+              Hạn đăng ký phải vào hoặc trước ngày bắt đầu chấm ({startDate}).
+            </p>
+          )}
         </div>
       )}
 

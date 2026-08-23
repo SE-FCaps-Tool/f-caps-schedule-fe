@@ -5,7 +5,7 @@ import { Check, Clock3, PauseCircle, UserX, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils/formatDate";
 import { ROUND_TYPE_LABEL, roundKind, type LecturerSession } from "./types";
-import { STATUS_META, toneCardClass, toneDotClass } from "./tone";
+import { getStatusMeta, toneCardClass, toneDotClass } from "./tone";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SessionPopoverContent } from "./session-popover-content";
 
@@ -18,7 +18,9 @@ const MIN_EVENT_HEIGHT_PX = 30;
 const LONG_DURATION_MINUTES = 60;
 
 const STATUS_ICON: Record<LecturerSession["status"], typeof Clock3> = {
+  PLANNED: Clock3,
   SCHEDULED: Clock3,
+  ONGOING: Clock3,
   COMPLETED: Check,
   POSTPONED: PauseCircle,
   GROUP_ABSENT: UserX,
@@ -117,8 +119,8 @@ function SessionCard({
   column: number;
   columnCount: number;
 }) {
-  const Icon = STATUS_ICON[session.status];
-  const tone = STATUS_META[session.status].tone;
+  const Icon = STATUS_ICON[session.status] ?? Clock3;
+  const tone = getStatusMeta(session.status).tone;
   const start = minutesFromIso(session.startAtIso);
   const end = minutesFromIso(session.endAtIso);
   const top = pixelsFromMinutes(Math.max(start, START_MINUTES));
@@ -172,8 +174,8 @@ function LongSessionCard({
   column: number;
   columnCount: number;
 }) {
-  const Icon = STATUS_ICON[session.status];
-  const tone = STATUS_META[session.status].tone;
+  const Icon = STATUS_ICON[session.status] ?? Clock3;
+  const tone = getStatusMeta(session.status).tone;
   const start = minutesFromIso(session.startAtIso);
   const end = minutesFromIso(session.endAtIso);
   const top = pixelsFromMinutes(Math.max(start, START_MINUTES));

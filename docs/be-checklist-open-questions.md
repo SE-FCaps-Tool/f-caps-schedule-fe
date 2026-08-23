@@ -139,13 +139,24 @@ Calendar — nơi khác, không thuộc phạm vi màn này).
 GET /api/v1/students
 ```
 `docs/master-data.md` ghi rõ response hiện tại chỉ có `{ id, student_code }` — không có tên/email.
-Form "Tạo nhóm" (Manager) cần hiển thị MSSV — Họ tên — Email khi chọn thành viên, nhưng dữ liệu
-không có sẵn để hiển thị. Đề xuất bổ sung:
+Form "Tạo nhóm" (Manager) cần hiển thị `MSSV — Họ tên` khi chọn thành viên, nhưng dữ liệu không
+có sẵn nên ô chọn hiện đang chỉ liệt kê được mã trần. **Đây là field chặn, không phải nice-to-have:**
+ô chọn thành viên đã có thanh tìm kiếm lọc theo nhãn — thiếu `full_name` thì Manager chỉ tìm được
+theo MSSV, không tìm được theo tên. Đề xuất bổ sung:
 ```json
 [{ "id": 1, "student_code": "SE001", "full_name": "Nguyễn Văn A", "email": "se001@fpt.edu.vn" }]
 ```
 FE đã sửa `StudentApiItem`/`groups-page.tsx` để hiển thị `full_name`/`email` **ngay khi có** (2
 field đang để optional, tạm ẩn nếu BE chưa trả) — không cần FE sửa gì thêm khi BE bổ sung.
+`fetchMasterDataLookups.students` nhận cả `snake_case` lẫn `camelCase` (`full_name`/`fullName`,
+`student_code`/`studentCode`) và cả mảng phẳng lẫn `{data: [...]}`, nên BE chọn quy ước nào cũng chạy.
+
+Hai thứ **không chặn** nhưng nên làm cùng lúc cho khớp các endpoint list khác:
+- `?search=` lọc theo cả mã lẫn tên + `?page=`/`?pageSize=` trả kèm `meta` — hiện FE tải cả
+  ~330 sinh viên trong 1 lần rồi lọc phía client. Chạy được, nhưng lệch chuẩn so với
+  `GET /lecturers` và `GET /semesters/:id/projects`.
+- Filter kiểu `?hasGroup=false&semesterId=` — form "Tạo nhóm" đang liệt kê cả sinh viên đã
+  thuộc nhóm khác, hiện phải để Manager tự tránh.
 📁 `lib/api/services/fetchMasterDataLookups.ts`, `app/(manager)/manager/groups/components/groups-page.tsx`
 📁 `app/(manager)/manager/rounds/[roundId]/components/round-detail-page.tsx` (Sheet "Xem chi tiết" giảng viên, dòng ~373-384, ~838-857)
 

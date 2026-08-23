@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 import { CalendarClock, Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
+import { DateField } from "@/components/shared/date-field";
+import { TimeField } from "@/components/shared/time-field";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -26,11 +28,7 @@ function useNowInVietnamTime() {
   return { date: formatInVietnamTime(now, "YYYY-MM-DD"), time: formatInVietnamTime(now, "HH:mm") };
 }
 
-/**
- * "Bấm một ngày trong khung để đặt hạn đăng ký chọn lịch" — cùng tương tác với bước 2 của wizard
- * tạo round (`RoundScheduleCalendar`), áp lên `round.registrationDeadline` qua `useUpdateRound`.
- * Giữ nguyên giờ trong ngày của hạn cũ (mặc định 23:59 nếu chưa có hạn).
- */
+/** Serialize a Vietnam-local date/time without letting the browser shift the calendar day. */
 function buildDeadlineIso(date: string, time: string) {
   return `${date}T${time}:00+07:00`;
 }
@@ -318,10 +316,12 @@ export function RoundAvailabilityHeatmap({
 
   const deadlineDate = round.registrationDeadline ? formatInVietnamTime(round.registrationDeadline, "YYYY-MM-DD") : null;
   const deadlineTime = round.registrationDeadline ? formatInVietnamTime(round.registrationDeadline, "HH:mm") : "23:59";
+  const [deadlineDraftDate, setDeadlineDraftDate] = useState(() => deadlineDate ?? "");
+  const [deadlineDraftTime, setDeadlineDraftTime] = useState(() => deadlineTime);
 
-  function handlePickDeadline(date: string) {
-    if (!canEditDeadline || updateRound.isPending) return;
-    updateRound.mutate({ roundId, payload: { registrationDeadline: buildDeadlineIso(date, deadlineTime) } });
+  function updateDeadline(date: string, time: string) {
+    if (!canEditDeadline || updateRound.isPending || !date || date > round.startDate) return;
+    updateRound.mutate({ roundId, payload: { registrationDeadline: buildDeadlineIso(date, time) } });
   }
 
   const runLabel = runPending ? "Đang chạy..." : hasVersions ? "Chạy lại" : "Chạy xếp lịch";
@@ -338,7 +338,7 @@ export function RoundAvailabilityHeatmap({
           <CalendarClock className="size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
           <p className="text-pretty text-amber-700 dark:text-amber-400">
             {canEditDeadline
-              ? "Bấm một ngày trong khung để đặt hạn đăng ký chọn lịch."
+              ? "Đặt hạn đăng ký trước hoặc đúng ngày bắt đầu chấm; lưới bên dưới chỉ hiển thị lịch rảnh."
               : deadlineDate
                 ? `Hạn đăng ký: ${formatDate(deadlineDate, "DD/MM/YYYY")} — đợt đã qua giai đoạn chỉnh sửa.`
                 : "Đợt đã qua giai đoạn chỉnh sửa hạn đăng ký."}
@@ -348,6 +348,51 @@ export function RoundAvailabilityHeatmap({
           <Sparkles />
           {runLabel}
         </Button>
+      </div>
+
+      <div className="flex shrink-0 flex-wrap items-end gap-4 border-b border-border py-4">
+        <div className="space-y-1.5">
+          <label htmlFor="detail-registration-deadline-date" className="text-xs font-medium text-foreground">
+            Hạn đăng ký chọn lịch
+          </label>
+          <DateField
+            id="detail-registration-deadline-date"
+            ariaLabel="Hạn đăng ký chọn lịch"
+            value={deadlineDraftDate}
+            max={round.startDate || undefined}
+            disabled={!canEditDeadline || updateRound.isPending}
+            onChange={(date) => {
+              setDeadlineDraftDate(date);
+              updateDeadline(date, deadlineDraftTime);
+            }}
+            aria-describedby="detail-registration-deadline-help"
+            className="h-11 w-44"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="detail-registration-deadline-time" className="text-xs font-medium text-foreground">
+            Giờ hạn đăng ký
+          </label>
+          <TimeField
+            id="detail-registration-deadline-time"
+            ariaLabel="Giờ hạn đăng ký"
+            value={deadlineDraftTime}
+            disabled={!canEditDeadline || updateRound.isPending}
+            onChange={(time) => {
+              setDeadlineDraftTime(time);
+              updateDeadline(deadlineDraftDate, time);
+            }}
+            className="h-11 w-36"
+          />
+        </div>
+        <p id="detail-registration-deadline-help" className="pb-1 text-xs text-muted-foreground">
+          Ngày phải vào hoặc trước ngày bắt đầu chấm ({round.startDate}).
+        </p>
+        {deadlineDraftDate && deadlineDraftDate > round.startDate && (
+          <p className="basis-full text-xs text-destructive">
+            Hạn đăng ký không được sau ngày bắt đầu chấm.
+          </p>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col pt-4">
@@ -372,16 +417,10 @@ export function RoundAvailabilityHeatmap({
                 const isDeadline = date === deadlineDate;
                 const isToday = date === nowDate;
                 return (
-                  <button
+                  <div
                     key={date}
-                    type="button"
-                    disabled={!canEditDeadline || updateRound.isPending}
-                    onClick={() => handlePickDeadline(date)}
-                    title={canEditDeadline ? `Đặt ${formatDate(date, "DD/MM/YYYY")} làm hạn đăng ký` : undefined}
                     className={cn(
-                      "sticky top-0 z-20 flex flex-col items-center justify-center gap-1 border-b border-l border-border bg-background py-2 transition-colors",
-                      canEditDeadline && "hover:bg-muted",
-                      !canEditDeadline && "cursor-default"
+                      "sticky top-0 z-20 flex flex-col items-center justify-center gap-1 border-b border-l border-border bg-background py-2",
                     )}
                   >
                     <span className="text-[11px] font-medium text-muted-foreground capitalize">{formatDate(date, "dd")}</span>
@@ -394,7 +433,7 @@ export function RoundAvailabilityHeatmap({
                     >
                       {formatDate(date, "DD")}
                     </span>
-                  </button>
+                  </div>
                 );
               })}
 

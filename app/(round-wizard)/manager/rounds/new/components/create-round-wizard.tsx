@@ -18,6 +18,8 @@ import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DateField } from "@/components/shared/date-field";
+import { TimeField } from "@/components/shared/time-field";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -31,12 +33,14 @@ import { cn } from "@/lib/utils";
 import { ROUND_TYPE_LABEL } from "@/app/(manager)/manager/_shared/labels";
 import { useSemesterContext } from "@/app/(manager)/manager/_shared/semester-context";
 import { useCreateRound } from "@/hooks/manager/useRounds";
+import { useTimeframes } from "@/hooks/useTimeframes";
 import type {
   RoomType,
   RoundCreatePayload,
   RoundDayInput,
   RoundType,
 } from "@/lib/api/services/fetchRounds";
+import type { Timeframe } from "@/lib/api/services/fetchTimeframes";
 import {
   RoundScheduleCalendar,
   type DayDraft,
@@ -128,6 +132,7 @@ export function CreateRoundWizard() {
     isError: isSemesterContextError,
   } = useSemesterContext();
   const createRound = useCreateRound(currentSemester?.id);
+  const timeframesQuery = useTimeframes(false);
   const reduceMotion = useReducedMotion();
   const [step, setStep] = useState<1 | 2>(1);
 
@@ -167,8 +172,25 @@ export function CreateRoundWizard() {
   const [registrationDeadline, setRegistrationDeadline] =
     useState<DeadlineDraft | null>(null);
   const [days, setDays] = useState<DayDraft[]>([]);
+  const [timelineSource, setTimelineSource] = useState<"manual" | "timeframe">(
+    "manual",
+  );
+  const [selectedTimeframeId, setSelectedTimeframeId] = useState<number | null>(
+    null,
+  );
 
-  const duration = Number(durationMinutes) || 0;
+  const selectedTimeframe = useMemo<Timeframe | null>(
+    () =>
+      timeframesQuery.data?.find(
+        (timeframe) => timeframe.id === selectedTimeframeId,
+      ) ?? null,
+    [selectedTimeframeId, timeframesQuery.data],
+  );
+
+  const duration =
+    timelineSource === "timeframe" && selectedTimeframe
+      ? selectedTimeframe.groupDurationMinutes
+      : Number(durationMinutes) || 0;
 
   function handleTypeChange(v: RoundType) {
     setType(v);
@@ -203,9 +225,16 @@ export function CreateRoundWizard() {
     setConfirmOpen(true);
   }
 
+  function updateStartDate(nextStartDate: string) {
+    setStartDate(nextStartDate);
+    setRegistrationDeadline((current) =>
+      current && (!nextStartDate || current.date > nextStartDate) ? null : current,
+    );
+  }
+
   function confirmRange() {
     if (!pendingStart || !pendingEnd) return;
-    setStartDate(pendingStart);
+    updateStartDate(pendingStart);
     setEndDate(pendingEnd);
     setConfirmOpen(false);
     setPendingStart(null);
@@ -226,6 +255,41 @@ export function CreateRoundWizard() {
     setPendingStart(null);
     setPendingEnd(null);
     setConfirmOpen(false);
+  }
+
+  function changeTimelineSource(source: "manual" | "timeframe") {
+    if (source === timelineSource) return;
+    const hasDraft =
+      days.length > 0 ||
+      startDate !== "" ||
+      endDate !== "" ||
+      registrationDeadline !== null ||
+      selectedTimeframeId !== null;
+    if (
+      hasDraft &&
+      !window.confirm(
+        "Chuyển nguồn lịch sẽ xóa cấu hình lịch hiện tại. Bạn có muốn tiếp tục?",
+      )
+    ) {
+      return;
+    }
+    setTimelineSource(source);
+    setPendingStart(null);
+    setPendingEnd(null);
+    setConfirmOpen(false);
+    setDays([]);
+    if (source === "manual") {
+      setSelectedTimeframeId(null);
+    } else {
+      setStartDate("");
+      setEndDate("");
+      setRegistrationDeadline(null);
+    }
+  }
+
+  function selectTimeframe(timeframe: Timeframe) {
+    setSelectedTimeframeId(timeframe.id);
+    setDurationMinutes(String(timeframe.groupDurationMinutes));
   }
 
   function addSlot(date: string, startTime: string) {
@@ -275,20 +339,31 @@ export function CreateRoundWizard() {
 
   const totalSlots = days.reduce((sum, d) => sum + d.slots.length, 0);
   const slotsValid = days.length >= 1 && days.every((d) => d.slots.length >= 1);
+  const dateRangeValid =
+    startDate !== "" && endDate !== "" && startDate <= endDate;
+  const deadlineBeforeGrading =
+    registrationDeadline == null ||
+    (registrationDeadline.date !== "" &&
+      dateRangeValid &&
+      registrationDeadline.date <= startDate);
 
   const step2Valid =
-    startDate !== "" &&
-    endDate !== "" &&
+    dateRangeValid &&
     registrationDeadline != null &&
-    slotsValid;
+    deadlineBeforeGrading &&
+    (timelineSource === "timeframe"
+      ? selectedTimeframe != null
+      : slotsValid);
 
   const payload: RoundCreatePayload | null = useMemo(() => {
-    if (!step1Valid || !step2Valid || !registrationDeadline) return null;
-    const dayInputs: RoundDayInput[] = days.map((d) => ({
-      date: d.date,
-      slots: d.slots,
-    }));
-    return {
+    if (
+      !step1Valid ||
+      !step2Valid ||
+      !registrationDeadline ||
+      !dateRangeValid
+    )
+      return null;
+    const common = {
       name,
       type,
       description: description || undefined,
@@ -301,8 +376,15 @@ export function CreateRoundWizard() {
       groupSelectionMode,
       resultOwnerMode: RESULT_OWNER_ALLOWED_TYPES.has(type) && resultOwnerMode,
       roomTypes: Array.from(roomTypes),
-      days: dayInputs,
     };
+    if (timelineSource === "timeframe" && selectedTimeframe) {
+      return { ...common, timeframeId: selectedTimeframe.id };
+    }
+    const dayInputs: RoundDayInput[] = days.map((d) => ({
+      date: d.date,
+      slots: d.slots,
+    }));
+    return { ...common, days: dayInputs };
   }, [
     step1Valid,
     step2Valid,
@@ -319,6 +401,9 @@ export function CreateRoundWizard() {
     groupSelectionMode,
     resultOwnerMode,
     roomTypes,
+    timelineSource,
+    selectedTimeframe,
+    dateRangeValid,
   ]);
 
   function handleSubmit() {
@@ -406,9 +491,9 @@ export function CreateRoundWizard() {
                     <Input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
+                      required
                       placeholder="Review 3"
                       autoFocus
-                      required
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -459,6 +544,7 @@ export function CreateRoundWizard() {
                             type="number"
                             min={1}
                             value={durationMinutes}
+                            readOnly={timelineSource === "timeframe" && selectedTimeframe !== null}
                             onChange={(e) => setDurationMinutes(e.target.value)}
                             className="bg-background pr-11"
                             required
@@ -468,6 +554,11 @@ export function CreateRoundWizard() {
                           </span>
                         </div>
                       </div>
+                      {timelineSource === "timeframe" && selectedTimeframe && (
+                        <p className="text-xs text-muted-foreground">
+                          Khi dùng Timeframe, thời lượng lấy theo group duration của Timeframe đã chọn.
+                        </p>
+                      )}
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">
                           Reviewer
@@ -641,29 +732,219 @@ export function CreateRoundWizard() {
               <StepHeader
                 icon={Settings2}
                 title="Lịch đợt đánh giá"
-                description={`Chọn khoảng ngày, hạn đăng ký chọn lịch và khung giờ ngay trên lịch. Mỗi khung giờ dài ${duration} phút.`}
+                description={
+                  timelineSource === "timeframe"
+                    ? "Chọn Timeframe dùng chung, khoảng ngày và hạn đăng ký. Backend sẽ sinh các slot thực tế."
+                    : `Chọn khoảng ngày, hạn đăng ký chọn lịch và khung giờ ngay trên lịch. Mỗi khung giờ dài ${duration} phút.`
+                }
               />
             </div>
 
-            <div className="min-h-0 flex-1">
-              <RoundScheduleCalendar
-                duration={duration}
-                startDate={startDate}
-                endDate={endDate}
-                pendingStart={pendingStart}
-                pendingEnd={pendingEnd}
-                confirmOpen={confirmOpen}
-                onHeaderClickRange={handleHeaderClickRange}
-                onConfirmRange={confirmRange}
-                onCancelRangeConfirm={cancelRangeConfirm}
-                onResetRange={resetRange}
-                registrationDeadline={registrationDeadline}
-                onRegistrationDeadlineChange={setRegistrationDeadline}
-                days={days}
-                onAddSlot={addSlot}
-                onRemoveSlot={removeSlot}
-              />
+            <div className="mb-4 flex shrink-0 flex-wrap gap-2" role="group" aria-label="Nguồn cấu hình lịch">
+              {([
+                ["timeframe", "Dùng Timeframe có sẵn"],
+                ["manual", "Tự nhập timeline"],
+              ] as const).map(([source, label]) => (
+                <button
+                  key={source}
+                  type="button"
+                  aria-pressed={timelineSource === source}
+                  onClick={() => changeTimelineSource(source)}
+                  className={cn(
+                    "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                    timelineSource === source
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-foreground hover:bg-muted",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
+
+            {timelineSource === "timeframe" ? (
+              <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <div className="space-y-5">
+                  <div>
+                    <h3 className="text-sm font-semibold">Chọn Timeframe</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Chỉ hiển thị các Timeframe đang hoạt động. Không chọn mặc định để tránh tạo Round ngoài ý muốn.
+                    </p>
+                  </div>
+
+                  {timeframesQuery.isLoading && (
+                    <p
+                      aria-live="polite"
+                      className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground"
+                    >
+                      Đang tải danh sách Timeframe...
+                    </p>
+                  )}
+                  {timeframesQuery.isError && (
+                    <div
+                      role="alert"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
+                    >
+                      <span>Không tải được Timeframe. Kiểm tra lại cấu hình hoặc thử tải lại.</span>
+                      <Button type="button" size="sm" variant="outline" onClick={() => timeframesQuery.refetch()}>
+                        Thử lại
+                      </Button>
+                    </div>
+                  )}
+                  {!timeframesQuery.isLoading &&
+                    !timeframesQuery.isError &&
+                    timeframesQuery.data?.length === 0 && (
+                      <div
+                        role="alert"
+                        className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground"
+                      >
+                        Chưa có Timeframe đang hoạt động. Hãy{" "}
+                        <Link className="font-medium text-primary underline underline-offset-2" href="/manager/timeframes">
+                          tạo một Timeframe
+                        </Link>{" "}
+                        trước hoặc chuyển sang tự nhập timeline.
+                      </div>
+                    )}
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {timeframesQuery.data?.map((timeframe) => {
+                      const selected = timeframe.id === selectedTimeframeId;
+                      return (
+                        <button
+                          key={timeframe.id}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => selectTimeframe(timeframe)}
+                          className={cn(
+                            "rounded-xl border p-4 text-left transition-colors",
+                            selected
+                              ? "border-primary bg-primary/5 ring-1 ring-primary"
+                              : "border-border hover:bg-muted/50",
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-medium">{timeframe.name}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {timeframe.type} · {timeframe.groupDurationMinutes} phút / nhóm
+                              </p>
+                            </div>
+                            {timeframe.version?.number ? (
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                                v{timeframe.version.number}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                            <span>{timeframe.blocksPerDay} block/ngày</span>
+                            <span>{timeframe.capacityPerDay} nhóm/ngày</span>
+                            <span>{timeframe.startTime}–{timeframe.endTime}</span>
+                            <span>{timeframe.unusedMinutes} phút trống</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid gap-4 rounded-xl border border-border/60 bg-muted/20 p-4 md:grid-cols-2">
+                    <div className="md:col-span-2">
+                      <h3 className="text-sm font-semibold">Khoảng thời gian tổ chức Round</h3>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Timeframe sẽ được áp dụng cho từng ngày trong khoảng này và Backend sẽ tự sinh các slot.
+                      </p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="timeframe-start-date">Ngày bắt đầu</Label>
+                      <DateField
+                        id="timeframe-start-date"
+                        ariaLabel="Ngày bắt đầu đợt đánh giá"
+                        value={startDate}
+                        max={endDate || undefined}
+                        onChange={updateStartDate}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="timeframe-end-date">Ngày kết thúc</Label>
+                      <DateField
+                        id="timeframe-end-date"
+                        ariaLabel="Ngày kết thúc đợt đánh giá"
+                        value={endDate}
+                        min={startDate || undefined}
+                        onChange={setEndDate}
+                      />
+                    </div>
+                    <div className="md:col-span-2 border-t border-border/60 pt-4">
+                      <h3 className="text-sm font-semibold">Hạn chốt đăng ký</h3>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Giảng viên và nhóm phải hoàn tất đăng ký trước thời điểm này.
+                      </p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="timeframe-deadline-date">Ngày chốt đăng ký</Label>
+                      <DateField
+                        id="timeframe-deadline-date"
+                        ariaLabel="Ngày chốt đăng ký"
+                        value={registrationDeadline?.date ?? ""}
+                        max={startDate || undefined}
+                        onChange={(date) =>
+                          setRegistrationDeadline({
+                            date,
+                            time: registrationDeadline?.time ?? "23:59",
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="timeframe-deadline-time">Giờ hạn đăng ký</Label>
+                      <TimeField
+                        id="timeframe-deadline-time"
+                        ariaLabel="Giờ hạn đăng ký"
+                        value={registrationDeadline?.time ?? "23:59"}
+                        onChange={(time) =>
+                          setRegistrationDeadline({
+                            date: registrationDeadline?.date ?? startDate,
+                            time,
+                          })
+                        }
+                      />
+                    </div>
+                    {registrationDeadline &&
+                      dateRangeValid &&
+                      registrationDeadline.date > startDate && (
+                        <p className="md:col-span-2 text-xs text-destructive">
+                          Hạn đăng ký phải vào hoặc trước ngày bắt đầu chấm ({startDate}).
+                        </p>
+                      )}
+                  </div>
+
+                  {selectedTimeframe && (
+                    <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs text-primary">
+                      Đã chọn “{selectedTimeframe.name}”. Thời lượng Round được khóa ở {selectedTimeframe.groupDurationMinutes} phút; Backend sẽ sinh slot theo revision được ghim khi tạo.
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="min-h-0 flex-1">
+                <RoundScheduleCalendar
+                  duration={duration}
+                  startDate={startDate}
+                  endDate={endDate}
+                  pendingStart={pendingStart}
+                  pendingEnd={pendingEnd}
+                  confirmOpen={confirmOpen}
+                  onHeaderClickRange={handleHeaderClickRange}
+                  onConfirmRange={confirmRange}
+                  onCancelRangeConfirm={cancelRangeConfirm}
+                  onResetRange={resetRange}
+                  registrationDeadline={registrationDeadline}
+                  onRegistrationDeadlineChange={setRegistrationDeadline}
+                  days={days}
+                  onAddSlot={addSlot}
+                  onRemoveSlot={removeSlot}
+                />
+              </div>
+            )}
 
             <div className="mt-4 shrink-0">
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -675,9 +956,14 @@ export function CreateRoundWizard() {
                   >
                     ← Sửa thông tin
                   </Button>
-                  {days.length > 0 && (
+                  {timelineSource === "manual" && days.length > 0 && (
                     <p className="text-sm text-muted-foreground">
                       {days.length} ngày · {totalSlots} khung giờ
+                    </p>
+                  )}
+                  {timelineSource === "timeframe" && selectedTimeframe && (
+                    <p className="text-sm text-muted-foreground">
+                      {selectedTimeframe.name} · {selectedTimeframe.capacityPerDay} nhóm/ngày
                     </p>
                   )}
                 </div>

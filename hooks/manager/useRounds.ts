@@ -144,6 +144,16 @@ export function useEligibleProjects(roundId: string | null) {
   });
 }
 
+/** GET /rounds/:roundId/groups — danh sách nhóm đã được gắn vào Round. */
+export function useRoundGroups(roundId: string | null) {
+  return useQuery({
+    queryKey: ["manager", "round", roundId, "groups"] as const,
+    queryFn: () => fetchRounds.groups(roundId as string),
+    enabled: roundId !== null,
+    staleTime: 15 * 1000,
+  });
+}
+
 /** POST /rounds/:roundId/resources — Manager gắn nhóm đủ điều kiện vào Round. */
 export function useAttachRoundResources() {
   const invalidate = useInvalidateRounds();

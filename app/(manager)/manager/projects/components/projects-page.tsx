@@ -42,14 +42,23 @@ function SupervisorPicker({
   coLecturerId,
   onChangeMain,
   onChangeCo,
+  mainLabel,
+  coLabel,
 }: {
   mainLecturerId: string;
   coLecturerId: string;
   onChangeMain: (v: string) => void;
   onChangeCo: (v: string) => void;
+  /** Nhãn GVHD đang gán sẵn — giữ hiển thị đúng khi search thu hẹp danh sách. */
+  mainLabel?: string;
+  coLabel?: string;
 }) {
-  const main = useLecturersInfinite();
-  const co = useLecturersInfinite();
+  // Mỗi ô một query riêng: search đi xuống BE (`GET /lecturers?search=`) nên tìm được mã
+  // giảng viên ở mọi trang, không chỉ 20 dòng đầu đã tải.
+  const [mainSearch, setMainSearch] = useState("");
+  const [coSearch, setCoSearch] = useState("");
+  const main = useLecturersInfinite(mainSearch || undefined);
+  const co = useLecturersInfinite(coSearch || undefined);
   const label = (l: LecturerApiItem) => `${l.lecturer_code} — ${l.display_name}`;
 
   return (
@@ -63,10 +72,13 @@ function SupervisorPicker({
           getId={(l) => String(l.id)}
           getLabel={label}
           sentinelRef={main.sentinelRef}
+          onSearchChange={setMainSearch}
+          selectedLabelFallback={mainLabel}
           isLoading={main.isLoading}
           isFetchingNextPage={main.isFetchingNextPage}
           placeholder="Chọn giảng viên"
-          searchPlaceholder="Tìm giảng viên..."
+          searchPlaceholder="Tìm theo mã hoặc tên giảng viên..."
+          emptyText="Không có giảng viên khớp tìm kiếm."
         />
       </div>
       <div className="space-y-1.5">
@@ -78,14 +90,21 @@ function SupervisorPicker({
           getId={(l) => String(l.id)}
           getLabel={label}
           sentinelRef={co.sentinelRef}
+          onSearchChange={setCoSearch}
+          selectedLabelFallback={coLabel}
           isLoading={co.isLoading}
           isFetchingNextPage={co.isFetchingNextPage}
           placeholder="Không có"
-          searchPlaceholder="Tìm giảng viên..."
+          searchPlaceholder="Tìm theo mã hoặc tên giảng viên..."
+          emptyText="Không có giảng viên khớp tìm kiếm."
         />
       </div>
     </div>
   );
+}
+
+function supervisorLabel(s: ProjectListItem["mainSupervisor"]) {
+  return s ? `${s.code} — ${s.fullName}` : undefined;
 }
 
 function CreateProjectDialog({
@@ -221,6 +240,8 @@ function EditProjectSupervisorsDialog({
               coLecturerId={coLecturerId}
               onChangeMain={setMainLecturerId}
               onChangeCo={setCoLecturerId}
+              mainLabel={supervisorLabel(project?.mainSupervisor ?? null)}
+              coLabel={supervisorLabel(project?.coSupervisor ?? null)}
             />
           </div>
           <DialogFooter>

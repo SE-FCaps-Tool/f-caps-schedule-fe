@@ -161,7 +161,14 @@ export function RoundsPage() {
                             href={roundHref(round.id)}
                             className="block max-w-xs truncate px-2 py-2 font-medium"
                           >
-                            {round.name || ROUND_TYPE_LABEL[round.type]}
+                            <span className="block truncate">
+                              {round.name || ROUND_TYPE_LABEL[round.type]}
+                            </span>
+                            {round.timeframeId && (
+                              <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
+                                Timeframe #{round.timeframeId}
+                              </span>
+                            )}
                           </Link>
                         </TableCell>
                         <TableCell className="text-muted-foreground">

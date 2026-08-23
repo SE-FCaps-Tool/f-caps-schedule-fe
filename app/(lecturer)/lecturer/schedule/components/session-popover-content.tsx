@@ -2,10 +2,10 @@ import { DoorOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatTimeRange } from "@/lib/utils/formatDate";
 import { ROUND_TYPE_LABEL, type LecturerSession } from "./types";
-import { STATUS_META, toneBadgeClass } from "./tone";
+import { getStatusMeta, toneBadgeClass } from "./tone";
 
 export function SessionPopoverContent({ session }: { session: LecturerSession }) {
-  const statusMeta = STATUS_META[session.status];
+  const statusMeta = getStatusMeta(session.status);
 
   return (
     <div className="space-y-2.5 p-1">

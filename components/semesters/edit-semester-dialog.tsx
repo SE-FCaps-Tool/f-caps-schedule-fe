@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DateField } from "@/components/shared/date-field";
 import { Textarea } from "@/components/ui/textarea";
 import { useUpdateSemester } from "@/hooks/useSemesters";
 import type { SemesterApiItem } from "@/lib/api/services/fetchSemesters";
@@ -25,8 +26,12 @@ function EditSemesterForm({ semester, onOpenChange }: { semester: SemesterApiIte
   const [startDate, setStartDate] = useState(semester.start_date);
   const [endDate, setEndDate] = useState(semester.end_date);
 
+  // DateField là <button> nên không có validation `required` của input native — chặn ở đây.
+  const canSubmit = Boolean(code.trim() && name.trim() && startDate && endDate && startDate <= endDate);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canSubmit) return;
     updateSemester.mutate(
       {
         id: semester.id,
@@ -57,13 +62,16 @@ function EditSemesterForm({ semester, onOpenChange }: { semester: SemesterApiIte
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label>Ngày bắt đầu</Label>
-            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+            <DateField ariaLabel="Ngày bắt đầu học kỳ" value={startDate} onChange={setStartDate} max={endDate || undefined} />
           </div>
           <div className="space-y-1.5">
             <Label>Ngày kết thúc</Label>
-            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+            <DateField ariaLabel="Ngày kết thúc học kỳ" value={endDate} onChange={setEndDate} min={startDate || undefined} />
           </div>
         </div>
+        {startDate !== "" && endDate !== "" && startDate > endDate && (
+          <p className="text-xs text-destructive">Ngày kết thúc phải sau ngày bắt đầu.</p>
+        )}
         <div className="space-y-1.5">
           <Label>Ghi chú (tùy chọn)</Label>
           <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ví dụ: Capstone semester" />
@@ -71,7 +79,7 @@ function EditSemesterForm({ semester, onOpenChange }: { semester: SemesterApiIte
       </div>
 
       <DialogFooter>
-        <Button type="submit" disabled={updateSemester.isPending}>
+        <Button type="submit" disabled={updateSemester.isPending || !canSubmit}>
           {updateSemester.isPending ? "Đang lưu..." : "Lưu thay đổi"}
         </Button>
       </DialogFooter>

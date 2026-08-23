@@ -119,7 +119,9 @@ function Calendar({
           defaultClassNames.range_end
         ),
         today: cn(
-          "rounded-(--cell-radius) bg-muted text-foreground data-[selected=true]:rounded-none",
+          // Cam nhạt + chữ cam đậm (accent/accent-foreground, 4.56:1) — đủ nổi để nhận ra "hôm nay"
+          // nhưng vẫn khác rõ với ngày đang chọn (bg-primary đặc, chữ trắng).
+          "rounded-(--cell-radius) bg-accent font-medium text-accent-foreground data-[selected=true]:rounded-none",
           defaultClassNames.today
         ),
         outside: cn(

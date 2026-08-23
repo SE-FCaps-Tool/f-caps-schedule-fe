@@ -103,6 +103,62 @@ export interface AssignProjectPayload {
   projectId: string;
 }
 
+type ApiRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is ApiRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function pick(record: ApiRecord, ...keys: string[]): unknown {
+  for (const key of keys) {
+    if (record[key] !== undefined && record[key] !== null && record[key] !== "") return record[key];
+  }
+  return undefined;
+}
+
+/**
+ * Spec (§14) chỉ vẽ bảng "MSSV / Họ tên / Vai trò / Trạng thái", không có JSON mẫu — FE tự đặt
+ * camelCase. Thực tế BE trả `studentCode` nhưng họ tên nằm ở key khác (UI hiện ra "— undefined"),
+ * nên dò qua các cách đặt tên thường gặp, kể cả khi student bị lồng trong object con.
+ */
+let warnedMissingMemberName = false;
+
+function normalizeMember(value: unknown): GroupMemberDetail {
+  const record = isRecord(value) ? value : {};
+  const student = isRecord(pick(record, "student")) ? (pick(record, "student") as ApiRecord) : {};
+
+  const fullName =
+    pick(record, "fullName", "full_name", "displayName", "display_name", "name", "studentName", "student_name") ??
+    pick(student, "fullName", "full_name", "displayName", "display_name", "name");
+
+  // Danh sách key ở trên là suy đoán. Nếu không khớp, in ra key thật BE trả (1 lần) để biết
+  // phải bổ sung tên nào, thay vì im lặng hiển thị mỗi MSSV.
+  if (fullName === undefined && !warnedMissingMemberName && process.env.NODE_ENV !== "production") {
+    warnedMissingMemberName = true;
+    console.warn(
+      "[fetchGroups.members] Không tìm thấy họ tên trong response. Key BE thực tế trả:",
+      Object.keys(record),
+      isRecord(record.student) ? { student: Object.keys(record.student as ApiRecord) } : "",
+    );
+  }
+
+  return {
+    membershipId: String(pick(record, "membershipId", "membership_id", "id") ?? ""),
+    studentId: String(pick(record, "studentId", "student_id") ?? pick(student, "id") ?? ""),
+    studentCode: String(pick(record, "studentCode", "student_code", "code") ?? pick(student, "code", "studentCode", "student_code") ?? ""),
+    // Để rỗng thay vì "undefined" — UI tự bỏ phần tên khi không có.
+    fullName: fullName === undefined ? "" : String(fullName),
+    role: (pick(record, "role") as GroupMemberRole) ?? "MEMBER",
+    status: (pick(record, "status", "membershipStatus", "membership_status") as GroupMembershipStatus) ?? "ACTIVE",
+    leftAt: (pick(record, "leftAt", "left_at") as string | undefined) ?? null,
+  };
+}
+
+/** "MSSV — Họ tên", bỏ phần tên khi BE chưa trả để không in ra chữ "undefined". */
+export function groupMemberLabel(member: GroupMemberDetail): string {
+  return member.fullName ? `${member.studentCode} — ${member.fullName}` : member.studentCode;
+}
+
 export const fetchGroups = {
   /** GET /semesters/:semesterId/groups — spec §11/§41 */
   list: async (semesterId: string, params?: GroupListParams): Promise<{ data: GroupListItem[]; meta?: GroupListMeta }> => {
@@ -121,8 +177,14 @@ export const fetchGroups = {
 
   /** GET /groups/:groupId/members — spec §14 */
   members: async (groupId: string): Promise<GroupMemberDetail[]> => {
-    const response = await apiService.get<{ data: GroupMemberDetail[] }>(`api/v1/groups/${groupId}/members`);
-    return response.data.data;
+    const response = await apiService.get<unknown>(`api/v1/groups/${groupId}/members`);
+    const payload = response.data;
+    const rows = Array.isArray(payload)
+      ? payload
+      : isRecord(payload) && Array.isArray(payload.data)
+        ? payload.data
+        : [];
+    return rows.map(normalizeMember);
   },
 
   /** POST /semesters/:semesterId/groups — spec §12/§42 */

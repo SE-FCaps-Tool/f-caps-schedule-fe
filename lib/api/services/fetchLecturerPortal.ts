@@ -141,8 +141,15 @@ export const fetchLecturerPortal = {
  * pattern DisplaySession đã dùng ở Manager calendar (Phase 7), cần BE xác nhận.
  */
 
-/** spec §7 SessionStatus — bỏ PLANNED vì lecturer chỉ thấy session đã publish */
-export type LecturerScheduleSessionStatus = "SCHEDULED" | "COMPLETED" | "POSTPONED" | "GROUP_ABSENT" | "CANCELLED";
+/** Session lifecycle trả về bởi BE; version ACTIVE có thể còn PLANNED trước khi công bố. */
+export type LecturerScheduleSessionStatus =
+  | "PLANNED"
+  | "SCHEDULED"
+  | "ONGOING"
+  | "COMPLETED"
+  | "POSTPONED"
+  | "GROUP_ABSENT"
+  | "CANCELLED";
 
 export type LecturerSessionRole = "REVIEWER" | "RESULT_OWNER";
 

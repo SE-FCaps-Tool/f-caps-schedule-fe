@@ -3,12 +3,21 @@ import type { LecturerScheduleSessionStatus } from "@/lib/api/services/fetchLect
 export type StatusTone = "neutral" | "primary" | "emerald" | "amber" | "red";
 
 export const STATUS_META: Record<LecturerScheduleSessionStatus, { label: string; tone: StatusTone }> = {
+  PLANNED: { label: "Chưa bắt đầu", tone: "neutral" },
   SCHEDULED: { label: "Sắp diễn ra", tone: "neutral" },
+  ONGOING: { label: "Đang diễn ra", tone: "primary" },
   COMPLETED: { label: "Đã xong", tone: "emerald" },
   POSTPONED: { label: "Đã hoãn", tone: "amber" },
   GROUP_ABSENT: { label: "Nhóm vắng mặt", tone: "red" },
   CANCELLED: { label: "Đã huỷ", tone: "red" },
 };
+
+const FALLBACK_STATUS_META = { label: "Không rõ trạng thái", tone: "neutral" as const };
+
+/** Runtime guard: API data can be ahead of the FE enum during a lifecycle rollout. */
+export function getStatusMeta(status: string) {
+  return STATUS_META[status as LecturerScheduleSessionStatus] ?? FALLBACK_STATUS_META;
+}
 
 export const toneBadgeClass: Record<StatusTone, string> = {
   neutral: "bg-muted text-muted-foreground",

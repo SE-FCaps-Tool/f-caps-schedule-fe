@@ -6,7 +6,7 @@ import { ChevronDown, ClipboardCheck, DoorOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatTimeRange } from "@/lib/utils/formatDate";
 import { ROUND_TYPE_LABEL, roundKind, type LecturerSession } from "./types";
-import { STATUS_META, toneBadgeClass, toneDotClass } from "./tone";
+import { getStatusMeta, toneBadgeClass, toneDotClass } from "./tone";
 import { SessionResultDialog } from "./session-result-dialog";
 
 const RESULT_ENTRY_STATUSES: LecturerSession["status"][] = ["SCHEDULED", "COMPLETED"];
@@ -19,7 +19,7 @@ export function SessionRow({ session }: { session: LecturerSession }) {
   const canEnterResult = RESULT_ENTRY_STATUSES.includes(session.status);
   const reduceMotion = useReducedMotion();
   const kind = roundKind(session.roundType);
-  const statusMeta = STATUS_META[session.status];
+  const statusMeta = getStatusMeta(session.status);
 
   return (
     <div className="border-b border-border first:border-t last:border-b-0">

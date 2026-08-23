@@ -7,6 +7,8 @@ import { ChevronLeft, DoorOpen, FileText, Lock, Settings2, Timer } from "lucide-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DateField } from "@/components/shared/date-field";
+import { DateTimeField } from "@/components/shared/date-time-field";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -69,6 +71,9 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
   const [durationMinutes, setDurationMinutes] = useState(String(round.durationMinutes || ""));
   const [maxGroupsPerTimeslot, setMaxGroupsPerTimeslot] = useState(String(round.maxGroupsPerTimeslot || ""));
   const [registrationDeadline, setRegistrationDeadline] = useState(isoToDatetimeLocal(round.registrationDeadline));
+  const [groupPreferenceDeadline, setGroupPreferenceDeadline] = useState(
+    isoToDatetimeLocal(round.groupPreferenceDeadline),
+  );
   const [groupSelectionMode, setGroupSelectionMode] = useState(round.groupSelectionMode);
   const [resultOwnerMode, setResultOwnerMode] = useState(round.resultOwnerMode);
   const [roomTypes, setRoomTypes] = useState<Set<RoomType>>(new Set(round.roomTypes));
@@ -84,13 +89,23 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
 
   const duration = Number(durationMinutes) || 0;
   const maxGroups = Number(maxGroupsPerTimeslot) || 0;
+  const deadlineDate = registrationDeadline.slice(0, 10);
+  const deadlineBeforeGrading =
+    registrationDeadline !== "" &&
+    startDate !== "" &&
+    deadlineDate <= startDate;
+  const groupDeadlineDate = groupPreferenceDeadline.slice(0, 10);
+  const groupDeadlineValid =
+    groupPreferenceDeadline === "" ||
+    (groupDeadlineDate <= startDate && groupPreferenceDeadline > registrationDeadline);
   const isValid =
     startDate !== "" &&
     endDate !== "" &&
     startDate <= endDate &&
     duration > 0 &&
     maxGroups > 0 &&
-    registrationDeadline !== "" &&
+    deadlineBeforeGrading &&
+    groupDeadlineValid &&
     roomTypes.size >= 1;
 
   const totalSlots = round.days.reduce((sum, d) => sum + d.slots.length, 0);
@@ -103,6 +118,9 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
       durationMinutes: duration,
       maxGroupsPerTimeslot: maxGroups,
       registrationDeadline: datetimeLocalToIso(registrationDeadline),
+      ...(groupPreferenceDeadline
+        ? { groupPreferenceDeadline: datetimeLocalToIso(groupPreferenceDeadline) }
+        : {}),
       groupSelectionMode,
       resultOwnerMode,
       roomTypes: Array.from(roomTypes),
@@ -274,11 +292,21 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Ngày bắt đầu</Label>
-                  <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+                  <DateField
+                    ariaLabel="Ngày bắt đầu đợt đánh giá"
+                    value={startDate}
+                    max={endDate || undefined}
+                    onChange={setStartDate}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Ngày kết thúc</Label>
-                  <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+                  <DateField
+                    ariaLabel="Ngày kết thúc đợt đánh giá"
+                    value={endDate}
+                    min={startDate || undefined}
+                    onChange={setEndDate}
+                  />
                 </div>
               </div>
               {startDate !== "" && endDate !== "" && startDate > endDate && (
@@ -286,13 +314,39 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
               )}
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Hạn đăng ký chọn lịch</Label>
-                <Input
-                  type="datetime-local"
+                <DateTimeField
+                  ariaLabelDate="Ngày hạn đăng ký chọn lịch"
+                  ariaLabelTime="Giờ hạn đăng ký chọn lịch"
                   value={registrationDeadline}
-                  onChange={(e) => setRegistrationDeadline(e.target.value)}
-                  required
+                  maxDate={startDate || undefined}
+                  onChange={setRegistrationDeadline}
                 />
+                {registrationDeadline !== "" && startDate !== "" && !deadlineBeforeGrading && (
+                  <p className="text-xs text-destructive">
+                    Hạn đăng ký phải vào hoặc trước ngày bắt đầu chấm ({startDate}).
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Deadline có thể đặt trước hoặc đúng ngày bắt đầu chấm.
+                </p>
               </div>
+              {(round.groupPreferenceDeadline || groupSelectionMode) && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Hạn chọn ưu tiên nhóm (tuỳ chọn)</Label>
+                  <DateTimeField
+                    ariaLabelDate="Ngày hạn chọn ưu tiên nhóm"
+                    ariaLabelTime="Giờ hạn chọn ưu tiên nhóm"
+                    value={groupPreferenceDeadline}
+                    maxDate={startDate || undefined}
+                    onChange={setGroupPreferenceDeadline}
+                  />
+                  {groupPreferenceDeadline && !groupDeadlineValid && (
+                    <p className="text-xs text-destructive">
+                      Hạn ưu tiên phải sau hạn đăng ký và không sau ngày bắt đầu chấm.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

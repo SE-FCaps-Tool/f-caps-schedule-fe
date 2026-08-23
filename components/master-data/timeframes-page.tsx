@@ -30,13 +30,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TimeField } from "@/components/shared/time-field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   type ManualTimeline,
   type ManualTimeframeMutationRequest,
@@ -228,113 +224,6 @@ function formatDuration(minutes: number) {
 function timeToMinutes(value: string) {
   const [hours = 0, minutes = 0] = value.split(":").map(Number);
   return hours * 60 + minutes;
-}
-
-const TIME_PRESETS = ["07:00", "11:45", "12:00", "13:00", "17:30"];
-
-function padTimePart(value: number) {
-  return String(value).padStart(2, "0");
-}
-
-function splitTime(value: string) {
-  const [hours = 0, minutes = 0] = value.split(":").map(Number);
-  return { hours, minutes };
-}
-
-function TimeField({
-  id,
-  label,
-  value,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const { hours, minutes } = splitTime(value);
-
-  function updateTime(nextHours: number, nextMinutes: number) {
-    onChange(`${padTimePart(nextHours)}:${padTimePart(nextMinutes)}`);
-  }
-
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <Popover>
-        <PopoverTrigger
-          render={
-            <button
-              id={id}
-              type="button"
-              className="flex h-10 w-full items-center gap-2 rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition-colors hover:bg-muted/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            />
-          }
-        >
-          <Clock3 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          <span className="flex-1 text-left font-medium tabular-nums">{value}</span>
-          <span className="text-xs text-muted-foreground">Chọn</span>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-72 p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium">Chọn {label.toLowerCase()}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">Giờ local, định dạng 24h</p>
-            </div>
-            <span className="rounded-md bg-primary/10 px-2 py-1 text-sm font-semibold tabular-nums text-primary">{value}</span>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <label className="space-y-1 text-xs text-muted-foreground">
-              Giờ
-              <select
-                aria-label={`${label} - giờ`}
-                value={hours}
-                onChange={(event) => updateTime(Number(event.target.value), minutes)}
-                className="h-9 w-full rounded-lg border border-input bg-background px-2 text-sm text-foreground outline-none focus:border-ring focus:ring-3 focus:ring-ring/50"
-              >
-                {Array.from({ length: 24 }, (_, hour) => (
-                  <option key={hour} value={hour}>{padTimePart(hour)}</option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-1 text-xs text-muted-foreground">
-              Phút
-              <select
-                aria-label={`${label} - phút`}
-                value={minutes}
-                onChange={(event) => updateTime(hours, Number(event.target.value))}
-                className="h-9 w-full rounded-lg border border-input bg-background px-2 text-sm text-foreground outline-none focus:border-ring focus:ring-3 focus:ring-ring/50"
-              >
-                {Array.from({ length: 60 }, (_, minute) => (
-                  <option key={minute} value={minute}>{padTimePart(minute)}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="mt-3 border-t border-border pt-3">
-            <p className="text-xs font-medium text-muted-foreground">Mốc thường dùng</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {TIME_PRESETS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => onChange(preset)}
-                  className={cn(
-                    "rounded-md border px-2 py-1 text-xs tabular-nums transition-colors hover:bg-muted",
-                    preset === value ? "border-primary/40 bg-primary/10 text-primary" : "border-border",
-                  )}
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
 }
 
 function validateDraft(draft: TimeframeDraft) {
@@ -635,23 +524,19 @@ function PreviewPanel({
                     {canEditRow ? (
                       <>
                         <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_70px] gap-1.5">
-                          <Input
-                            aria-label={`Timeline ${index + 1} bắt đầu`}
-                            type="time"
+                          <TimeField
+                            size="sm"
+                            ariaLabel={`Timeline ${index + 1} bắt đầu`}
                             value={editableTimeline.startTime}
-                            onChange={(event) =>
-                              onTimelineChange(index, "startTime", event.target.value)
-                            }
-                            className="h-8 min-w-0 px-2 text-xs tabular-nums"
+                            onChange={(startTime) => onTimelineChange(index, "startTime", startTime)}
+                            className="h-8 w-full min-w-0"
                           />
-                          <Input
-                            aria-label={`Timeline ${index + 1} kết thúc`}
-                            type="time"
+                          <TimeField
+                            size="sm"
+                            ariaLabel={`Timeline ${index + 1} kết thúc`}
                             value={editableTimeline.endTime}
-                            onChange={(event) =>
-                              onTimelineChange(index, "endTime", event.target.value)
-                            }
-                            className="h-8 min-w-0 px-2 text-xs tabular-nums"
+                            onChange={(endTime) => onTimelineChange(index, "endTime", endTime)}
+                            className="h-8 w-full min-w-0"
                           />
                           <Input
                             aria-label={`Timeline ${index + 1} số nhóm`}
@@ -1338,18 +1223,24 @@ function TimeframeDialog({
                   Chọn theo giờ 24h để tránh nhầm AM/PM.
                 </p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <TimeField
-                    id="timeframe-start"
-                    label="Bắt đầu"
-                    value={draft.startTime}
-                    onChange={(value) => setField("startTime", value)}
-                  />
-                  <TimeField
-                    id="timeframe-end"
-                    label="Kết thúc"
-                    value={draft.endTime}
-                    onChange={(value) => setField("endTime", value)}
-                  />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="timeframe-start">Bắt đầu</Label>
+                    <TimeField
+                      id="timeframe-start"
+                      ariaLabel="Bắt đầu"
+                      value={draft.startTime}
+                      onChange={(value) => setField("startTime", value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="timeframe-end">Kết thúc</Label>
+                    <TimeField
+                      id="timeframe-end"
+                      ariaLabel="Kết thúc"
+                      value={draft.endTime}
+                      onChange={(value) => setField("endTime", value)}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1446,18 +1337,24 @@ function TimeframeDialog({
                   </div>
                 </div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <TimeField
-                    id="break-start"
-                    label="Bắt đầu nghỉ"
-                    value={normalizeBreakWindow(draft.breakWindows)[0].startTime}
-                    onChange={(value) => updateBreakTime("startTime", value)}
-                  />
-                  <TimeField
-                    id="break-end"
-                    label="Kết thúc nghỉ"
-                    value={normalizeBreakWindow(draft.breakWindows)[0].endTime}
-                    onChange={(value) => updateBreakTime("endTime", value)}
-                  />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="break-start">Bắt đầu nghỉ</Label>
+                    <TimeField
+                      id="break-start"
+                      ariaLabel="Bắt đầu nghỉ"
+                      value={normalizeBreakWindow(draft.breakWindows)[0].startTime}
+                      onChange={(value) => updateBreakTime("startTime", value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="break-end">Kết thúc nghỉ</Label>
+                    <TimeField
+                      id="break-end"
+                      ariaLabel="Kết thúc nghỉ"
+                      value={normalizeBreakWindow(draft.breakWindows)[0].endTime}
+                      onChange={(value) => updateBreakTime("endTime", value)}
+                    />
+                  </div>
                 </div>
               </div>
 

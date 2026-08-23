@@ -10,6 +10,7 @@ import {
 } from "@/lib/api/services/fetchProjects";
 import { managerKeys } from "@/lib/api/managerQueryKeys";
 import { friendlyErrorMessage } from "@/lib/api/errorDetail";
+import { useInfiniteScroll } from "@/hooks/shared/useInfiniteScroll";
 import type { ApiError } from "@/types/api";
 
 /** GET /semesters/:semesterId/projects — spec §16/§46 */
@@ -19,6 +20,23 @@ export function useProjects(semesterId?: number | null, params?: ProjectListPara
     queryFn: () => fetchProjects.list(String(semesterId), params),
     enabled: semesterId != null,
     staleTime: 30 * 1000,
+  });
+}
+
+/**
+ * GET /semesters/:semesterId/projects, load-more theo scroll + search phía server — dùng cho
+ * AsyncCombobox trong dialog gắn đề tài. Search đi thẳng xuống BE nên tìm được mã đề tài ở
+ * mọi trang, không chỉ trang đã tải.
+ */
+export function useProjectsInfinite(
+  semesterId?: number | null,
+  params?: Omit<ProjectListParams, "page" | "pageSize">
+) {
+  return useInfiniteScroll({
+    queryKey: ["manager", "projects", "infinite", semesterId ?? null, params ?? null] as const,
+    queryFn: ({ page, pageSize }) => fetchProjects.list(String(semesterId), { ...params, page, pageSize }),
+    pageSize: 20,
+    enabled: semesterId != null,
   });
 }
 

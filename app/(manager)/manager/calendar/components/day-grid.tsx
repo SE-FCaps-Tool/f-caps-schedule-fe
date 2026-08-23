@@ -103,7 +103,7 @@ export function DayGrid({
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
-      <div className="grid min-w-140" style={{ gridTemplateColumns: `64px repeat(${rooms.length}, minmax(160px, 1fr))` }}>
+      <div className="grid min-w-max" style={{ gridTemplateColumns: `64px repeat(${rooms.length}, minmax(160px, 1fr))` }}>
         <div className={cn("sticky left-0 z-10 border-b border-border bg-background", compact ? "h-8" : "h-10")} />
         {rooms.map((room) => (
           <div
@@ -133,7 +133,7 @@ export function DayGrid({
                   key={`${room.id}-${slot.start}`}
                   data-cell={`${room.id}-${slot.start}`}
                   className={cn(
-                    "border-b border-l border-border p-1 transition-colors",
+                    "min-w-0 border-b border-l border-border p-1 transition-colors",
                     isHovered && !session && "bg-primary/10 outline-1 outline-dashed outline-primary/40"
                   )}
                   style={{ height: cellHeight }}

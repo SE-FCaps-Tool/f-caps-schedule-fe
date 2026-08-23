@@ -66,6 +66,9 @@ export interface RoundListItem {
   groupSelectionMode: boolean;
   groupPreferenceDeadline: string | null;
   roomTypes: RoomType[];
+  /** Null for manual/legacy rounds that were created without a Timeframe. */
+  timeframeId: string | null;
+  timeframeVersionId: string | null;
 }
 
 export interface RoundListMeta {
@@ -81,7 +84,7 @@ export interface RoundDetail {
   type: RoundType;
   status: RoundStatus;
   description?: string;
-  /** "YYYY-MM-DD" — khoảng ngày hợp lệ cho round day/deadline (BE bắt buộc từ khi thêm start_date/end_date). */
+  /** "YYYY-MM-DD" — khoảng ngày sinh các ngày/slot chấm của Round. Deadline đăng ký độc lập và không sau startDate. */
   startDate: string;
   endDate: string;
   durationMinutes: number;
@@ -94,14 +97,17 @@ export interface RoundDetail {
   registrationPhase?: RegistrationPhase;
   resultOwnerMode: boolean;
   roomTypes: RoomType[];
+  /** Null for manual/legacy rounds that were created without a Timeframe. */
+  timeframeId: string | null;
+  timeframeVersionId: string | null;
   days: RoundDay[];
 }
 
-export interface RoundCreatePayload {
+interface RoundCreateBase {
   name: string;
   type: RoundType;
   description?: string;
-  /** "YYYY-MM-DD" — bắt buộc: bao khoảng ngày cho toàn bộ round day/deadline. */
+  /** "YYYY-MM-DD" — bắt buộc: khoảng ngày sinh các ngày/slot chấm; deadline có thể nằm trước khoảng này. */
   startDate: string;
   endDate: string;
   durationMinutes: number;
@@ -112,8 +118,21 @@ export interface RoundCreatePayload {
   groupPreferenceDeadline?: string;
   resultOwnerMode: boolean;
   roomTypes: RoomType[];
-  days: RoundDayInput[];
 }
+
+export type RoundCreatePayload = RoundCreateBase &
+  (
+    | {
+        /** Set only for the manual timeline branch. */
+        days: RoundDayInput[];
+        timeframeId?: never;
+      }
+    | {
+        /** Selects an active reusable Timeframe. */
+        timeframeId: number;
+        days?: never;
+      }
+  );
 
 export interface RoundCreateResponse {
   id: string;
@@ -179,6 +198,17 @@ export interface EligibleProjectRow {
   };
   blockingReasons: string[];
   warnings: { code: string; message: string }[];
+}
+
+export interface AttachedRoundGroup {
+  groupId: string;
+  groupCode: string;
+  status: string;
+  projectCode: string;
+  title: string;
+  activeMemberCount: number;
+  leaderName: string | null;
+  selectedSlotCount: number;
 }
 
 export interface AttachRoundResourcesPayload {
@@ -311,6 +341,10 @@ function normalizeRoundListItem(value: unknown): RoundListItem {
       pick(record, "groupPreferenceDeadline", "group_preference_deadline"),
     ),
     roomTypes: Array.isArray(roomTypes) ? roomTypes.filter(isRoomType) : [],
+    timeframeId: asNullableString(pick(record, "timeframeId", "timeframe_id")),
+    timeframeVersionId: asNullableString(
+      pick(record, "timeframeVersionId", "timeframe_version_id"),
+    ),
   };
 }
 
@@ -376,6 +410,10 @@ function normalizeRoundDetail(value: unknown): RoundDetail {
       pick(record, "resultOwnerMode", "result_owner_mode"),
     ),
     roomTypes: Array.isArray(roomTypes) ? roomTypes.filter(isRoomType) : [],
+    timeframeId: asNullableString(pick(record, "timeframeId", "timeframe_id")),
+    timeframeVersionId: asNullableString(
+      pick(record, "timeframeVersionId", "timeframe_version_id"),
+    ),
     days: normalizeRoundDays(pick(record, "days", "round_days")),
   };
 }
@@ -465,6 +503,24 @@ function normalizeEligibleProject(value: unknown): EligibleProjectRow {
           };
         })
       : [],
+  };
+}
+
+function normalizeAttachedRoundGroup(value: unknown): AttachedRoundGroup {
+  const record = isRecord(value) ? value : {};
+  return {
+    groupId: asString(pick(record, "groupId", "group_id")),
+    groupCode: asString(pick(record, "groupCode", "group_code")),
+    status: asString(pick(record, "status")),
+    projectCode: asString(pick(record, "projectCode", "project_code")),
+    title: asString(pick(record, "title")),
+    activeMemberCount: asNumber(
+      pick(record, "activeMemberCount", "active_member_count"),
+    ),
+    leaderName: asNullableString(pick(record, "leaderName", "leader_name")),
+    selectedSlotCount: asNumber(
+      pick(record, "selectedSlotCount", "selected_slot_count"),
+    ),
   };
 }
 
@@ -600,6 +656,12 @@ export const fetchRounds = {
       `api/v1/rounds/${roundId}/eligible-projects`,
     );
     return asArray(response.data).map(normalizeEligibleProject);
+  },
+
+  /** GET /rounds/:roundId/groups — các nhóm Manager đã gắn vào Round. */
+  groups: async (roundId: string): Promise<AttachedRoundGroup[]> => {
+    const response = await apiService.get<unknown>(`api/v1/rounds/${roundId}/groups`);
+    return asArray(response.data).map(normalizeAttachedRoundGroup);
   },
 
   /** POST /rounds/:roundId/resources — gắn nhóm, timeslot và loại phòng cho Round. */

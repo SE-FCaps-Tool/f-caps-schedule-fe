@@ -18,6 +18,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AsyncCombobox } from "@/components/shared/async-combobox";
 import { StatusDot } from "../../_shared/status-dot";
 import { GROUP_STATUS_META, PROJECT_STATUS_META, type ProjectProgressState } from "../../_shared/labels";
 import { useSemesterContext } from "../../_shared/semester-context";
@@ -29,14 +30,19 @@ import {
   useGroupMemberLeave,
   useAssignGroupProject,
 } from "@/hooks/manager/useGroups";
-import { useProjects } from "@/hooks/manager/useProjects";
+import { useProjectsInfinite } from "@/hooks/manager/useProjects";
 import { useStudents } from "@/hooks/manager/useLookups";
-import type { GroupListItem } from "@/lib/api/services/fetchGroups";
+import { groupMemberLabel, type GroupListItem } from "@/lib/api/services/fetchGroups";
 import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { normalizeListResponse } from "@/lib/api/pagination";
 import { useDebouncedValue } from "@/hooks/shared/useDebouncedValue";
 import { usePageState } from "@/hooks/shared/usePageState";
+
+/** "MSSV — Họ và tên" (bỏ phần tên khi BE chưa trả full_name). Dùng cho cả ô tìm kiếm lẫn danh sách. */
+function studentLabel(student: { student_code: string; full_name?: string }) {
+  return student.full_name ? `${student.student_code} — ${student.full_name}` : student.student_code;
+}
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -56,13 +62,11 @@ function CreateGroupDialog({
   const [code, setCode] = useState("");
   const [studentIds, setStudentIds] = useState<string[]>([]);
   const [leaderId, setLeaderId] = useState("");
-  const [pickerValue, setPickerValue] = useState("");
 
   function reset() {
     setCode("");
     setStudentIds([]);
     setLeaderId("");
-    setPickerValue("");
   }
 
   function addStudent(id: string) {
@@ -108,26 +112,19 @@ function CreateGroupDialog({
 
             <div className="space-y-1.5">
               <Label>Thành viên</Label>
-              <Select
-                value={pickerValue}
-                onValueChange={(v) => {
-                  if (!v) return;
-                  addStudent(v);
-                  setPickerValue("");
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="+ Thêm sinh viên" />
-                </SelectTrigger>
-                <SelectContent>
-                  {available.map((s) => (
-                    <SelectItem key={s.id} value={String(s.id)}>
-                      {s.student_code}
-                      {s.full_name && ` — ${s.full_name}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Picker kiểu "thêm vào danh sách": chọn xong là nhả về rỗng, nên value luôn null.
+                  GET /students trả mảng phẳng (không phân trang) → lọc client, không cần onSearchChange.
+                  Nhãn gồm cả mã lẫn tên nên gõ MSSV hay họ tên đều ra. */}
+              <AsyncCombobox
+                value={null}
+                onChange={(v) => v && addStudent(v)}
+                items={available}
+                getId={(s) => String(s.id)}
+                getLabel={studentLabel}
+                placeholder="+ Thêm sinh viên"
+                searchPlaceholder="Tìm theo MSSV hoặc họ tên..."
+                emptyText="Không có sinh viên khớp tìm kiếm."
+              />
 
               <div className="mt-2 space-y-1.5">
                 {studentIds.map((id) => {
@@ -222,23 +219,19 @@ function SetLeaderDialog({ group, onOpenChange }: { group: GroupListItem | null;
           <div className="space-y-4 py-4">
             <div className="space-y-1.5">
               <Label>Thành viên</Label>
-              <Select value={leaderId} onValueChange={(v) => v && setLeaderId(v)} disabled={isLoading}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={isLoading ? "Đang tải..." : "Chọn thành viên"}>
-                    {(v: string) => {
-                      const m = activeMembers.find((m) => m.studentId === v);
-                      return m ? `${m.studentCode} — ${m.fullName}${m.role === "LEADER" ? " (Leader hiện tại)" : ""}` : "Chọn thành viên";
-                    }}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {activeMembers.map((m) => (
-                    <SelectItem key={m.membershipId} value={m.studentId}>
-                      {m.studentCode} — {m.fullName} {m.role === "LEADER" ? "(Leader hiện tại)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Không truyền onSearchChange: members của 1 nhóm về hết trong 1 lần gọi nên lọc client là đủ. */}
+              <AsyncCombobox
+                value={leaderId || null}
+                onChange={(v) => setLeaderId(v ?? "")}
+                items={activeMembers}
+                getId={(m) => m.studentId}
+                getLabel={(m) => `${groupMemberLabel(m)}${m.role === "LEADER" ? " (Leader hiện tại)" : ""}`}
+                isLoading={isLoading}
+                disabled={isLoading}
+                placeholder={isLoading ? "Đang tải..." : "Chọn thành viên"}
+                searchPlaceholder="Tìm theo MSSV hoặc tên..."
+                emptyText="Không có thành viên khớp tìm kiếm."
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Lý do</Label>
@@ -297,14 +290,14 @@ function MemberLeaveDialog({ group, onOpenChange }: { group: GroupListItem | nul
                   <SelectValue placeholder={isLoading ? "Đang tải..." : "Chọn thành viên"}>
                     {(v: string) => {
                       const m = activeMembers.find((m) => m.membershipId === v);
-                      return m ? `${m.studentCode} — ${m.fullName}` : "Chọn thành viên";
+                      return m ? groupMemberLabel(m) : "Chọn thành viên";
                     }}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {activeMembers.map((m) => (
                     <SelectItem key={m.membershipId} value={m.membershipId}>
-                      {m.studentCode} — {m.fullName}
+                      {groupMemberLabel(m)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -336,61 +329,82 @@ function AssignProjectDialog({
   onOpenChange: (open: boolean) => void;
   semesterId: number | undefined;
 }) {
-  const { data: projectsResult } = useProjects(semesterId, { hasGroup: false });
+  const [projectSearch, setProjectSearch] = useState("");
+  // hasGroup: false — chỉ đề tài chưa có nhóm; search chạy server nên tìm được mã ở mọi trang.
+  const projects = useProjectsInfinite(semesterId, { hasGroup: false, search: projectSearch || undefined });
   const assignProject = useAssignGroupProject();
-  const [projectId, setProjectId] = useState("");
+  const currentProject = group?.project ?? null;
+  const [projectId, setProjectId] = useState(currentProject?.id ?? "");
+
+  // Dialog dùng chung cho mọi hàng nên state phải theo nhóm đang mở: nạp lại đề tài hiện tại
+  // của nhóm, nếu không sẽ giữ lựa chọn thừa từ lần mở trước.
+  const [openedGroupId, setOpenedGroupId] = useState<string | null>(group?.id ?? null);
+  if (group && group.id !== openedGroupId) {
+    setOpenedGroupId(group.id);
+    setProjectId(group.project?.id ?? "");
+    setProjectSearch("");
+  } else if (!group && openedGroupId !== null) {
+    // Quên nhóm vừa đóng để lần mở sau — kể cả cùng nhóm đó — nạp lại từ đề tài hiện tại.
+    setOpenedGroupId(null);
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!group || !projectId) return;
+    if (!group || !projectId || projectId === currentProject?.id) return;
     assignProject.mutate(
       { groupId: group.id, payload: { projectId } },
-      {
-        onSuccess: () => {
-          setProjectId("");
-          onOpenChange(false);
-        },
-      }
+      { onSuccess: () => onOpenChange(false) }
     );
   }
 
-  const projects = projectsResult?.data ?? [];
+  const unchanged = projectId === (currentProject?.id ?? "");
 
   return (
     <Dialog open={group !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader icon={FolderKanban} iconTone="violet">
-            <DialogTitle>Gắn đề tài</DialogTitle>
-            <DialogDescription>{group?.code}</DialogDescription>
+            <DialogTitle>{currentProject ? "Đổi đề tài" : "Gắn đề tài"}</DialogTitle>
+            <DialogDescription>
+              {currentProject ? `${group?.code} · đang gắn ${currentProject.code}` : group?.code}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-1.5">
               <Label>Đề tài</Label>
-              <Select value={projectId} onValueChange={(v) => v && setProjectId(v)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chọn đề tài">
-                    {(v: string) => {
-                      const p = projects.find((p) => p.id === v);
-                      return p ? `${p.code} — ${p.nameEn?.trim() || p.nameVi}` : "Chọn đề tài";
-                    }}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.code} — {p.nameEn?.trim() || p.nameVi}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Đề tài hiện tại đã có nhóm nên không nằm trong list `hasGroup: false` —
+                  selectedLabelFallback để nút vẫn hiện đúng nó khi mở dialog. */}
+              <AsyncCombobox
+                value={projectId || null}
+                onChange={(v) => setProjectId(v ?? "")}
+                items={projects.items}
+                getId={(p) => p.id}
+                getLabel={(p) => `${p.code} — ${p.nameEn?.trim() || p.nameVi}`}
+                sentinelRef={projects.sentinelRef}
+                onSearchChange={setProjectSearch}
+                selectedLabelFallback={
+                  currentProject
+                    ? `${currentProject.code} — ${currentProject.nameEn?.trim() || currentProject.nameVi}`
+                    : undefined
+                }
+                isLoading={projects.isLoading}
+                isFetchingNextPage={projects.isFetchingNextPage}
+                placeholder="Chọn đề tài"
+                searchPlaceholder="Tìm theo mã hoặc tên đề tài..."
+                emptyText="Không có đề tài nào chưa gắn nhóm khớp tìm kiếm."
+              />
+              {currentProject && (
+                <p className="text-xs text-muted-foreground">
+                  Danh sách chỉ gồm đề tài chưa có nhóm — chọn đề tài khác để thay thế.
+                </p>
+              )}
             </div>
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={assignProject.isPending || !projectId}>
-              {assignProject.isPending ? "Đang lưu..." : "Xác nhận"}
+            <Button type="submit" disabled={assignProject.isPending || !projectId || unchanged}>
+              {assignProject.isPending ? "Đang lưu..." : currentProject ? "Đổi đề tài" : "Xác nhận"}
             </Button>
           </DialogFooter>
         </form>
@@ -535,7 +549,7 @@ export function GroupsPage() {
                           />
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => setAssignTarget(group)} disabled={group.status === "DISBANDED"}>
-                              Gắn đề tài
+                              {group.project ? "Đổi đề tài" : "Gắn đề tài"}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setLeaderTarget(group)}>Gán/đổi Leader</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setLeaveTarget(group)}>Đánh dấu rời nhóm</DropdownMenuItem>

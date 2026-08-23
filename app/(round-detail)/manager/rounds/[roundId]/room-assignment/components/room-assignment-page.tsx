@@ -38,7 +38,10 @@ function AssignRoomDialog({
   onOpenChange: (open: boolean) => void;
   roundId: string;
 }) {
-  const { data: rooms, isLoading } = useAvailableRooms(roundId, session ? { timeslotId: session.timeslotId } : undefined);
+  const { data: rooms, isLoading } = useAvailableRooms(
+    session ? roundId : null,
+    session ? { timeslotId: session.timeslotId } : undefined
+  );
   const assignRoom = useAssignRoom(roundId);
   const [roomId, setRoomId] = useState("");
 
@@ -102,12 +105,15 @@ export function RoomAssignmentPage({ roundId }: { roundId: string }) {
     roundId,
     activeVersion?.id ?? null
   );
-  const { data: rooms } = useAvailableRooms(roundId);
+  const { data: rooms } = useAvailableRooms(activeVersion ? roundId : null);
   const suggestRooms = useSuggestRooms();
   const applySuggestions = useApplySuggestions(roundId);
   const [suggestions, setSuggestions] = useState<RoomSuggestion[] | null>(null);
+  const [suggestionVersionId, setSuggestionVersionId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [assignTarget, setAssignTarget] = useState<RoundSession | null>(null);
+  const currentSuggestions =
+    activeVersion && suggestionVersionId === activeVersion.id ? suggestions : null;
 
   const dates = round?.days.map((d) => d.date) ?? [];
   const activeDate = selectedDate ?? dates[0] ?? null;
@@ -160,18 +166,41 @@ export function RoomAssignmentPage({ roundId }: { roundId: string }) {
           <Button
             variant="outline"
             size="sm"
-            disabled={suggestRooms.isPending}
-            onClick={() => suggestRooms.mutate(roundId, { onSuccess: (data) => setSuggestions(data) })}
+            disabled={!activeVersion || suggestRooms.isPending}
+            onClick={() =>
+              suggestRooms.mutate(roundId, {
+                onSuccess: (data) => {
+                  setSuggestions(data);
+                  setSuggestionVersionId(activeVersion?.id ?? null);
+                },
+              })
+            }
           >
             <Sparkles />
             {suggestRooms.isPending ? "Đang tính..." : "Gợi ý gán phòng"}
           </Button>
           <Button
             size="sm"
-            disabled={applySuggestions.isPending || suggestions === null}
-            onClick={() => suggestions && applySuggestions.mutate(suggestions, { onSuccess: () => setSuggestions(null) })}
+            disabled={
+              !activeVersion ||
+              applySuggestions.isPending ||
+              currentSuggestions === null
+            }
+            onClick={() =>
+              currentSuggestions &&
+              applySuggestions.mutate(currentSuggestions, {
+                onSuccess: () => {
+                  setSuggestions(null);
+                  setSuggestionVersionId(null);
+                },
+              })
+            }
           >
-            {applySuggestions.isPending ? "Đang áp dụng..." : suggestions !== null ? `Áp dụng ${suggestions.length} gợi ý` : "Áp dụng gợi ý"}
+            {applySuggestions.isPending
+              ? "Đang áp dụng..."
+              : currentSuggestions !== null
+                ? `Áp dụng ${currentSuggestions.length} gợi ý`
+                : "Áp dụng gợi ý"}
           </Button>
         </div>
       </div>

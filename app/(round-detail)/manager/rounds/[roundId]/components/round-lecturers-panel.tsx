@@ -46,6 +46,11 @@ function InviteLecturersDialog({
     });
   }
 
+  function handleOpenChange(next: boolean) {
+    if (!next) setSelected(new Set());
+    onOpenChange(next);
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (selected.size === 0) return;
@@ -61,15 +66,29 @@ function InviteLecturersDialog({
   }
 
   const candidates = (lecturers ?? []).filter((l) => !invitedIds.has(String(l.id)));
+  const allSelected = candidates.length > 0 && candidates.every((l) => selected.has(String(l.id)));
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(candidates.map((l) => String(l.id))));
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <form onSubmit={handleSubmit}>
           <DialogHeader icon={UserPlus} iconTone="sky">
             <DialogTitle>Mời giảng viên</DialogTitle>
             <DialogDescription>Chọn giảng viên chưa được mời cho đợt này.</DialogDescription>
           </DialogHeader>
+
+          <div className="flex items-center justify-between gap-2 border-b border-border pb-2">
+            <span className="text-xs text-muted-foreground">
+              {candidates.length} chưa mời · đã chọn {selected.size}
+            </span>
+            <Button type="button" variant="ghost" size="sm" onClick={toggleAll} disabled={candidates.length === 0}>
+              {allSelected ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+            </Button>
+          </div>
 
           <div className="max-h-72 space-y-1 overflow-y-auto py-4">
             {candidates.length === 0 && (
