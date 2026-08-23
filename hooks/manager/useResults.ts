@@ -41,7 +41,7 @@ export function useSubmitResult() {
       await queryClient.invalidateQueries({ queryKey: managerKeys.remediation });
       await queryClient.invalidateQueries({ queryKey: ["manager", "dashboard"] });
       await queryClient.invalidateQueries({ queryKey: ["manager", "reports"] });
-      toast.success(`Đã ghi kết quả — nhóm chuyển trạng thái ${data.group_status}`);
+      toast.success(`Đã ghi kết quả — nhóm chuyển trạng thái ${data.groupStatus}`);
     },
     onError: (error: ApiError) => {
       if (error.code === 422) {

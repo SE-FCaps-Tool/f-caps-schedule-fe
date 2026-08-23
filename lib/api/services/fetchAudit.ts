@@ -1,16 +1,15 @@
 import apiService from "../core";
-import { normalizeToSnakeCase } from "../compat";
 
 export interface AuditEntryApi {
   id: number;
-  actor_id: number;
+  actorId: number;
   action: string;
-  entity_type: string;
-  entity_id: string;
+  entityType: string;
+  entityId: string;
   reason: string;
-  before_json: Record<string, unknown> | null;
-  after_json: Record<string, unknown> | null;
-  occurred_at: string;
+  beforeJson: Record<string, unknown> | null;
+  afterJson: Record<string, unknown> | null;
+  occurredAt: string;
 }
 
 export interface AuditListParams {
@@ -21,9 +20,9 @@ export interface AuditListParams {
 }
 
 export const fetchAudit = {
-  /** GET /audit?actor_id=&action=&entity_type=&limit= — ADMIN only */
+  /** GET /audit?actorId=&action=&entityType=&limit= — ADMIN only */
   list: async (params?: AuditListParams): Promise<AuditEntryApi[]> => {
-    const response = await apiService.get<unknown, AuditListParams>("api/v1/audit", params);
-    return normalizeToSnakeCase<AuditEntryApi[]>(response.data);
+    const response = await apiService.get<AuditEntryApi[], AuditListParams>("api/v1/audit", params);
+    return response.data;
   },
 };

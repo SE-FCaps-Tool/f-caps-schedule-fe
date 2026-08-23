@@ -1,7 +1,6 @@
 import apiService from "../core";
 import type { RoomType } from "./fetchRounds";
 import type { RoomStatus } from "./fetchRoomAssignment";
-import { normalizeToSnakeCase } from "../compat";
 import type { ListMeta, ListResponse } from "@/types/api";
 
 export interface RoomApiItem {
@@ -40,11 +39,11 @@ export const fetchRooms = {
    * (xem docs/be-checklist-open-questions.md mục 6) — unwrap + snakeize để khớp RoomApiItem.
    */
   list: async (params?: RoomListParams): Promise<ListResponse<RoomApiItem>> => {
-    const response = await apiService.get<{ data: unknown[]; meta?: ListMeta }, RoomListParams>(
+    const response = await apiService.get<{ data: RoomApiItem[]; meta?: ListMeta }, RoomListParams>(
       "api/v1/rooms",
       params
     );
-    return { data: normalizeToSnakeCase<RoomApiItem[]>(response.data.data), meta: response.data.meta };
+    return { data: response.data.data, meta: response.data.meta };
   },
 
   /** POST /rooms — ADMIN only */

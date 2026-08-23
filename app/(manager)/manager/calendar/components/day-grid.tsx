@@ -36,16 +36,16 @@ export function toDisplaySession(session: RoundSession, rooms: AssignableRoom[])
 export function assignmentToDisplaySession(assignment: ScheduleVersionAssignment): DisplaySession {
   return {
     id: String(assignment.id),
-    groupId: String(assignment.group_id),
-    groupCode: assignment.group_code,
+    groupId: String(assignment.groupId),
+    groupCode: assignment.groupCode,
     projectTitle: null,
-    date: formatInVietnamTime(assignment.start_at, "YYYY-MM-DD"),
-    start: formatInVietnamTime(assignment.start_at, "HH:mm"),
-    end: formatInVietnamTime(assignment.end_at, "HH:mm"),
-    timeslotId: String(assignment.timeslot_id),
-    roomId: assignment.room_id != null ? String(assignment.room_id) : null,
-    roomCode: assignment.room_id != null ? `#${assignment.room_id}` : "Chưa gán",
-    reviewers: assignment.reviewer_ids.map((id) => ({ id: String(id), name: assignment.reviewer_names[String(id)] ?? `#${id}` })),
+    date: formatInVietnamTime(assignment.startAt, "YYYY-MM-DD"),
+    start: formatInVietnamTime(assignment.startAt, "HH:mm"),
+    end: formatInVietnamTime(assignment.endAt, "HH:mm"),
+    timeslotId: String(assignment.timeslotId),
+    roomId: assignment.roomId != null ? String(assignment.roomId) : null,
+    roomCode: assignment.roomId != null ? `#${assignment.roomId}` : "Chưa gán",
+    reviewers: assignment.reviewerIds.map((id) => ({ id: String(id), name: assignment.reviewerNames[String(id)] ?? `#${id}` })),
     status: assignment.status,
   };
 }

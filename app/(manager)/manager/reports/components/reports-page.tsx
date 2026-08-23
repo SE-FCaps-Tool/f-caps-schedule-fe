@@ -56,13 +56,13 @@ export function ReportsPage() {
       if (row.leaders !== 1) {
         items.push({ key: `${row.id}-leader`, groupCode: row.code, label: "Chưa có Leader", href: "/manager/groups" });
       }
-      if (row.active_members < 4) {
+      if (row.activeMembers < 4) {
         items.push({ key: `${row.id}-members`, groupCode: row.code, label: "Dưới 4 thành viên", href: "/manager/groups" });
       }
     }
     for (const row of remediation?.rows ?? []) {
       if (row.status === "OVERDUE") {
-        items.push({ key: `${row.id}-overdue`, groupCode: row.group_code, label: "Khắc phục quá hạn", href: "/manager/results" });
+        items.push({ key: `${row.id}-overdue`, groupCode: row.groupCode, label: "Khắc phục quá hạn", href: "/manager/results" });
       }
     }
     return items;
@@ -111,25 +111,25 @@ export function ReportsPage() {
                   </TableRow>
                 )}
                 {lecturerLoad.rows.map((row) => {
-                  const isOver = row.quota_percent >= 90;
+                  const isOver = row.quotaPercent >= 90;
                   return (
-                    <TableRow key={row.lecturer_id}>
+                    <TableRow key={row.lecturerId}>
                       <TableCell className="pl-4">
-                        <span className="font-medium">{row.lecturer_code}</span>{" "}
-                        <span className="text-muted-foreground">— {row.display_name}</span>
+                        <span className="font-medium">{row.lecturerCode}</span>{" "}
+                        <span className="text-muted-foreground">— {row.displayName}</span>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{row.session_count}</TableCell>
+                      <TableCell className="text-right tabular-nums">{row.sessionCount}</TableCell>
                       <TableCell className="text-right tabular-nums">{row.quota}</TableCell>
                       <TableCell className="pr-4">
                         <div className="flex items-center gap-2">
                           <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
                             <div
                               className={cn("h-full rounded-full", isOver ? "bg-amber-500" : "bg-primary")}
-                              style={{ width: `${Math.min(row.quota_percent, 100)}%` }}
+                              style={{ width: `${Math.min(row.quotaPercent, 100)}%` }}
                             />
                           </div>
                           <span className={cn("text-xs tabular-nums", isOver ? "font-medium text-amber-600 dark:text-amber-400" : "text-muted-foreground")}>
-                            {row.quota_percent}%
+                            {row.quotaPercent}%
                           </span>
                         </div>
                       </TableCell>

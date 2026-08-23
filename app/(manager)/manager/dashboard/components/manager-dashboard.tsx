@@ -50,7 +50,7 @@ export function ManagerDashboard() {
   const currentRound = useMemo(() => {
     const list = rounds?.data ?? [];
     if (list.length === 0) return null;
-    return list.find((r) => r.id === String(data?.version?.round_id)) ?? list[0];
+    return list.find((r) => r.id === String(data?.version?.roundId)) ?? list[0];
   }, [rounds, data]);
 
   const overdueRemediationCount = remediationCases?.filter((c) => c.status === "OVERDUE").length ?? 0;
@@ -59,7 +59,7 @@ export function ManagerDashboard() {
     ? [
         {
           key: "changeRequests",
-          count: data.pending_reschedule_requests,
+          count: data.pendingRescheduleRequests,
           label: "yêu cầu thay đổi lịch",
           description: "Đang chờ duyệt trên Lịch đánh giá.",
           icon: RefreshCcw,
@@ -91,7 +91,7 @@ export function ManagerDashboard() {
         },
         {
           key: "attentionGroups",
-          count: data.attention_groups.length,
+          count: data.attentionGroups.length,
           label: "nhóm cần chú ý",
           description: "D1.2 có điều kiện, không đạt, hoặc đã rời khỏi kỳ.",
           icon: UserX,

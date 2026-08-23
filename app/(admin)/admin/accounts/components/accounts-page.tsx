@@ -32,7 +32,7 @@ export function AccountsPage() {
     return accounts.filter((a) => {
       if (roleFilter !== "ALL" && a.role !== roleFilter) return false;
       if (statusFilter !== "ALL" && a.status !== statusFilter) return false;
-      if (q && !a.email.toLowerCase().includes(q) && !a.display_name.toLowerCase().includes(q)) return false;
+      if (q && !a.email.toLowerCase().includes(q) && !a.displayName.toLowerCase().includes(q)) return false;
       return true;
     });
   }, [accounts, search, roleFilter, statusFilter]);

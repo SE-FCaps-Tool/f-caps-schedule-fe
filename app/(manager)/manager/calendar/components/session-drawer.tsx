@@ -148,7 +148,7 @@ function ReplaceReviewerDialog({
                   <SelectValue placeholder="Chọn giảng viên">
                     {(v: string) => {
                       const l = lecturers?.find((l) => String(l.id) === v);
-                      return l ? `${l.lecturer_code} — ${l.display_name}` : "Chọn giảng viên";
+                      return l ? `${l.lecturerCode} — ${l.displayName}` : "Chọn giảng viên";
                     }}
                   </SelectValue>
                 </SelectTrigger>
@@ -157,7 +157,7 @@ function ReplaceReviewerDialog({
                     .filter((l) => !session.reviewers.some((r) => r.id === String(l.id)))
                     .map((l) => (
                       <SelectItem key={l.id} value={String(l.id)}>
-                        {l.lecturer_code} — {l.display_name}
+                        {l.lecturerCode} — {l.displayName}
                       </SelectItem>
                     ))}
                 </SelectContent>

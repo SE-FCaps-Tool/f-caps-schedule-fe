@@ -59,7 +59,7 @@ function SupervisorPicker({
   const [coSearch, setCoSearch] = useState("");
   const main = useLecturersInfinite(mainSearch || undefined);
   const co = useLecturersInfinite(coSearch || undefined);
-  const label = (l: LecturerApiItem) => `${l.lecturer_code} — ${l.display_name}`;
+  const label = (l: LecturerApiItem) => `${l.lecturerCode} — ${l.displayName}`;
 
   return (
     <div className="space-y-3">

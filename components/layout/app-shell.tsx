@@ -292,7 +292,7 @@ export function AppShell({ children, area, headerExtra, disabledHrefs, onDisable
         <div className="shrink-0 border-t border-sidebar-border p-2">
           <UserMenu
             roleLabel={user ? ROLE_LABEL_VI[user.role as UserRole] : ""}
-            accountLabel={user ? `Tài khoản #${user.account_id}` : ""}
+            accountLabel={user ? `Tài khoản #${user.accountId}` : ""}
             onLogout={logout}
             side="top"
           />
@@ -322,7 +322,7 @@ export function AppShell({ children, area, headerExtra, disabledHrefs, onDisable
             {headerExtra}
             <UserMenu
               roleLabel={user ? ROLE_LABEL_VI[user.role as UserRole] : ""}
-              accountLabel={user ? `Tài khoản #${user.account_id}` : ""}
+              accountLabel={user ? `Tài khoản #${user.accountId}` : ""}
               onLogout={logout}
               side="bottom"
               compact

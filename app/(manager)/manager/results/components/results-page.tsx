@@ -89,12 +89,12 @@ export function ResultsPage() {
                   // Remediation case chỉ được tạo khi Review 3 outcome = LEVEL_2 (§6 manager-api.md)
                   const resultMeta = DEFENSE_CONCLUSION_META.LEVEL_2;
                   const remediationMeta = REMEDIATION_STATUS_META[row.status];
-                  const verifier = lecturers?.find((l) => l.id === row.verifier_lecturer_id);
+                  const verifier = lecturers?.find((l) => l.id === row.verifierLecturerId);
                   return (
                     <TableRow key={row.id}>
-                      <TableCell className="pl-4 font-mono text-xs font-medium">{row.group_code}</TableCell>
+                      <TableCell className="pl-4 font-mono text-xs font-medium">{row.groupCode}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {ROUND_TYPE_LABEL[row.round_type as keyof typeof ROUND_TYPE_LABEL] ?? row.round_type}
+                        {ROUND_TYPE_LABEL[row.roundType as keyof typeof ROUND_TYPE_LABEL] ?? row.roundType}
                       </TableCell>
                       <TableCell>
                         <StatusDot tone={resultMeta.tone} label={resultMeta.label} />
@@ -102,8 +102,8 @@ export function ResultsPage() {
                       <TableCell>
                         <StatusDot tone={remediationMeta.tone} label={remediationMeta.label} />
                       </TableCell>
-                      <TableCell className="text-muted-foreground tabular-nums">{formatDate(row.due_at)}</TableCell>
-                      <TableCell className="text-muted-foreground">{verifier ? verifier.display_name : "—"}</TableCell>
+                      <TableCell className="text-muted-foreground tabular-nums">{formatDate(row.dueAt)}</TableCell>
+                      <TableCell className="text-muted-foreground">{verifier ? verifier.displayName : "—"}</TableCell>
                       <TableCell className={cn(row.status === "FAILED" ? "font-medium text-destructive" : "text-muted-foreground")}>
                         {NEXT_STEP[row.status]}
                       </TableCell>
@@ -139,7 +139,7 @@ export function ResultsPage() {
         open={pendingCase !== null}
         onOpenChange={(open) => !open && setPendingCase(null)}
         title="Đánh dấu FAILED do quá hạn"
-        description={`Nhóm "${pendingCase?.group_code ?? ""}" đã quá hạn khắc phục mà chưa được phản biện xác nhận đạt. Lý do sẽ được ghi vào audit log.`}
+        description={`Nhóm "${pendingCase?.groupCode ?? ""}" đã quá hạn khắc phục mà chưa được phản biện xác nhận đạt. Lý do sẽ được ghi vào audit log.`}
         destructive
         confirmLabel="Đánh dấu FAILED"
         onConfirm={(reason) => {

@@ -1,13 +1,12 @@
 import apiService from "../core";
-import { normalizeToSnakeCase } from "../compat";
 import type { UserRole } from "@/lib/types/roles";
 
 export interface AccountApiItem {
   id: number;
   email: string;
-  display_name: string;
+  displayName: string;
   status: "ACTIVE" | "INACTIVE";
-  created_at: string;
+  createdAt: string;
   /** Account có nhiều role trong DB sẽ chỉ trả role đầu tiên theo thứ tự ưu tiên cố định của backend */
   role: UserRole;
 }
@@ -22,7 +21,7 @@ export interface AccountCreatePayload {
 export interface AccountCreateResponse {
   id: number;
   email: string;
-  display_name: string;
+  displayName: string;
   role: UserRole;
   status: "ACTIVE";
 }
@@ -40,14 +39,14 @@ export interface AccountRolePayload {
 export const fetchAccounts = {
   /** GET /accounts — ADMIN only */
   list: async (): Promise<AccountApiItem[]> => {
-    const response = await apiService.get<unknown>("api/v1/accounts");
-    return normalizeToSnakeCase<AccountApiItem[]>(response.data);
+    const response = await apiService.get<AccountApiItem[]>("api/v1/accounts");
+    return response.data;
   },
 
   /** POST /accounts */
   create: async (payload: AccountCreatePayload): Promise<AccountCreateResponse> => {
-    const response = await apiService.post<unknown, AccountCreatePayload>("api/v1/accounts", payload);
-    return normalizeToSnakeCase<AccountCreateResponse>(response.data);
+    const response = await apiService.post<AccountCreateResponse, AccountCreatePayload>("api/v1/accounts", payload);
+    return response.data;
   },
 
   /** PATCH /accounts/{account_id}/status */

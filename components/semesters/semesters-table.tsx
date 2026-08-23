@@ -105,16 +105,16 @@ export function SemestersTable({ semesters, currentContextId, onSetContext }: Se
                         </Tooltip>
                       )}
                     </span>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{semester.academic_year}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{semester.academicYear}</p>
                   </TableCell>
                   <TableCell className="text-muted-foreground tabular-nums">
-                    {formatDate(semester.start_date, "DD/MM/YYYY")} – {formatDate(semester.end_date, "DD/MM/YYYY")}
+                    {formatDate(semester.startDate, "DD/MM/YYYY")} – {formatDate(semester.endDate, "DD/MM/YYYY")}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <StatChip icon={FolderKanban} value={semester.project_count} label="Đề tài" />
-                      <StatChip icon={Users2} value={semester.group_count} label="Nhóm" />
-                      <StatChip icon={ClipboardCheck} value={semester.round_count} label="Đợt đánh giá" />
+                      <StatChip icon={FolderKanban} value={semester.projectCount} label="Đề tài" />
+                      <StatChip icon={Users2} value={semester.groupCount} label="Nhóm" />
+                      <StatChip icon={ClipboardCheck} value={semester.roundCount} label="Đợt đánh giá" />
                     </div>
                   </TableCell>
                   <TableCell>

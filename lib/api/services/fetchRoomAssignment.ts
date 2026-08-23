@@ -1,5 +1,4 @@
 import apiService from "../core";
-import { normalizeToSnakeCase } from "../compat";
 import type { RoomType } from "./fetchRounds";
 import { formatInVietnamTime } from "@/lib/utils/formatDate";
 
@@ -48,61 +47,62 @@ export interface RoomSuggestion {
 
 type SessionApi = {
   id: number;
-  group_id?: number | null;
-  group_code?: string | null;
-  project_code?: string | null;
-  timeslot_id?: number | null;
-  room_id?: number | null;
-  start_at?: string | null;
-  end_at?: string | null;
+  groupId?: number | null;
+  groupCode?: string | null;
+  projectCode?: string | null;
+  timeslotId?: number | null;
+  roomId?: number | null;
+  startAt?: string | null;
+  endAt?: string | null;
   status?: string | null;
-  council_members?: { lecturer_id?: number; snapshot_name?: string | null }[];
+  /** BE thực trả field "reviewers" ({id,code,name}), không phải council_members — xem ghi chú bên dưới. */
+  councilMembers?: { lecturerId?: number; snapshotName?: string | null }[];
 };
 
 function adaptSession(session: SessionApi): RoundSession {
-  const startAt = session.start_at ?? new Date(0).toISOString();
-  const endAt = session.end_at ?? startAt;
+  const startAt = session.startAt ?? new Date(0).toISOString();
+  const endAt = session.endAt ?? startAt;
   return {
     id: String(session.id),
     group: {
-      id: String(session.group_id ?? ""),
-      code: session.group_code ?? "",
+      id: String(session.groupId ?? ""),
+      code: session.groupCode ?? "",
     },
     project: {
       id: "",
-      name: session.project_code ?? "",
+      name: session.projectCode ?? "",
     },
-    timeslotId: String(session.timeslot_id ?? ""),
+    timeslotId: String(session.timeslotId ?? ""),
     date: formatInVietnamTime(startAt, "YYYY-MM-DD"),
     startTime: formatInVietnamTime(startAt, "HH:mm"),
     endTime: formatInVietnamTime(endAt, "HH:mm"),
-    council: (session.council_members ?? []).map((member) => ({
-      lecturerId: String(member.lecturer_id ?? ""),
-      fullName: member.snapshot_name ?? "",
+    council: (session.councilMembers ?? []).map((member) => ({
+      lecturerId: String(member.lecturerId ?? ""),
+      fullName: member.snapshotName ?? "",
     })),
-    roomId: session.room_id == null ? null : String(session.room_id),
+    roomId: session.roomId == null ? null : String(session.roomId),
     status: (session.status ?? "PLANNED") as RoundSessionStatus,
   };
 }
 
 function adaptSuggestion(suggestion: Record<string, unknown>): RoomSuggestion {
   return {
-    sessionId: String(suggestion.sessionId ?? suggestion.session_id ?? ""),
-    groupCode: String(suggestion.groupCode ?? suggestion.group_code ?? suggestion.groupId ?? suggestion.group_id ?? ""),
-    timeslotId: String(suggestion.timeslotId ?? suggestion.timeslot_id ?? ""),
-    roomId: String(suggestion.roomId ?? suggestion.room_id ?? ""),
-    roomCode: String(suggestion.roomCode ?? suggestion.room_code ?? ""),
+    sessionId: String(suggestion.sessionId ?? ""),
+    groupCode: String(suggestion.groupCode ?? suggestion.groupId ?? ""),
+    timeslotId: String(suggestion.timeslotId ?? ""),
+    roomId: String(suggestion.roomId ?? ""),
+    roomCode: String(suggestion.roomCode ?? ""),
   };
 }
 
 export const fetchRoomAssignment = {
   /** GET /sessions?round_id=&version_id= — current BE manager session contract. */
   sessions: async (roundId: string, versionId: string): Promise<RoundSession[]> => {
-    const response = await apiService.get<unknown, { roundId: number; versionId: number }>(
+    const response = await apiService.get<SessionApi[], { roundId: number; versionId: number }>(
       "api/v1/sessions",
       { roundId: Number(roundId), versionId: Number(versionId) }
     );
-    return normalizeToSnakeCase<SessionApi[]>(response.data).map(adaptSession);
+    return response.data.map(adaptSession);
   },
 
   /** GET /rounds/:roundId/rooms/available — spec §28/§65 */

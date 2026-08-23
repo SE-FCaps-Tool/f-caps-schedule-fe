@@ -42,7 +42,7 @@ export function useCreateLecturer() {
       await queryClient.invalidateQueries({ queryKey: adminKeys.lecturers });
       await queryClient.invalidateQueries({ queryKey: adminKeys.accounts });
       await queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
-      toast.success(`Đã thêm giảng viên ${data.lecturer_code}`);
+      toast.success(`Đã thêm giảng viên ${data.lecturerCode}`);
     },
     onError: (error: ApiError) => {
       if (error.code === 409) {

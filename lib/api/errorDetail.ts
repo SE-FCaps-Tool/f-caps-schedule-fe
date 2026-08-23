@@ -1,33 +1,23 @@
 import type { ApiError } from "@/types/api";
 
-/**
- * Hai shape lỗi cùng tồn tại trong giai đoạn migrate sang
- * docs/capstone-fe-be-implementation-spec.md (PHẦN VI/XVI):
- * - Cũ (docs/manager-api.md và các endpoint chưa migrate): { detail: { code, message, violations } }
- * - Mới (spec đích, endpoint đã migrate):                  { error: { code, message, details } }
- * Đọc cả hai, ưu tiên `error` (mới) nếu cùng có mặt.
- */
+/** Shape lỗi duy nhất kể từ Phase 2 (Thống nhất error contract): { error: { code, message, details } }. */
 interface ErrorDetail {
-  detail?: { code?: string; message?: string; violations?: unknown[] };
   error?: { code?: string; message?: string; details?: { violations?: unknown[] } & Record<string, unknown> };
 }
 
 export function detailCode(error: ApiError): string | undefined {
-  const data = error.data as ErrorDetail | undefined;
-  return data?.error?.code ?? data?.detail?.code;
+  return (error.data as ErrorDetail | undefined)?.error?.code;
 }
 
 export function detailMessage(error: ApiError): string | undefined {
-  const data = error.data as ErrorDetail | undefined;
-  return data?.error?.message ?? data?.detail?.message;
+  return (error.data as ErrorDetail | undefined)?.error?.message;
 }
 
 export function detailViolations(error: ApiError): unknown[] | undefined {
-  const data = error.data as ErrorDetail | undefined;
-  return data?.error?.details?.violations ?? data?.detail?.violations;
+  return (error.data as ErrorDetail | undefined)?.error?.details?.violations;
 }
 
-/** `error.details` (shape mới) — object tự do tuỳ endpoint (vd field lỗi cụ thể). */
+/** `error.details` — object tự do tuỳ endpoint (vd field lỗi cụ thể). */
 export function detailDetails(error: ApiError): unknown {
   return (error.data as ErrorDetail | undefined)?.error?.details;
 }
@@ -36,7 +26,7 @@ export function detailDetails(error: ApiError): unknown {
  * Map `code` → thông báo tiếng Việt dễ hiểu cho người dùng cuối.
  * Phủ cả mã cũ đã thấy thực tế từ backend/docs/*.md lẫn mã mới trong
  * capstone-fe-be-implementation-spec.md §PHẦN XVI. Mã lạ sẽ rơi xuống
- * `detail.message`/`error.message` gốc, không hiện code kỹ thuật cho manager.
+ * `error.message` gốc, không hiện code kỹ thuật cho manager.
  */
 const ERROR_CODE_MESSAGES: Record<string, string> = {
   // --- Chung / cũ (docs/manager-api.md, docs/role-api-matrix.md) ---
@@ -95,14 +85,14 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   GROUP_NOT_IN_ROUND: "Nhóm không thuộc đợt đánh giá này",
   REVIEWER_OVERLAP:
     "Không kích hoạt được — trùng lịch giảng viên với phương án đang dùng/đã công bố của round khác",
-  /** Dùng chung cho 4 kiểu vi phạm khoảng ngày round: xem chi tiết trong `detail.message`/`error.message` gốc nếu cần. */
+  /** Dùng chung cho 4 kiểu vi phạm khoảng ngày round: xem chi tiết trong `error.message` gốc nếu cần. */
   TIMESLOT_OUT_OF_RANGE:
     "Ngày hoặc hạn đăng ký phải nằm trong khoảng bắt đầu–kết thúc của đợt, và hạn nhóm phải sau hạn giảng viên",
 };
 
 /**
- * Thông báo lỗi thân thiện: ưu tiên map theo `code` (đọc cả 2 shape lỗi), sau đó
- * `message` gốc từ backend, cuối cùng mới tới `fallback` của caller.
+ * Thông báo lỗi thân thiện: ưu tiên map theo `code`, sau đó `message` gốc từ
+ * backend, cuối cùng mới tới `fallback` của caller.
  */
 export function friendlyErrorMessage(error: ApiError, fallback?: string): string {
   const code = detailCode(error);

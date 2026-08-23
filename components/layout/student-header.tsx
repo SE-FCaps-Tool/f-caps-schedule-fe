@@ -74,7 +74,7 @@ export function StudentHeader() {
               <DropdownMenuLabel className="font-normal">
                 <p className="truncate text-sm font-medium text-foreground">{roleLabel || "—"}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {user ? `Tài khoản #${user.account_id}` : ""}
+                  {user ? `Tài khoản #${user.accountId}` : ""}
                 </p>
               </DropdownMenuLabel>
             </DropdownMenuGroup>

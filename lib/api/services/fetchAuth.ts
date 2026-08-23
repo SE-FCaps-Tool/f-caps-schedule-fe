@@ -1,5 +1,4 @@
 import apiService from "../core";
-import { normalizeToSnakeCase } from "../compat";
 import type { UserRole } from "@/lib/types/roles";
 
 export interface LoginPayload {
@@ -10,7 +9,7 @@ export interface LoginPayload {
 // Shape đúng theo docs/auth.md — không có accessToken/refreshToken, session nằm ở HttpOnly cookie.
 export interface LoginResponse {
   role: UserRole;
-  expires_at: string;
+  expiresAt: string;
 }
 
 export interface LogoutResponse {
@@ -20,7 +19,7 @@ export interface LogoutResponse {
 export interface MeResponse {
   role: UserRole;
   status: string;
-  account_id: number;
+  accountId: number;
 }
 
 export const fetchAuth = {
@@ -28,8 +27,8 @@ export const fetchAuth = {
    * POST /api/v1/auth/login
    */
   login: async (data: LoginPayload): Promise<LoginResponse> => {
-    const response = await apiService.post<unknown, LoginPayload>("api/v1/auth/login", data);
-    return normalizeToSnakeCase<LoginResponse>(response.data);
+    const response = await apiService.post<LoginResponse, LoginPayload>("api/v1/auth/login", data);
+    return response.data;
   },
 
   /**
@@ -44,7 +43,7 @@ export const fetchAuth = {
    * GET /api/v1/auth/me — nên gọi khi app khởi động, refresh trang, và sau 401 ở API khác.
    */
   me: async (): Promise<MeResponse> => {
-    const response = await apiService.get<unknown>("api/v1/auth/me");
-    return normalizeToSnakeCase<MeResponse>(response.data);
+    const response = await apiService.get<MeResponse>("api/v1/auth/me");
+    return response.data;
   },
 };

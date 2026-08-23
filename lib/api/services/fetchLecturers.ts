@@ -1,19 +1,18 @@
 import apiService from "../core";
-import { normalizeToSnakeCase } from "../compat";
 import type { ListMeta, ListResponse } from "@/types/api";
 
 export interface LecturerConflict {
-  project_id: number;
+  projectId: number;
   reason: string;
 }
 
 export interface LecturerApiItem {
   id: number;
-  lecturer_code: string;
-  account_id: number;
+  lecturerCode: string;
+  accountId: number;
   email: string;
-  display_name: string;
-  account_status: "ACTIVE" | "INACTIVE";
+  displayName: string;
+  accountStatus: "ACTIVE" | "INACTIVE";
   conflicts: LecturerConflict[];
 }
 
@@ -26,8 +25,8 @@ export interface LecturerCreatePayload {
 
 export interface LecturerCreateResponse {
   id: number;
-  lecturer_code: string;
-  account_id: number;
+  lecturerCode: string;
+  accountId: number;
 }
 
 export interface LecturerListParams {
@@ -44,11 +43,11 @@ export interface LecturerImportError {
 
 export interface LecturerImportAccount {
   row: number;
-  lecturer_id: number;
-  lecturer_code: string;
+  lecturerId: number;
+  lecturerCode: string;
   email: string;
-  display_name: string;
-  temp_password: string;
+  displayName: string;
+  tempPassword: string;
 }
 
 export interface LecturerImportResponse {
@@ -65,24 +64,24 @@ export const fetchLecturers = {
    * (xem docs/be-checklist-open-questions.md mục 6) — unwrap + snakeize để khớp LecturerApiItem.
    */
   list: async (params?: LecturerListParams): Promise<ListResponse<LecturerApiItem>> => {
-    const response = await apiService.get<{ data: unknown[]; meta?: ListMeta }, LecturerListParams>(
+    const response = await apiService.get<{ data: LecturerApiItem[]; meta?: ListMeta }, LecturerListParams>(
       "api/v1/lecturers",
       params
     );
-    return { data: normalizeToSnakeCase<LecturerApiItem[]>(response.data.data), meta: response.data.meta };
+    return { data: response.data.data, meta: response.data.meta };
   },
 
   /** POST /lecturers — ADMIN only, tạo account + lecturer trong 1 transaction */
   create: async (payload: LecturerCreatePayload): Promise<LecturerCreateResponse> => {
-    const response = await apiService.post<unknown, LecturerCreatePayload>("api/v1/lecturers", payload);
-    return normalizeToSnakeCase<LecturerCreateResponse>(response.data);
+    const response = await apiService.post<LecturerCreateResponse, LecturerCreatePayload>("api/v1/lecturers", payload);
+    return response.data;
   },
 
   /** POST /lecturers/import — ADMIN, MANAGER. Nhận file .xlsx theo mẫu lecturers_template.xlsx. */
   importFile: async (file: File): Promise<LecturerImportResponse> => {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await apiService.upload<unknown>("api/v1/lecturers/import", formData);
-    return normalizeToSnakeCase<LecturerImportResponse>(response.data);
+    const response = await apiService.upload<LecturerImportResponse>("api/v1/lecturers/import", formData);
+    return response.data;
   },
 };

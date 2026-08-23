@@ -54,8 +54,8 @@ export function useRunSchedule() {
       await invalidate(variables.roundId);
       toast.success(
         data.unscheduled.length > 0
-          ? `Đã chạy xếp lịch: ${data.scheduled_count} nhóm xếp được, ${data.unscheduled.length} nhóm chưa xếp được`
-          : `Đã xếp lịch đủ ${data.scheduled_count} nhóm`
+          ? `Đã chạy xếp lịch: ${data.scheduledCount} nhóm xếp được, ${data.unscheduled.length} nhóm chưa xếp được`
+          : `Đã xếp lịch đủ ${data.scheduledCount} nhóm`
       );
     },
     onError: (error: ApiError) => {
@@ -312,7 +312,7 @@ export function usePublishVersion() {
     }) => fetchScheduling.publish(roundId, versionId, semesterId),
     onSuccess: async (data, variables) => {
       await invalidate(variables.roundId);
-      toast.success(`Đã công bố lịch tới ${data.recipient_count} người liên quan`);
+      toast.success(`Đã công bố lịch tới ${data.recipientCount} người liên quan`);
     },
     onError: (error: ApiError) => {
       toast.error(friendlyErrorMessage(error, "Phương án phải được kích hoạt và hợp lệ trước khi công bố"));
@@ -377,7 +377,7 @@ export function useControlledChangeSession() {
     }) => fetchScheduling.controlledChangeSession(versionId, sessionId, payload, semesterId),
     onSuccess: async (data, variables) => {
       await invalidate(variables.roundId);
-      toast.success(`Đã tạo phương án mới V${data.version_id} với thay đổi có kiểm soát`);
+      toast.success(`Đã tạo phương án mới V${data.versionId} với thay đổi có kiểm soát`);
     },
     onError: (error: ApiError) => {
       if (error.code === 422) {
