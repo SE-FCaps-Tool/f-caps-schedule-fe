@@ -9,7 +9,7 @@ import type { ApiError } from "@/types/api";
  */
 interface ErrorDetail {
   detail?: { code?: string; message?: string; violations?: unknown[] };
-  error?: { code?: string; message?: string; details?: unknown };
+  error?: { code?: string; message?: string; details?: { violations?: unknown[] } & Record<string, unknown> };
 }
 
 export function detailCode(error: ApiError): string | undefined {
@@ -23,7 +23,8 @@ export function detailMessage(error: ApiError): string | undefined {
 }
 
 export function detailViolations(error: ApiError): unknown[] | undefined {
-  return (error.data as ErrorDetail | undefined)?.detail?.violations;
+  const data = error.data as ErrorDetail | undefined;
+  return data?.error?.details?.violations ?? data?.detail?.violations;
 }
 
 /** `error.details` (shape mới) — object tự do tuỳ endpoint (vd field lỗi cụ thể). */
