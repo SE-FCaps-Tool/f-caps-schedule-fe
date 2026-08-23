@@ -91,8 +91,8 @@ export const fetchSemesters = {
 
   /** GET /semesters/{id} — ADMIN, MANAGER */
   getById: async (id: number): Promise<SemesterApiItem> => {
-    const response = await apiService.get<SemesterApiItem>(`api/v1/semesters/${id}`);
-    return response.data;
+    const response = await apiService.get<unknown>(`api/v1/semesters/${id}`);
+    return normalizeToSnakeCase<SemesterApiItem>(response.data);
   },
 
   /**
@@ -102,14 +102,14 @@ export const fetchSemesters = {
    * backend trả 422 SEMESTER_DURATION_INVALID.
    */
   create: async (payload: SemesterCreatePayload): Promise<SemesterApiItem> => {
-    const response = await apiService.post<SemesterApiItem, SemesterCreatePayload>("api/v1/semesters", payload);
-    return response.data;
+    const response = await apiService.post<unknown, SemesterCreatePayload>("api/v1/semesters", payload);
+    return normalizeToSnakeCase<SemesterApiItem>(response.data);
   },
 
   /** PATCH /semesters/{id} — ADMIN, MANAGER. Sửa ngày sẽ tính lại academic_year và kiểm tra duration */
   update: async (id: number, payload: SemesterUpdatePayload): Promise<SemesterApiItem> => {
-    const response = await apiService.patch<SemesterApiItem, SemesterUpdatePayload>(`api/v1/semesters/${id}`, payload);
-    return response.data;
+    const response = await apiService.patch<unknown, SemesterUpdatePayload>(`api/v1/semesters/${id}`, payload);
+    return normalizeToSnakeCase<SemesterApiItem>(response.data);
   },
 
   /** POST /semesters/{id}/transition — chỉ ADMIN/MANAGER, chỉ ACTIVE -> CLOSED */
@@ -117,11 +117,11 @@ export const fetchSemesters = {
     id: number,
     payload: SemesterTransitionPayload
   ): Promise<Pick<SemesterApiItem, "id" | "status">> => {
-    const response = await apiService.post<Pick<SemesterApiItem, "id" | "status">, SemesterTransitionPayload>(
+    const response = await apiService.post<unknown, SemesterTransitionPayload>(
       `api/v1/semesters/${id}/transition`,
       payload
     );
-    return response.data;
+    return normalizeToSnakeCase<Pick<SemesterApiItem, "id" | "status">>(response.data);
   },
 
   /**
@@ -130,7 +130,7 @@ export const fetchSemesters = {
    * advisory lock). Nếu target đã ACTIVE thì idempotent, chỉ trả lại resource.
    */
   setCurrent: async (id: number): Promise<SemesterApiItem> => {
-    const response = await apiService.post<SemesterApiItem, undefined>(`api/v1/semesters/${id}/set-current`, undefined);
-    return response.data;
+    const response = await apiService.post<unknown, undefined>(`api/v1/semesters/${id}/set-current`, undefined);
+    return normalizeToSnakeCase<SemesterApiItem>(response.data);
   },
 };

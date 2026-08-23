@@ -1,4 +1,5 @@
 import apiService from "../core";
+import { normalizeToSnakeCase } from "../compat";
 
 export type RoundType =
   | "REVIEW_1"
@@ -701,9 +702,7 @@ export const fetchRounds = {
   myAvailability: async (
     roundId: number,
   ): Promise<RoundMyAvailabilityResponse> => {
-    const response = await apiService.get<RoundMyAvailabilityResponse>(
-      `api/v1/rounds/${roundId}/my-availability`,
-    );
-    return response.data;
+    const response = await apiService.get<unknown>(`api/v1/rounds/${roundId}/my-availability`);
+    return normalizeToSnakeCase<RoundMyAvailabilityResponse>(response.data);
   },
 };

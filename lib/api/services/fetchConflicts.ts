@@ -1,4 +1,5 @@
 import apiService from "../core";
+import { normalizeToSnakeCase } from "../compat";
 
 export interface ConflictCreatePayload {
   project_id: number;
@@ -18,10 +19,10 @@ export const fetchConflicts = {
    * candidate Reviewer khi chạy scheduler (ràng buộc H8).
    */
   create: async (lecturerId: number, payload: ConflictCreatePayload): Promise<ConflictCreateResponse> => {
-    const response = await apiService.post<ConflictCreateResponse, ConflictCreatePayload>(
+    const response = await apiService.post<unknown, ConflictCreatePayload>(
       `api/v1/lecturers/${lecturerId}/conflicts`,
       payload
     );
-    return response.data;
+    return normalizeToSnakeCase<ConflictCreateResponse>(response.data);
   },
 };

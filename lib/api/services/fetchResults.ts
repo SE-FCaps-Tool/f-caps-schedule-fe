@@ -118,11 +118,11 @@ export interface OverdueFailResponse {
 export const fetchResults = {
   /** GET /sessions/{session_id}/result?semester_id= — tất cả role, chỉ trong scope actor */
   sessionResult: async (sessionId: number, semesterId?: number | null): Promise<SessionResultResponse> => {
-    const response = await apiService.get<SessionResultResponse, { semesterId?: number }>(
+    const response = await apiService.get<unknown, { semesterId?: number }>(
       `api/v1/sessions/${sessionId}/result`,
       { semesterId: semesterId ?? undefined }
     );
-    return response.data;
+    return normalizeToSnakeCase<SessionResultResponse>(response.data);
   },
 
   /**
@@ -135,12 +135,12 @@ export const fetchResults = {
     payload: ResultPayload,
     semesterId?: number | null
   ): Promise<ResultSubmitResponse> => {
-    const response = await apiService.post<ResultSubmitResponse, ResultPayload, { semesterId?: number }>(
+    const response = await apiService.post<unknown, ResultPayload, { semesterId?: number }>(
       `api/v1/sessions/${sessionId}/result`,
       payload,
       { semesterId: semesterId ?? undefined }
     );
-    return response.data;
+    return normalizeToSnakeCase<ResultSubmitResponse>(response.data);
   },
 
   /**
@@ -166,11 +166,11 @@ export const fetchResults = {
    * Chỉ fail case OPEN/OVERDUE sau khi đã quá due_at — bán tự động theo BR-REM-04.
    */
   overdueFail: async (caseId: number, payload: OverdueFailPayload): Promise<OverdueFailResponse> => {
-    const response = await apiService.post<OverdueFailResponse, OverdueFailPayload>(
+    const response = await apiService.post<unknown, OverdueFailPayload>(
       `api/v1/remediation/${caseId}/overdue-fail`,
       payload
     );
-    return response.data;
+    return normalizeToSnakeCase<OverdueFailResponse>(response.data);
   },
 
   /** POST /sessions/:sessionId/result — spec §74. BE tự transition ProjectStatus, FE chỉ refetch */

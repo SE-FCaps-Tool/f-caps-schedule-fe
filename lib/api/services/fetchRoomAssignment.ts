@@ -1,4 +1,5 @@
 import apiService from "../core";
+import { normalizeToSnakeCase } from "../compat";
 import type { RoomType } from "./fetchRounds";
 import { formatInVietnamTime } from "@/lib/utils/formatDate";
 
@@ -97,11 +98,11 @@ function adaptSuggestion(suggestion: Record<string, unknown>): RoomSuggestion {
 export const fetchRoomAssignment = {
   /** GET /sessions?round_id=&version_id= — current BE manager session contract. */
   sessions: async (roundId: string, versionId: string): Promise<RoundSession[]> => {
-    const response = await apiService.get<SessionApi[], { roundId: number; versionId: number }>(
+    const response = await apiService.get<unknown, { roundId: number; versionId: number }>(
       "api/v1/sessions",
       { roundId: Number(roundId), versionId: Number(versionId) }
     );
-    return response.data.map(adaptSession);
+    return normalizeToSnakeCase<SessionApi[]>(response.data).map(adaptSession);
   },
 
   /** GET /rounds/:roundId/rooms/available — spec §28/§65 */

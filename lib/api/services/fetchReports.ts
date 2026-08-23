@@ -98,11 +98,11 @@ export interface ProvenanceResponse {
 export const fetchReports = {
   /** GET /dashboard?semester_id=&round_id= — ADMIN, MANAGER. semester_id bắt buộc theo manager-api.md §3/§10.6, round_id optional */
   dashboard: async (semesterId?: number | null, roundId?: number | null): Promise<DashboardResponse> => {
-    const response = await apiService.get<DashboardResponse, { semesterId?: number; roundId?: number }>(
+    const response = await apiService.get<unknown, { semesterId?: number; roundId?: number }>(
       "api/v1/dashboard",
       { semesterId: semesterId ?? undefined, roundId: roundId ?? undefined }
     );
-    return response.data;
+    return normalizeToSnakeCase<DashboardResponse>(response.data);
   },
 
   /** GET /reports/lecturer-load?semester_id=&round_id= — ADMIN, MANAGER. semester_id bắt buộc theo manager-api.md §3 */
@@ -110,29 +110,29 @@ export const fetchReports = {
     semesterId?: number | null,
     roundId?: number | null
   ): Promise<LecturerLoadReportResponse> => {
-    const response = await apiService.get<LecturerLoadReportResponse, { semesterId?: number; roundId?: number }>(
+    const response = await apiService.get<unknown, { semesterId?: number; roundId?: number }>(
       "api/v1/reports/lecturer-load",
       { semesterId: semesterId ?? undefined, roundId: roundId ?? undefined }
     );
-    return response.data;
+    return normalizeToSnakeCase<LecturerLoadReportResponse>(response.data);
   },
 
   /** GET /reports/unscheduled?semester_id=&round_id= — ADMIN, MANAGER. round_id bắt buộc, semester_id theo checklist §9 */
   unscheduled: async (roundId: number, semesterId?: number | null): Promise<UnscheduledReportResponse> => {
-    const response = await apiService.get<UnscheduledReportResponse, { roundId: number; semesterId?: number }>(
+    const response = await apiService.get<unknown, { roundId: number; semesterId?: number }>(
       "api/v1/reports/unscheduled",
       { roundId, semesterId: semesterId ?? undefined }
     );
-    return response.data;
+    return normalizeToSnakeCase<UnscheduledReportResponse>(response.data);
   },
 
   /** GET /reports/quality?semester_id= — ADMIN, MANAGER. semester_id bắt buộc theo manager-api.md §3 */
   quality: async (semesterId?: number | null): Promise<QualityReportResponse> => {
-    const response = await apiService.get<QualityReportResponse, { semesterId?: number }>(
+    const response = await apiService.get<unknown, { semesterId?: number }>(
       "api/v1/reports/quality",
       { semesterId: semesterId ?? undefined }
     );
-    return response.data;
+    return normalizeToSnakeCase<QualityReportResponse>(response.data);
   },
 
   /** GET /reports/remediation?semester_id=&round_id= — ADMIN, MANAGER. semester_id bắt buộc theo manager-api.md §3 */
@@ -140,29 +140,29 @@ export const fetchReports = {
     semesterId?: number | null,
     roundId?: number | null
   ): Promise<RemediationReportResponse> => {
-    const response = await apiService.get<RemediationReportResponse, { semesterId?: number; roundId?: number }>(
+    const response = await apiService.get<unknown, { semesterId?: number; roundId?: number }>(
       "api/v1/reports/remediation",
       { semesterId: semesterId ?? undefined, roundId: roundId ?? undefined }
     );
-    return response.data;
+    return normalizeToSnakeCase<RemediationReportResponse>(response.data);
   },
 
   /** GET /reports/outcomes?semester_id=&round_id= — ADMIN, MANAGER. semester_id bắt buộc theo manager-api.md §3 */
   outcomes: async (semesterId?: number | null, roundId?: number | null): Promise<OutcomesReportResponse> => {
-    const response = await apiService.get<OutcomesReportResponse, { semesterId?: number; roundId?: number }>(
+    const response = await apiService.get<unknown, { semesterId?: number; roundId?: number }>(
       "api/v1/reports/outcomes",
       { semesterId: semesterId ?? undefined, roundId: roundId ?? undefined }
     );
-    return response.data;
+    return normalizeToSnakeCase<OutcomesReportResponse>(response.data);
   },
 
   /** GET /reports/provenance/{version_id}?semester_id= — tất cả role, Manager luôn trong scope */
   provenance: async (versionId: number, semesterId?: number | null): Promise<ProvenanceResponse> => {
-    const response = await apiService.get<ProvenanceResponse, { semesterId?: number }>(
+    const response = await apiService.get<unknown, { semesterId?: number }>(
       `api/v1/reports/provenance/${versionId}`,
       { semesterId: semesterId ?? undefined }
     );
-    return response.data;
+    return normalizeToSnakeCase<ProvenanceResponse>(response.data);
   },
 
   /** GET /reports/group-progress?semester_id= — CHƯA CÓ Ở BACKEND, đề xuất tại manager-api.md §8.6 */

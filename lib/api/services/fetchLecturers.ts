@@ -74,18 +74,15 @@ export const fetchLecturers = {
 
   /** POST /lecturers — ADMIN only, tạo account + lecturer trong 1 transaction */
   create: async (payload: LecturerCreatePayload): Promise<LecturerCreateResponse> => {
-    const response = await apiService.post<LecturerCreateResponse, LecturerCreatePayload>(
-      "api/v1/lecturers",
-      payload
-    );
-    return response.data;
+    const response = await apiService.post<unknown, LecturerCreatePayload>("api/v1/lecturers", payload);
+    return normalizeToSnakeCase<LecturerCreateResponse>(response.data);
   },
 
   /** POST /lecturers/import — ADMIN, MANAGER. Nhận file .xlsx theo mẫu lecturers_template.xlsx. */
   importFile: async (file: File): Promise<LecturerImportResponse> => {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await apiService.upload<LecturerImportResponse>("api/v1/lecturers/import", formData);
-    return response.data;
+    const response = await apiService.upload<unknown>("api/v1/lecturers/import", formData);
+    return normalizeToSnakeCase<LecturerImportResponse>(response.data);
   },
 };
