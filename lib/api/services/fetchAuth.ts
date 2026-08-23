@@ -27,7 +27,7 @@ export const fetchAuth = {
    * POST /api/v1/auth/login
    */
   login: async (data: LoginPayload): Promise<LoginResponse> => {
-    const response = await apiService.post<LoginResponse>("api/v1/auth/login", data);
+    const response = await apiService.post<LoginResponse, LoginPayload>("api/v1/auth/login", data);
     return response.data;
   },
 
@@ -35,7 +35,7 @@ export const fetchAuth = {
    * POST /api/v1/auth/logout
    */
   logout: async (): Promise<LogoutResponse> => {
-    const response = await apiService.post<LogoutResponse>("api/v1/auth/logout");
+    const response = await apiService.post<LogoutResponse, undefined>("api/v1/auth/logout");
     return response.data;
   },
 

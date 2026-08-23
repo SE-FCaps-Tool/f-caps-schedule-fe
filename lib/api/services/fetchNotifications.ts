@@ -18,13 +18,13 @@ export interface RetryNotificationResponse {
 export const fetchNotifications = {
   /** GET /notifications?limit= — tất cả role. Manager/Admin thấy scope quản lý */
   list: async (limit = 50): Promise<NotificationItem[]> => {
-    const response = await apiService.get<NotificationItem[]>("api/v1/notifications", { limit });
+    const response = await apiService.get<NotificationItem[], { limit: number }>("api/v1/notifications", { limit });
     return response.data;
   },
 
   /** POST /notifications/{notification_id}/retry — ADMIN, MANAGER. Chỉ retry notification FAILED */
   retry: async (notificationId: number): Promise<RetryNotificationResponse> => {
-    const response = await apiService.post<RetryNotificationResponse>(
+    const response = await apiService.post<RetryNotificationResponse, undefined>(
       `api/v1/notifications/${notificationId}/retry`
     );
     return response.data;

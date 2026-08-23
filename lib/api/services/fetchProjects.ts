@@ -109,7 +109,7 @@ export const fetchProjects = {
     semesterId: string,
     params?: ProjectListParams
   ): Promise<{ data: ProjectListItem[]; meta?: ProjectListMeta }> => {
-    const response = await apiService.get<{ data: ProjectListItem[]; meta?: ProjectListMeta }>(
+    const response = await apiService.get<{ data: ProjectListItem[]; meta?: ProjectListMeta }, ProjectListParams>(
       `api/v1/semesters/${semesterId}/projects`,
       params
     );
@@ -118,7 +118,7 @@ export const fetchProjects = {
 
   /** POST /semesters/:semesterId/projects — spec §17/§47. Trạng thái khởi tạo luôn DRAFT */
   create: async (semesterId: string, payload: ProjectCreatePayload): Promise<ProjectCreateResponse> => {
-    const response = await apiService.post<{ data: ProjectCreateResponse }>(
+    const response = await apiService.post<{ data: ProjectCreateResponse }, ProjectCreatePayload>(
       `api/v1/semesters/${semesterId}/projects`,
       payload
     );

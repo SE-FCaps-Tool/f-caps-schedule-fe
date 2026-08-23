@@ -22,12 +22,7 @@ export interface AuditListParams {
 export const fetchAudit = {
   /** GET /audit?actor_id=&action=&entity_type=&limit= — ADMIN only */
   list: async (params?: AuditListParams): Promise<AuditEntryApi[]> => {
-    const response = await apiService.get<AuditEntryApi[]>("api/v1/audit", {
-      actor_id: params?.actorId,
-      action: params?.action,
-      entity_type: params?.entityType,
-      limit: params?.limit,
-    });
+    const response = await apiService.get<AuditEntryApi[], AuditListParams>("api/v1/audit", params);
     return response.data;
   },
 };

@@ -561,7 +561,7 @@ export const fetchRounds = {
     semesterId: string,
     params?: { page?: number; pageSize?: number },
   ): Promise<{ data: RoundListItem[]; meta?: RoundListMeta }> => {
-    const response = await apiService.get<unknown>(
+    const response = await apiService.get<unknown, { page?: number; pageSize?: number }>(
       `api/v1/semesters/${semesterId}/rounds`,
       params,
     );
@@ -589,7 +589,7 @@ export const fetchRounds = {
     semesterId: string,
     payload: RoundCreatePayload,
   ): Promise<RoundCreateResponse> => {
-    const response = await apiService.post<{ data: RoundCreateResponse }>(
+    const response = await apiService.post<{ data: RoundCreateResponse }, RoundCreatePayload>(
       `api/v1/semesters/${semesterId}/rounds`,
       payload,
     );

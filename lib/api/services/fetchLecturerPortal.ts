@@ -101,12 +101,10 @@ export const fetchLecturerPortal = {
    * council/reviewer/myRole — BE tự lọc theo lecturer đăng nhập, không cần lecturerId.
    */
   mySessions: async (params: MySessionsParams): Promise<LecturerScheduleSession[]> => {
-    const response = await apiService.get<{ data: LecturerSessionApi[] }>("api/v1/lecturer/me/sessions", {
-      roundId: params.roundId,
-      dateFrom: params.dateFrom,
-      dateTo: params.dateTo,
-      status: params.status,
-    });
+    const response = await apiService.get<{ data: LecturerSessionApi[] }, MySessionsParams>(
+      "api/v1/lecturer/me/sessions",
+      params
+    );
     return response.data.data.map(adaptLecturerSession);
   },
 

@@ -97,19 +97,19 @@ function adaptSuggestion(suggestion: Record<string, unknown>): RoomSuggestion {
 export const fetchRoomAssignment = {
   /** GET /sessions?round_id=&version_id= — current BE manager session contract. */
   sessions: async (roundId: string, versionId: string): Promise<RoundSession[]> => {
-    const response = await apiService.get<SessionApi[]>("api/v1/sessions", {
-      round_id: Number(roundId),
-      version_id: Number(versionId),
-    });
+    const response = await apiService.get<SessionApi[], { roundId: number; versionId: number }>(
+      "api/v1/sessions",
+      { roundId: Number(roundId), versionId: Number(versionId) }
+    );
     return response.data.map(adaptSession);
   },
 
   /** GET /rounds/:roundId/rooms/available — spec §28/§65 */
   availableRooms: async (roundId: string, params?: AvailableRoomsParams): Promise<AssignableRoom[]> => {
-    const response = await apiService.get<{ data: Array<AssignableRoom & { room_type?: RoomType; active?: boolean }> }>(
-      `api/v1/rounds/${roundId}/rooms/available`,
-      params
-    );
+    const response = await apiService.get<
+      { data: Array<AssignableRoom & { room_type?: RoomType; active?: boolean }> },
+      AvailableRoomsParams
+    >(`api/v1/rounds/${roundId}/rooms/available`, params);
     return response.data.data.map((room) => ({
       ...room,
       id: String(room.id),
@@ -125,7 +125,9 @@ export const fetchRoomAssignment = {
 
   /** POST /rounds/:roundId/rooms/suggest — spec §28/§67. Không ảnh hưởng điểm solver, chỉ tính gợi ý để preview */
   suggestRooms: async (roundId: string): Promise<RoomSuggestion[]> => {
-    const response = await apiService.post<{ data: { suggestions: Record<string, unknown>[] } }>(`api/v1/rounds/${roundId}/rooms/suggest`);
+    const response = await apiService.post<{ data: { suggestions: Record<string, unknown>[] } }, undefined>(
+      `api/v1/rounds/${roundId}/rooms/suggest`
+    );
     return (response.data.data.suggestions ?? []).map(adaptSuggestion);
   },
 

@@ -1,6 +1,6 @@
 import type { AxiosResponse } from "axios";
 import apiService from "../core";
-import { snakeizeKeys } from "../caseConvert";
+import { normalizeToSnakeCase } from "../compat";
 
 export interface DashboardResponse {
   /** manager-api.md §10.6 */
@@ -98,10 +98,10 @@ export interface ProvenanceResponse {
 export const fetchReports = {
   /** GET /dashboard?semester_id=&round_id= — ADMIN, MANAGER. semester_id bắt buộc theo manager-api.md §3/§10.6, round_id optional */
   dashboard: async (semesterId?: number | null, roundId?: number | null): Promise<DashboardResponse> => {
-    const response = await apiService.get<DashboardResponse>("api/v1/dashboard", {
-      semester_id: semesterId ?? undefined,
-      round_id: roundId ?? undefined,
-    });
+    const response = await apiService.get<DashboardResponse, { semesterId?: number; roundId?: number }>(
+      "api/v1/dashboard",
+      { semesterId: semesterId ?? undefined, roundId: roundId ?? undefined }
+    );
     return response.data;
   },
 
@@ -110,27 +110,28 @@ export const fetchReports = {
     semesterId?: number | null,
     roundId?: number | null
   ): Promise<LecturerLoadReportResponse> => {
-    const response = await apiService.get<LecturerLoadReportResponse>("api/v1/reports/lecturer-load", {
-      semester_id: semesterId ?? undefined,
-      round_id: roundId ?? undefined,
-    });
+    const response = await apiService.get<LecturerLoadReportResponse, { semesterId?: number; roundId?: number }>(
+      "api/v1/reports/lecturer-load",
+      { semesterId: semesterId ?? undefined, roundId: roundId ?? undefined }
+    );
     return response.data;
   },
 
   /** GET /reports/unscheduled?semester_id=&round_id= — ADMIN, MANAGER. round_id bắt buộc, semester_id theo checklist §9 */
   unscheduled: async (roundId: number, semesterId?: number | null): Promise<UnscheduledReportResponse> => {
-    const response = await apiService.get<UnscheduledReportResponse>("api/v1/reports/unscheduled", {
-      round_id: roundId,
-      semester_id: semesterId ?? undefined,
-    });
+    const response = await apiService.get<UnscheduledReportResponse, { roundId: number; semesterId?: number }>(
+      "api/v1/reports/unscheduled",
+      { roundId, semesterId: semesterId ?? undefined }
+    );
     return response.data;
   },
 
   /** GET /reports/quality?semester_id= — ADMIN, MANAGER. semester_id bắt buộc theo manager-api.md §3 */
   quality: async (semesterId?: number | null): Promise<QualityReportResponse> => {
-    const response = await apiService.get<QualityReportResponse>("api/v1/reports/quality", {
-      semester_id: semesterId ?? undefined,
-    });
+    const response = await apiService.get<QualityReportResponse, { semesterId?: number }>(
+      "api/v1/reports/quality",
+      { semesterId: semesterId ?? undefined }
+    );
     return response.data;
   },
 
@@ -139,27 +140,28 @@ export const fetchReports = {
     semesterId?: number | null,
     roundId?: number | null
   ): Promise<RemediationReportResponse> => {
-    const response = await apiService.get<RemediationReportResponse>("api/v1/reports/remediation", {
-      semester_id: semesterId ?? undefined,
-      round_id: roundId ?? undefined,
-    });
+    const response = await apiService.get<RemediationReportResponse, { semesterId?: number; roundId?: number }>(
+      "api/v1/reports/remediation",
+      { semesterId: semesterId ?? undefined, roundId: roundId ?? undefined }
+    );
     return response.data;
   },
 
   /** GET /reports/outcomes?semester_id=&round_id= — ADMIN, MANAGER. semester_id bắt buộc theo manager-api.md §3 */
   outcomes: async (semesterId?: number | null, roundId?: number | null): Promise<OutcomesReportResponse> => {
-    const response = await apiService.get<OutcomesReportResponse>("api/v1/reports/outcomes", {
-      semester_id: semesterId ?? undefined,
-      round_id: roundId ?? undefined,
-    });
+    const response = await apiService.get<OutcomesReportResponse, { semesterId?: number; roundId?: number }>(
+      "api/v1/reports/outcomes",
+      { semesterId: semesterId ?? undefined, roundId: roundId ?? undefined }
+    );
     return response.data;
   },
 
   /** GET /reports/provenance/{version_id}?semester_id= — tất cả role, Manager luôn trong scope */
   provenance: async (versionId: number, semesterId?: number | null): Promise<ProvenanceResponse> => {
-    const response = await apiService.get<ProvenanceResponse>(`api/v1/reports/provenance/${versionId}`, {
-      semester_id: semesterId ?? undefined,
-    });
+    const response = await apiService.get<ProvenanceResponse, { semesterId?: number }>(
+      `api/v1/reports/provenance/${versionId}`,
+      { semesterId: semesterId ?? undefined }
+    );
     return response.data;
   },
 
@@ -169,8 +171,8 @@ export const fetchReports = {
    * hay chưa (xem docs/be-checklist-open-questions.md mục 6) — chấp nhận cả 2 dạng cho an toàn.
    */
   groupProgress: async (semesterId?: number | null): Promise<GroupProgressRow[]> => {
-    const response = await apiService.get<unknown>("api/v1/reports/group-progress", {
-      semester_id: semesterId ?? undefined,
+    const response = await apiService.get<unknown, { semesterId?: number }>("api/v1/reports/group-progress", {
+      semesterId: semesterId ?? undefined,
     });
     const raw = response.data;
     const list = Array.isArray(raw)
@@ -178,7 +180,7 @@ export const fetchReports = {
       : raw && typeof raw === "object" && Array.isArray((raw as { data?: unknown }).data)
         ? (raw as { data: unknown[] }).data
         : [];
-    return snakeizeKeys<GroupProgressRow[]>(list);
+    return normalizeToSnakeCase<GroupProgressRow[]>(list);
   },
 
   /**

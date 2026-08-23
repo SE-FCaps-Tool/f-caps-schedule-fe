@@ -282,37 +282,38 @@ export const fetchScheduling = {
     payload: ScheduleRunPayload = {},
     semesterId?: number | null
   ): Promise<ScheduleRunResponse> => {
-    const response = await apiService.post<ScheduleRunResponse>(
+    const response = await apiService.post<ScheduleRunResponse, ScheduleRunPayload, { semesterId?: number }>(
       `api/v1/rounds/${roundId}/schedule/run`,
       payload,
-      { semester_id: semesterId ?? undefined }
+      { semesterId: semesterId ?? undefined }
     );
     return response.data;
   },
 
   /** GET /rounds/{round_id}/schedule/versions?semester_id= — tất cả role, Manager thấy mọi version */
   versions: async (roundId: number, semesterId?: number | null): Promise<ScheduleVersionSummary[]> => {
-    const response = await apiService.get<ScheduleVersionSummary[]>(
+    const response = await apiService.get<ScheduleVersionSummary[], { semesterId?: number }>(
       `api/v1/rounds/${roundId}/schedule/versions`,
-      { semester_id: semesterId ?? undefined }
+      { semesterId: semesterId ?? undefined }
     );
     return response.data;
   },
 
   /** GET /schedule/versions/{version_id}?semester_id= — nguồn dữ liệu chính cho Calendar */
   versionDetail: async (versionId: number, semesterId?: number | null): Promise<ScheduleVersionDetail> => {
-    const response = await apiService.get<ScheduleVersionDetail>(`api/v1/schedule/versions/${versionId}`, {
-      semester_id: semesterId ?? undefined,
-    });
+    const response = await apiService.get<ScheduleVersionDetail, { semesterId?: number }>(
+      `api/v1/schedule/versions/${versionId}`,
+      { semesterId: semesterId ?? undefined }
+    );
     return response.data;
   },
 
   /** POST /schedule/versions/{version_id}/activate?semester_id= — ADMIN, MANAGER. Chỉ version VALID */
   activate: async (versionId: number, semesterId?: number | null): Promise<ActivateVersionResponse> => {
-    const response = await apiService.post<ActivateVersionResponse>(
+    const response = await apiService.post<ActivateVersionResponse, undefined, { semesterId?: number }>(
       `api/v1/schedule/versions/${versionId}/activate`,
       undefined,
-      { semester_id: semesterId ?? undefined }
+      { semesterId: semesterId ?? undefined }
     );
     return response.data;
   },
@@ -323,10 +324,10 @@ export const fetchScheduling = {
     versionId: number,
     semesterId?: number | null
   ): Promise<PublishVersionResponse> => {
-    const response = await apiService.post<PublishVersionResponse>(
+    const response = await apiService.post<PublishVersionResponse, undefined, { semesterId?: number }>(
       `api/v1/rounds/${roundId}/schedule/publish/${versionId}`,
       undefined,
-      { semester_id: semesterId ?? undefined }
+      { semesterId: semesterId ?? undefined }
     );
     return response.data;
   },
@@ -341,10 +342,10 @@ export const fetchScheduling = {
     payload: SessionEditPayload,
     semesterId?: number | null
   ): Promise<SessionEditResponse> => {
-    const response = await apiService.post<SessionEditResponse>(
+    const response = await apiService.post<SessionEditResponse, SessionEditPayload, { semesterId?: number }>(
       `api/v1/schedule/versions/${versionId}/sessions/${sessionId}/edit`,
       payload,
-      { semester_id: semesterId ?? undefined }
+      { semesterId: semesterId ?? undefined }
     );
     return response.data;
   },
@@ -359,19 +360,20 @@ export const fetchScheduling = {
     payload: SessionEditPayload,
     semesterId?: number | null
   ): Promise<ControlledChangeResponse> => {
-    const response = await apiService.post<ControlledChangeResponse>(
+    const response = await apiService.post<ControlledChangeResponse, SessionEditPayload, { semesterId?: number }>(
       `api/v1/schedule/versions/${versionId}/sessions/${sessionId}/controlled-change`,
       payload,
-      { semester_id: semesterId ?? undefined }
+      { semesterId: semesterId ?? undefined }
     );
     return response.data;
   },
 
   /** DELETE /schedule/versions/{version_id}?semester_id= — ADMIN, MANAGER. 409 nếu version có dependency */
   deleteVersion: async (versionId: number, semesterId?: number | null): Promise<DeleteVersionResponse> => {
-    const response = await apiService.delete<DeleteVersionResponse>(`api/v1/schedule/versions/${versionId}`, {
-      semester_id: semesterId ?? undefined,
-    });
+    const response = await apiService.delete<DeleteVersionResponse, { semesterId?: number }>(
+      `api/v1/schedule/versions/${versionId}`,
+      { semesterId: semesterId ?? undefined }
+    );
     return response.data;
   },
 
@@ -392,7 +394,7 @@ export const fetchScheduling = {
     sessionId: number,
     payload: ResultOwnerPayload
   ): Promise<ResultOwnerResponse> => {
-    const response = await apiService.post<ResultOwnerResponse>(
+    const response = await apiService.post<ResultOwnerResponse, ResultOwnerPayload>(
       `api/v1/schedule/versions/${versionId}/sessions/${sessionId}/result-owner`,
       payload
     );
@@ -405,7 +407,7 @@ export const fetchScheduling = {
     groupId: number,
     payload: H11WaiverPayload
   ): Promise<H11WaiverResponse> => {
-    const response = await apiService.post<H11WaiverResponse>(
+    const response = await apiService.post<H11WaiverResponse, H11WaiverPayload>(
       `api/v1/rounds/${roundId}/groups/${groupId}/h11-waiver`,
       payload
     );
@@ -426,10 +428,10 @@ export const fetchScheduling = {
     payload: PostponeSessionPayload,
     semesterId?: number | null
   ): Promise<PostponeSessionResponse> => {
-    const response = await apiService.post<PostponeSessionResponse>(
+    const response = await apiService.post<PostponeSessionResponse, PostponeSessionPayload, { semesterId?: number }>(
       `api/v1/sessions/${sessionId}/postpone`,
       payload,
-      { semester_id: semesterId ?? undefined }
+      { semesterId: semesterId ?? undefined }
     );
     return response.data;
   },
@@ -440,17 +442,17 @@ export const fetchScheduling = {
     payload: RescheduleDecisionPayload,
     semesterId?: number | null
   ): Promise<RescheduleDecisionResponse> => {
-    const response = await apiService.post<RescheduleDecisionResponse>(
-      `api/v1/reschedule-requests/${requestId}/decision`,
-      payload,
-      { semester_id: semesterId ?? undefined }
-    );
+    const response = await apiService.post<
+      RescheduleDecisionResponse,
+      RescheduleDecisionPayload,
+      { semesterId?: number }
+    >(`api/v1/reschedule-requests/${requestId}/decision`, payload, { semesterId: semesterId ?? undefined });
     return response.data;
   },
 
   /** POST /rounds/{round_id}/operation — ADMIN, MANAGER. action: POSTPONED | CANCELLED */
   roundOperation: async (roundId: number, payload: RoundOperationPayload): Promise<RoundOperationResponse> => {
-    const response = await apiService.post<RoundOperationResponse>(
+    const response = await apiService.post<RoundOperationResponse, RoundOperationPayload>(
       `api/v1/rounds/${roundId}/operation`,
       payload
     );
@@ -470,7 +472,7 @@ export const fetchScheduling = {
     // The running BE exposes the durable scheduler at /schedule/run. Keep the
     // phase-4 method name so existing UI hooks remain stable, but adapt the
     // legacy response into the model used by this page.
-    const response = await apiService.post<ScheduleRunResponse>(
+    const response = await apiService.post<ScheduleRunResponse, ScheduleRunPayload>(
       `api/v1/rounds/${roundId}/schedule/run`,
       {}
     );

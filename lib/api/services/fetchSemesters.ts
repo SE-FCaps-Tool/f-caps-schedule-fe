@@ -1,5 +1,5 @@
 import apiService from "../core";
-import { snakeizeKeys } from "../caseConvert";
+import { normalizeToSnakeCase } from "../compat";
 import type { ListMeta, ListResponse } from "@/types/api";
 
 /**
@@ -76,14 +76,17 @@ export const fetchSemesters = {
    * (xem docs/be-checklist-open-questions.md mục 6) — unwrap + snakeize để khớp SemesterApiItem.
    */
   list: async (params?: SemesterListParams): Promise<ListResponse<SemesterApiItem>> => {
-    const response = await apiService.get<{ data: unknown[]; meta?: ListMeta }>("api/v1/semesters", {
-      search: params?.search || undefined,
-      status: params?.status,
-      academic_year: params?.academicYear || undefined,
-      page: params?.page,
-      pageSize: params?.pageSize,
-    });
-    return { data: snakeizeKeys<SemesterApiItem[]>(response.data.data), meta: response.data.meta };
+    const response = await apiService.get<{ data: unknown[]; meta?: ListMeta }, SemesterListParams>(
+      "api/v1/semesters",
+      {
+        search: params?.search || undefined,
+        status: params?.status,
+        academicYear: params?.academicYear || undefined,
+        page: params?.page,
+        pageSize: params?.pageSize,
+      }
+    );
+    return { data: normalizeToSnakeCase<SemesterApiItem[]>(response.data.data), meta: response.data.meta };
   },
 
   /** GET /semesters/{id} — ADMIN, MANAGER */
@@ -99,13 +102,13 @@ export const fetchSemesters = {
    * backend trả 422 SEMESTER_DURATION_INVALID.
    */
   create: async (payload: SemesterCreatePayload): Promise<SemesterApiItem> => {
-    const response = await apiService.post<SemesterApiItem>("api/v1/semesters", payload);
+    const response = await apiService.post<SemesterApiItem, SemesterCreatePayload>("api/v1/semesters", payload);
     return response.data;
   },
 
   /** PATCH /semesters/{id} — ADMIN, MANAGER. Sửa ngày sẽ tính lại academic_year và kiểm tra duration */
   update: async (id: number, payload: SemesterUpdatePayload): Promise<SemesterApiItem> => {
-    const response = await apiService.patch<SemesterApiItem>(`api/v1/semesters/${id}`, payload);
+    const response = await apiService.patch<SemesterApiItem, SemesterUpdatePayload>(`api/v1/semesters/${id}`, payload);
     return response.data;
   },
 
@@ -114,7 +117,7 @@ export const fetchSemesters = {
     id: number,
     payload: SemesterTransitionPayload
   ): Promise<Pick<SemesterApiItem, "id" | "status">> => {
-    const response = await apiService.post<Pick<SemesterApiItem, "id" | "status">>(
+    const response = await apiService.post<Pick<SemesterApiItem, "id" | "status">, SemesterTransitionPayload>(
       `api/v1/semesters/${id}/transition`,
       payload
     );
@@ -127,7 +130,7 @@ export const fetchSemesters = {
    * advisory lock). Nếu target đã ACTIVE thì idempotent, chỉ trả lại resource.
    */
   setCurrent: async (id: number): Promise<SemesterApiItem> => {
-    const response = await apiService.post<SemesterApiItem>(`api/v1/semesters/${id}/set-current`, undefined);
+    const response = await apiService.post<SemesterApiItem, undefined>(`api/v1/semesters/${id}/set-current`, undefined);
     return response.data;
   },
 };

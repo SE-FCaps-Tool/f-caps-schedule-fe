@@ -1,7 +1,7 @@
 import apiService from "../core";
 import type { RoomType } from "./fetchRounds";
 import type { RoomStatus } from "./fetchRoomAssignment";
-import { snakeizeKeys } from "../caseConvert";
+import { normalizeToSnakeCase } from "../compat";
 import type { ListMeta, ListResponse } from "@/types/api";
 
 export interface RoomApiItem {
@@ -40,19 +40,22 @@ export const fetchRooms = {
    * (xem docs/be-checklist-open-questions.md mục 6) — unwrap + snakeize để khớp RoomApiItem.
    */
   list: async (params?: RoomListParams): Promise<ListResponse<RoomApiItem>> => {
-    const response = await apiService.get<{ data: unknown[]; meta?: ListMeta }>("api/v1/rooms", params);
-    return { data: snakeizeKeys<RoomApiItem[]>(response.data.data), meta: response.data.meta };
+    const response = await apiService.get<{ data: unknown[]; meta?: ListMeta }, RoomListParams>(
+      "api/v1/rooms",
+      params
+    );
+    return { data: normalizeToSnakeCase<RoomApiItem[]>(response.data.data), meta: response.data.meta };
   },
 
   /** POST /rooms — ADMIN only */
   create: async (payload: RoomCreatePayload): Promise<RoomApiItem> => {
-    const response = await apiService.post<RoomApiItem>("api/v1/rooms", payload);
+    const response = await apiService.post<RoomApiItem, RoomCreatePayload>("api/v1/rooms", payload);
     return response.data;
   },
 
   /** PATCH /rooms/:roomId — ADMIN, MANAGER */
   update: async (roomId: number, payload: RoomUpdatePayload): Promise<RoomApiItem> => {
-    const response = await apiService.patch<RoomApiItem>(`api/v1/rooms/${roomId}`, payload);
+    const response = await apiService.patch<RoomApiItem, RoomUpdatePayload>(`api/v1/rooms/${roomId}`, payload);
     return response.data;
   },
 };
