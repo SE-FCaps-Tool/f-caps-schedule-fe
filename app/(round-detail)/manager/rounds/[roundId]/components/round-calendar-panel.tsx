@@ -6,6 +6,7 @@ import { CalendarDays, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RoundDetail } from "@/lib/api/services/fetchRounds";
 import { RoundAvailabilityHeatmap } from "./round-availability-heatmap";
+import { ScheduleVariantsPanel } from "./schedule-variants-panel";
 
 type RoundCalendarTab = "registrations" | "manual-schedule";
 
@@ -20,6 +21,7 @@ export function RoundCalendarPanel({ roundId, round }: { roundId: string; round:
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
+      <ScheduleVariantsPanel roundId={roundId} round={round} />
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/60 p-1" role="tablist" aria-label="Lịch round">
           {TABS.map((tab) => {

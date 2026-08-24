@@ -1,6 +1,6 @@
 import apiService from "../core";
 
-export type ScheduleVersionStatus = "VALID" | "PUBLISHED" | "SUPERSEDED";
+export type ScheduleVersionStatus = "DRAFT" | "VALID" | "ACTIVE" | "PUBLISHED" | "SUPERSEDED";
 export type SessionStatus = "SCHEDULED" | "ONGOING" | "COMPLETED" | "POSTPONED";
 
 /**
@@ -103,6 +103,17 @@ export interface ScheduleRunPayload {
   time_limit_seconds?: number;
 }
 
+export type ScheduleObjectiveProfile = "LECTURER_COMPACT" | "LOAD_BALANCED" | "EARLY_FINISH";
+
+export interface ScheduleVariantMetrics {
+  reviewerBlockCount: number;
+  reviewerIdleMinutes: number;
+  reviewerLoadSpread: number;
+  reviewerMinuteSpread: number;
+  latestEndAt: string | null;
+  scheduledGroups: number;
+}
+
 /** Khớp dataclass `UnscheduledReason` (BE models.py) — KHÔNG có group_id/group_code/reason. */
 export interface UnscheduledGroupReason {
   code: string;
@@ -116,6 +127,24 @@ export interface ScheduleRunResponse {
   scheduledCount: number;
   unscheduled: UnscheduledGroupReason[];
   softScores: Record<string, number>;
+  objectiveProfile: ScheduleObjectiveProfile;
+  objectiveLabel: string;
+  metrics: ScheduleVariantMetrics;
+  versions: ScheduleVariantSummary[];
+}
+
+export interface ScheduleVariantSummary {
+  versionId: number;
+  versionNo: number;
+  status: ScheduleVersionStatus;
+  objectiveProfile: ScheduleObjectiveProfile;
+  objectiveLabel: string;
+  scheduledCount: number;
+  unscheduledCount: number;
+  unscheduled: UnscheduledGroupReason[];
+  objective: number;
+  softScores: Record<string, number>;
+  metrics: ScheduleVariantMetrics;
 }
 
 export interface ScheduleVersionSummary {
@@ -133,6 +162,11 @@ export interface ScheduleVersionSummary {
   randomSeed: number;
   createdAt: string;
   activatedAt: string | null;
+  objectiveProfile?: ScheduleObjectiveProfile;
+  objectiveLabel?: string;
+  metrics?: ScheduleVariantMetrics;
+  scheduledCount?: number;
+  unscheduledCount?: number;
 }
 
 export interface ScheduleSession {
