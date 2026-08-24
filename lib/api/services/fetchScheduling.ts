@@ -99,8 +99,8 @@ export interface CreateMakeupSessionPayload {
 }
 
 export interface ScheduleRunPayload {
-  random_seed?: number;
-  time_limit_seconds?: number;
+  randomSeed?: number;
+  timeLimitSeconds?: number;
 }
 
 export type ScheduleObjectiveProfile = "LECTURER_COMPACT" | "LOAD_BALANCED" | "EARLY_FINISH";
@@ -226,10 +226,10 @@ export interface PublishVersionResponse {
 }
 
 export interface SessionEditPayload {
-  timeslot_id?: number;
-  room_id?: number;
-  reviewer_ids?: number[];
-  result_owner_id?: number;
+  timeslotId?: number;
+  roomId?: number;
+  reviewerIds?: number[];
+  resultOwnerId?: number;
   reason: string;
 }
 
@@ -254,7 +254,7 @@ export interface ReplacementSuggestion {
 }
 
 export interface ResultOwnerPayload {
-  lecturer_id: number;
+  lecturerId: number;
 }
 
 export interface ResultOwnerResponse {

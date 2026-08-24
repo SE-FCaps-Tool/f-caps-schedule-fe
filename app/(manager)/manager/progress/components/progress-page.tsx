@@ -113,7 +113,7 @@ export function ProgressPage() {
                       <DefenseCell outcome={group.review3} />
                     </TableCell>
                     <TableCell className={cn("pr-4", group.groupStatus === "FAILED" ? "font-medium text-destructive" : "text-muted-foreground")}>
-                      {group.next_step}
+                      {group.nextStep}
                     </TableCell>
                   </TableRow>
                 ))}

@@ -1,7 +1,7 @@
 import apiService from "../core";
 
 export interface ConflictCreatePayload {
-  project_id: number;
+  projectId: number;
   reason: string;
 }
 
@@ -13,7 +13,7 @@ export interface ConflictCreateResponse {
 
 export const fetchConflicts = {
   /**
-   * POST /lecturers/{lecturer_id}/conflicts — ADMIN, MANAGER, LECTURER.
+   * POST /lecturers/{lecturerId}/conflicts — ADMIN, MANAGER, LECTURER.
    * Lecturer chỉ khai cho chính mình; Manager/Admin khai thay được. Dùng để loại
    * candidate Reviewer khi chạy scheduler (ràng buộc H8).
    */

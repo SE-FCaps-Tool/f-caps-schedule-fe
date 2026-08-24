@@ -104,9 +104,9 @@ test("adaptSupervisedProject maps group with leader and members, nulls out field
       code: "PRJ001",
       title: "Demo project",
       status: "ACTIVE",
-      semester_id: 1,
-      semester_code: "SE-2026-2027",
-      supervisor_type: "MAIN",
+      semesterId: 1,
+      semesterCode: "SE-2026-2027",
+      supervisorType: "MAIN",
       group: {
         id: 7,
         code: "G01",
@@ -148,7 +148,7 @@ test("adaptSupervisedProject keeps group null when BE hasn't formed a group yet"
       code: "PRJ002",
       title: "Demo project 2",
       status: "ACTIVE",
-      supervisor_type: "CO",
+      supervisorType: "CO",
       group: null,
     })
   ).toEqual({

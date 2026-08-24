@@ -23,7 +23,7 @@ export interface SemesterApiItem {
   note: string | null;
   startDate: string;
   endDate: string;
-  /** "YYYY-YYYY", backend tự suy ra từ start_date */
+  /** "YYYY-YYYY", backend tự suy ra từ startDate */
   academicYear: string;
   status: SemesterStatus;
   projectCount: number;
@@ -49,8 +49,8 @@ export interface SemesterCreatePayload {
   name: string;
   /** Optional — backend tự set status=ACTIVE và suy ra academic_year, không truyền trong request */
   note?: string;
-  start_date: string;
-  end_date: string;
+  startDate: string;
+  endDate: string;
 }
 
 /** PATCH /semesters/{id} — mọi field optional, không sửa được status trực tiếp */
@@ -58,21 +58,21 @@ export interface SemesterUpdatePayload {
   code?: string;
   name?: string;
   note?: string;
-  start_date?: string;
-  end_date?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface SemesterTransitionPayload {
   /** Chỉ ACTIVE -> CLOSED hợp lệ */
-  target_status: "CLOSED";
+  targetStatus: "CLOSED";
   reason: string;
 }
 
 export const fetchSemesters = {
   /**
-   * GET /semesters — ADMIN, MANAGER. Hỗ trợ search/status/academic_year filter.
+   * GET /semesters — ADMIN, MANAGER. Hỗ trợ search/status/academicYear filter.
    * BE trả `{data: [...camelCase], meta: {page,pageSize,total}}` qua success_payload()
-   * (xem docs/be-checklist-open-questions.md mục 6) — unwrap + snakeize để khớp SemesterApiItem.
+   * Response đã là camelCase theo contract BE.
    */
   list: async (params?: SemesterListParams): Promise<ListResponse<SemesterApiItem>> => {
     const response = await apiService.get<{ data: SemesterApiItem[]; meta?: ListMeta }, SemesterListParams>(
@@ -97,7 +97,7 @@ export const fetchSemesters = {
   /**
    * POST /semesters — backend luôn tạo với status ACTIVE. Tạo mới khi đã có
    * semester ACTIVE khác trả 409 ACTIVE_SEMESTER_EXISTS. Thời lượng
-   * end_date - start_date + 1 phải nằm trong [105, 120] ngày, nếu không
+   * endDate - startDate + 1 phải nằm trong [105, 120] ngày, nếu không
    * backend trả 422 SEMESTER_DURATION_INVALID.
    */
   create: async (payload: SemesterCreatePayload): Promise<SemesterApiItem> => {

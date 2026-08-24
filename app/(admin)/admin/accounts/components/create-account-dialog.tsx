@@ -34,7 +34,7 @@ export function CreateAccountDialog() {
   function handleSave() {
     if (!canSave || !role) return;
     mutate(
-      { email: email.trim(), display_name: displayName.trim(), password, role },
+      { email: email.trim(), displayName: displayName.trim(), password, role },
       {
         onSuccess: () => {
           setOpen(false);

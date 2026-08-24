@@ -80,9 +80,9 @@ export interface SessionResultResponse {
 export interface ResultPayload {
   outcome: string;
   note?: string;
-  remediation_due_at?: string | null;
-  verifier_lecturer_id?: number | null;
-  correction_reason?: string | null;
+  remediationDueAt?: string | null;
+  verifierLecturerId?: number | null;
+  correctionReason?: string | null;
 }
 
 export interface ResultSubmitResponse {
@@ -115,7 +115,7 @@ export interface OverdueFailResponse {
 }
 
 export const fetchResults = {
-  /** GET /sessions/{session_id}/result?semester_id= — tất cả role, chỉ trong scope actor */
+  /** GET /sessions/{sessionId}/result?semesterId= — tất cả role, chỉ trong scope actor */
   sessionResult: async (sessionId: number, semesterId?: number | null): Promise<SessionResultResponse> => {
     const response = await apiService.get<SessionResultResponse, { semesterId?: number }>(
       `api/v1/sessions/${sessionId}/result`,
@@ -125,9 +125,9 @@ export const fetchResults = {
   },
 
   /**
-   * POST /sessions/{session_id}/result?semester_id= — MANAGER, LECTURER.
-   * D1.1 outcome LEVEL_2 bắt buộc remediation_due_at + verifier_lecturer_id (mục 8.3 Business Rules).
-   * Sửa result đã tồn tại: chỉ Manager, bắt buộc correction_reason.
+   * POST /sessions/{sessionId}/result?semesterId= — MANAGER, LECTURER.
+   * D1.1 outcome LEVEL_2 bắt buộc remediationDueAt + verifierLecturerId (mục 8.3 Business Rules).
+   * Sửa result đã tồn tại: chỉ Manager, bắt buộc correctionReason.
    */
   submitResult: async (
     sessionId: number,
@@ -144,10 +144,7 @@ export const fetchResults = {
 
   /**
    * GET /remediation — tất cả role, Manager thấy tất cả case.
-   * BE có thể trả mảng phẳng HOẶC `{data: [...], meta}` qua success_payload() tuỳ đã migrate
-   * hay chưa (xem docs/be-checklist-open-questions.md mục 6) — chấp nhận cả 2 dạng cho an toàn.
-   * `normalizeToSnakeCase` không đổi gì nếu field đã là snake_case, nên áp dụng vô điều kiện
-   * không rủi ro.
+   * BE trả mảng phẳng hoặc `{data: [...]}`; cả hai đều dùng cùng field camelCase.
    */
   remediation: async (): Promise<RemediationCase[]> => {
     const response = await apiService.get<unknown>("api/v1/remediation");

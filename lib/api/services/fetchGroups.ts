@@ -174,8 +174,7 @@ function pick(record: ApiRecord, ...keys: string[]): unknown {
 
 /**
  * Spec (§14) chỉ vẽ bảng "MSSV / Họ tên / Vai trò / Trạng thái", không có JSON mẫu — FE tự đặt
- * camelCase. Thực tế BE trả `studentCode` nhưng họ tên nằm ở key khác (UI hiện ra "— undefined"),
- * nên dò qua các cách đặt tên thường gặp, kể cả khi student bị lồng trong object con.
+ * camelCase. Họ tên có thể nằm trong `student` theo contract của legacy members endpoint.
  */
 let warnedMissingMemberName = false;
 
@@ -184,8 +183,8 @@ function normalizeMember(value: unknown): GroupMemberDetail {
   const student = isRecord(pick(record, "student")) ? (pick(record, "student") as ApiRecord) : {};
 
   const fullName =
-    pick(record, "fullName", "full_name", "displayName", "display_name", "name", "studentName", "student_name") ??
-    pick(student, "fullName", "full_name", "displayName", "display_name", "name");
+    pick(record, "fullName", "displayName", "name", "studentName") ??
+    pick(student, "fullName", "displayName", "name");
 
   // Danh sách key ở trên là suy đoán. Nếu không khớp, in ra key thật BE trả (1 lần) để biết
   // phải bổ sung tên nào, thay vì im lặng hiển thị mỗi MSSV.
@@ -199,14 +198,14 @@ function normalizeMember(value: unknown): GroupMemberDetail {
   }
 
   return {
-    membershipId: String(pick(record, "membershipId", "membership_id", "id") ?? ""),
-    studentId: String(pick(record, "studentId", "student_id") ?? pick(student, "id") ?? ""),
-    studentCode: String(pick(record, "studentCode", "student_code", "code") ?? pick(student, "code", "studentCode", "student_code") ?? ""),
+    membershipId: String(pick(record, "membershipId", "id") ?? ""),
+    studentId: String(pick(record, "studentId") ?? pick(student, "id") ?? ""),
+    studentCode: String(pick(record, "studentCode", "code") ?? pick(student, "code", "studentCode") ?? ""),
     // Để rỗng thay vì "undefined" — UI tự bỏ phần tên khi không có.
     fullName: fullName === undefined ? "" : String(fullName),
     role: (pick(record, "role") as GroupMemberRole) ?? "MEMBER",
-    status: (pick(record, "status", "membershipStatus", "membership_status") as GroupMembershipStatus) ?? "ACTIVE",
-    leftAt: (pick(record, "leftAt", "left_at") as string | undefined) ?? null,
+    status: (pick(record, "status", "membershipStatus") as GroupMembershipStatus) ?? "ACTIVE",
+    leftAt: (pick(record, "leftAt") as string | undefined) ?? null,
   };
 }
 

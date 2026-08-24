@@ -17,9 +17,9 @@ export interface LecturerApiItem {
 }
 
 export interface LecturerCreatePayload {
-  lecturer_code: string;
+  lecturerCode: string;
   email: string;
-  display_name: string;
+  displayName: string;
   password: string;
 }
 
@@ -61,7 +61,7 @@ export const fetchLecturers = {
   /**
    * GET /lecturers — ADMIN, MANAGER.
    * BE trả `{data: [...camelCase], meta: {page,pageSize,total}}` qua success_payload()
-   * (xem docs/be-checklist-open-questions.md mục 6) — unwrap + snakeize để khớp LecturerApiItem.
+   * Response đã là camelCase theo contract BE.
    */
   list: async (params?: LecturerListParams): Promise<ListResponse<LecturerApiItem>> => {
     const response = await apiService.get<{ data: LecturerApiItem[]; meta?: ListMeta }, LecturerListParams>(

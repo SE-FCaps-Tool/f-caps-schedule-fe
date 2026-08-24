@@ -42,8 +42,8 @@ import { useDebouncedValue } from "@/hooks/shared/useDebouncedValue";
 import { usePageState } from "@/hooks/shared/usePageState";
 
 /** "MSSV — Họ và tên" (bỏ phần tên khi BE chưa trả full_name). Dùng cho cả ô tìm kiếm lẫn danh sách. */
-function studentLabel(student: { student_code: string; full_name?: string }) {
-  return student.full_name ? `${student.student_code} — ${student.full_name}` : student.student_code;
+function studentLabel(student: { studentCode: string; fullName?: string }) {
+  return student.fullName ? `${student.studentCode} — ${student.fullName}` : student.studentCode;
 }
 
 function today(): string {
@@ -134,8 +134,8 @@ function CreateGroupDialog({
                   return (
                     <div key={id} className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-1.5 text-sm">
                       <span className="min-w-0">
-                        <span className="font-medium">{s?.student_code ?? id}</span>
-                        {s?.full_name && <span className="text-muted-foreground"> — {s.full_name}</span>}
+                        <span className="font-medium">{s?.studentCode ?? id}</span>
+                        {s?.fullName && <span className="text-muted-foreground"> — {s.fullName}</span>}
                         {s?.email && <span className="block truncate text-xs text-muted-foreground">{s.email}</span>}
                       </span>
                       <Button type="button" variant="ghost" size="icon-sm" onClick={() => removeStudent(id)}>
@@ -156,7 +156,7 @@ function CreateGroupDialog({
                     {(v: string) => {
                       const s = students?.find((s) => String(s.id) === v);
                       if (!s) return "Chọn leader";
-                      return s.full_name ? `${s.student_code} — ${s.full_name}` : s.student_code;
+                      return s.fullName ? `${s.studentCode} — ${s.fullName}` : s.studentCode;
                     }}
                   </SelectValue>
                 </SelectTrigger>
@@ -165,8 +165,8 @@ function CreateGroupDialog({
                     const s = students?.find((s) => String(s.id) === id);
                     return (
                       <SelectItem key={id} value={id}>
-                        {s?.student_code ?? id}
-                        {s?.full_name && ` — ${s.full_name}`}
+                        {s?.studentCode ?? id}
+                        {s?.fullName && ` — ${s.fullName}`}
                       </SelectItem>
                     );
                   })}

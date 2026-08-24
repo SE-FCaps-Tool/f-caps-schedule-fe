@@ -55,7 +55,7 @@ type SessionApi = {
   startAt?: string | null;
   endAt?: string | null;
   status?: string | null;
-  /** BE thực trả field "reviewers" ({id,code,name}), không phải council_members — xem ghi chú bên dưới. */
+  /** BE thực trả field "councilMembers" ({lecturerId,snapshotName}). */
   councilMembers?: { lecturerId?: number; snapshotName?: string | null }[];
 };
 
@@ -96,7 +96,7 @@ function adaptSuggestion(suggestion: Record<string, unknown>): RoomSuggestion {
 }
 
 export const fetchRoomAssignment = {
-  /** GET /sessions?round_id=&version_id= — current BE manager session contract. */
+  /** GET /sessions?roundId=&versionId= — current BE manager session contract. */
   sessions: async (roundId: string, versionId: string): Promise<RoundSession[]> => {
     const response = await apiService.get<SessionApi[], { roundId: number; versionId: number }>(
       "api/v1/sessions",
@@ -108,13 +108,13 @@ export const fetchRoomAssignment = {
   /** GET /rounds/:roundId/rooms/available — spec §28/§65 */
   availableRooms: async (roundId: string, params?: AvailableRoomsParams): Promise<AssignableRoom[]> => {
     const response = await apiService.get<
-      { data: Array<AssignableRoom & { room_type?: RoomType; active?: boolean }> },
+      { data: Array<AssignableRoom & { active?: boolean }> },
       AvailableRoomsParams
     >(`api/v1/rounds/${roundId}/rooms/available`, params);
     return response.data.data.map((room) => ({
       ...room,
       id: String(room.id),
-      type: room.type ?? room.room_type ?? "NORMAL",
+      type: room.type ?? "NORMAL",
       status: room.status ?? (room.active === false ? "INACTIVE" : "ACTIVE"),
     }));
   },
@@ -136,8 +136,8 @@ export const fetchRoomAssignment = {
   applySuggestions: async (roundId: string, suggestions: RoomSuggestion[]): Promise<void> => {
     await apiService.post(`api/v1/rounds/${roundId}/rooms/apply-suggestions`, {
       assignments: suggestions.map((suggestion) => ({
-        session_id: Number(suggestion.sessionId),
-        room_id: Number(suggestion.roomId),
+        sessionId: Number(suggestion.sessionId),
+        roomId: Number(suggestion.roomId),
       })),
     });
   },

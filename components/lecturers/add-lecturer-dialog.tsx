@@ -30,7 +30,7 @@ export function AddLecturerDialog() {
   function handleSave() {
     if (!canSave) return;
     mutate(
-      { lecturer_code: lecturerCode.trim(), display_name: displayName.trim(), email: email.trim(), password },
+      { lecturerCode: lecturerCode.trim(), displayName: displayName.trim(), email: email.trim(), password },
       {
         onSuccess: () => {
           setOpen(false);

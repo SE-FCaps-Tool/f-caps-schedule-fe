@@ -25,7 +25,7 @@ export interface DashboardResponse {
   /** manager-api.md §10.6 */
   attention: { noLeader: number; underFour: number; remediationOverdue: number; unscheduled: number };
   /** CHƯA CÓ Ở BACKEND, đề xuất tại manager-api.md §8.7 — số phiên có sự cố GV báo vắng chưa xử lý xong */
-  pending_replacements?: number;
+  pendingReplacements?: number;
 }
 
 export interface GroupProgressRow {
@@ -37,7 +37,7 @@ export interface GroupProgressRow {
   review3: string | null;
   defense1: string | null;
   groupStatus: string;
-  next_step: string;
+  nextStep: string;
 }
 
 export interface LecturerLoadReportResponse {

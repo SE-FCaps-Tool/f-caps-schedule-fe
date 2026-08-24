@@ -13,7 +13,7 @@ export interface AccountApiItem {
 
 export interface AccountCreatePayload {
   email: string;
-  display_name: string;
+  displayName: string;
   password: string;
   role: UserRole;
 }

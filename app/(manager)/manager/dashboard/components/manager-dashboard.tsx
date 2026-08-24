@@ -67,7 +67,7 @@ export function ManagerDashboard() {
         },
         {
           key: "reviewerAbsent",
-          count: data.pending_replacements ?? 0,
+          count: data.pendingReplacements ?? 0,
           label: "phiên có sự cố giảng viên",
           description: "Cần thay reviewer hoặc hoãn buổi bảo vệ.",
           icon: UserRoundX,

@@ -41,7 +41,7 @@ export interface RoundDayInput {
   slots: RoundTimeslotInput[];
 }
 
-/** Timeslot của config Round mới (spec §4) — khác `RoundTimeslot` cũ (start_at/end_at) dùng ở Phase 3/4 chưa migrate */
+/** Timeslot của config Round mới (spec §4). */
 export interface RoundConfigTimeslot {
   id: string;
   startTime: string;
@@ -320,9 +320,6 @@ function asBoolean(value: unknown, fallback = false): boolean {
 function durationMinutes(record: ApiRecord): number {
   const keys = [
     "durationMinutes",
-    "duration_minutes",
-    "session_duration_minutes",
-    "sessionDurationMinutes",
     "duration",
   ];
 
@@ -336,30 +333,28 @@ function durationMinutes(record: ApiRecord): number {
 
 function normalizeRoundListItem(value: unknown): RoundListItem {
   const record = isRecord(value) ? value : {};
-  const roomTypes = pick(record, "roomTypes", "room_types");
+  const roomTypes = pick(record, "roomTypes");
   return {
-    id: asString(pick(record, "id", "round_id")),
+    id: asString(pick(record, "id")),
     name: asString(pick(record, "name")),
     type: pick(record, "type") as RoundType,
     status: pick(record, "status") as RoundStatus,
     durationMinutes: durationMinutes(record),
-    reviewerCount: asNumber(pick(record, "reviewerCount", "reviewer_count")),
-    startDate: asString(pick(record, "startDate", "start_date")),
-    endDate: asString(pick(record, "endDate", "end_date")),
+    reviewerCount: asNumber(pick(record, "reviewerCount")),
+    startDate: asString(pick(record, "startDate")),
+    endDate: asString(pick(record, "endDate")),
     registrationDeadline: asNullableString(
-      pick(record, "registrationDeadline", "registration_deadline"),
+      pick(record, "registrationDeadline"),
     ),
     groupSelectionMode: asBoolean(
-      pick(record, "groupSelectionMode", "group_selection_mode"),
+      pick(record, "groupSelectionMode"),
     ),
     groupPreferenceDeadline: asNullableString(
-      pick(record, "groupPreferenceDeadline", "group_preference_deadline"),
+      pick(record, "groupPreferenceDeadline"),
     ),
     roomTypes: Array.isArray(roomTypes) ? roomTypes.filter(isRoomType) : [],
-    timeframeId: asNullableString(pick(record, "timeframeId", "timeframe_id")),
-    timeframeVersionId: asNullableString(
-      pick(record, "timeframeVersionId", "timeframe_version_id"),
-    ),
+    timeframeId: asNullableString(pick(record, "timeframeId")),
+    timeframeVersionId: asNullableString(pick(record, "timeframeVersionId")),
   };
 }
 
@@ -370,14 +365,14 @@ function normalizeRoundDays(value: unknown): RoundDay[] {
     const dayRecord = isRecord(day) ? day : {};
     const slots = pick(dayRecord, "slots");
     return {
-      date: asString(pick(dayRecord, "date", "day_date")),
+      date: asString(pick(dayRecord, "date")),
       slots: Array.isArray(slots)
         ? slots.map((slot) => {
             const slotRecord = isRecord(slot) ? slot : {};
             return {
-              id: asString(pick(slotRecord, "id", "timeslot_id")),
-              startTime: asString(pick(slotRecord, "startTime", "start_at")),
-              endTime: asString(pick(slotRecord, "endTime", "end_at")),
+              id: asString(pick(slotRecord, "id")),
+              startTime: asString(pick(slotRecord, "startTime")),
+              endTime: asString(pick(slotRecord, "endTime")),
             };
           })
         : [],
@@ -391,45 +386,42 @@ function isRoomType(value: unknown): value is RoomType {
 
 function normalizeRoundDetail(value: unknown): RoundDetail {
   const record = isRecord(value) ? value : {};
-  const roomTypes = pick(record, "roomTypes", "room_types");
+  const roomTypes = pick(record, "roomTypes");
 
   return {
-    id: asString(pick(record, "id", "round_id")),
-    semesterId: asString(pick(record, "semesterId", "semester_id")),
+    id: asString(pick(record, "id")),
+    semesterId: asString(pick(record, "semesterId")),
     name: asString(pick(record, "name")),
     type: pick(record, "type") as RoundType,
     status: pick(record, "status") as RoundStatus,
     description: asString(pick(record, "description")),
-    startDate: asString(pick(record, "startDate", "start_date")),
-    endDate: asString(pick(record, "endDate", "end_date")),
+    startDate: asString(pick(record, "startDate")),
+    endDate: asString(pick(record, "endDate")),
     durationMinutes: durationMinutes(record),
-    reviewerCount: asNumber(pick(record, "reviewerCount", "reviewer_count")),
+    reviewerCount: asNumber(pick(record, "reviewerCount")),
     maxGroupsPerTimeslot: asNullableNumber(
-      pick(record, "maxGroupsPerTimeslot", "max_groups_per_timeslot"),
+      pick(record, "maxGroupsPerTimeslot"),
     ),
     registrationDeadline: asNullableString(
-      pick(record, "registrationDeadline", "registration_deadline"),
+      pick(record, "registrationDeadline"),
     ),
     groupSelectionMode: asBoolean(
-      pick(record, "groupSelectionMode", "group_selection_mode"),
+      pick(record, "groupSelectionMode"),
     ),
     groupPreferenceDeadline: asNullableString(
-      pick(record, "groupPreferenceDeadline", "group_preference_deadline"),
+      pick(record, "groupPreferenceDeadline"),
     ),
     registrationPhase: pick(
       record,
       "registrationPhase",
-      "registration_phase",
     ) as RegistrationPhase | undefined,
     resultOwnerMode: asBoolean(
-      pick(record, "resultOwnerMode", "result_owner_mode"),
+      pick(record, "resultOwnerMode"),
     ),
     roomTypes: Array.isArray(roomTypes) ? roomTypes.filter(isRoomType) : [],
-    timeframeId: asNullableString(pick(record, "timeframeId", "timeframe_id")),
-    timeframeVersionId: asNullableString(
-      pick(record, "timeframeVersionId", "timeframe_version_id"),
-    ),
-    days: normalizeRoundDays(pick(record, "days", "round_days")),
+    timeframeId: asNullableString(pick(record, "timeframeId")),
+    timeframeVersionId: asNullableString(pick(record, "timeframeVersionId")),
+    days: normalizeRoundDays(pick(record, "days")),
   };
 }
 
@@ -451,31 +443,28 @@ function normalizeInvitation(value: unknown): RoundInvitation {
     ? (pick(record, "lecturer") as ApiRecord)
     : {};
   const lecturerId = asString(
-    pick(lecturerRecord, "id", "lecturer_id") ??
-      pick(record, "lecturerId", "lecturer_id"),
+    pick(lecturerRecord, "id") ?? pick(record, "lecturerId"),
   );
 
   return {
-    id: asString(pick(record, "id", "invitationId", "invitation_id"), lecturerId),
+    id: asString(pick(record, "id", "invitationId"), lecturerId),
     lecturer: {
       id: lecturerId,
       code: asString(
-        pick(lecturerRecord, "code", "lecturer_code") ??
-          pick(record, "lecturerCode", "lecturer_code"),
+        pick(lecturerRecord, "code") ?? pick(record, "lecturerCode"),
       ),
       fullName: asString(
-        pick(lecturerRecord, "fullName", "full_name", "display_name") ??
-          pick(record, "displayName", "display_name"),
+        pick(lecturerRecord, "fullName") ?? pick(record, "displayName"),
       ),
     },
     status: normalizeInvitationStatus(
-      pick(record, "status", "invitation_status"),
+      pick(record, "status"),
     ),
     availabilitySlotCount: asNumber(
-      pick(record, "availableSlotCount", "availabilitySlotCount", "available_slot_count"),
+      pick(record, "availableSlotCount", "availabilitySlotCount"),
     ),
-    usedQuota: asNumber(pick(record, "usedQuota", "used_quota")),
-    semesterQuota: asNumber(pick(record, "semesterQuota", "semester_quota")),
+    usedQuota: asNumber(pick(record, "usedQuota")),
+    semesterQuota: asNumber(pick(record, "semesterQuota")),
   };
 }
 
@@ -484,24 +473,24 @@ function normalizeEligibleProject(value: unknown): EligibleProjectRow {
   const checks = isRecord(pick(record, "checks"))
     ? (pick(record, "checks") as ApiRecord)
     : {};
-  const blockingReasons = pick(record, "blockingReasons", "blocking_reasons");
+  const blockingReasons = pick(record, "blockingReasons");
   const warnings = pick(record, "warnings");
-  const groupId = asString(pick(record, "groupId", "group_id"));
+  const groupId = asString(pick(record, "groupId"));
 
   return {
-    projectId: asString(pick(record, "projectId", "project_id"), groupId),
+    projectId: asString(pick(record, "projectId"), groupId),
     groupId,
     eligible: asBoolean(pick(record, "eligible")),
     checks: {
-      hasGroup: asBoolean(pick(checks, "hasGroup", "has_group")),
+      hasGroup: asBoolean(pick(checks, "hasGroup")),
       hasActiveLeader: asBoolean(
-        pick(checks, "hasActiveLeader", "has_active_leader"),
+        pick(checks, "hasActiveLeader"),
       ),
       hasMainSupervisor: asBoolean(
-        pick(checks, "hasMainSupervisor", "has_main_supervisor"),
+        pick(checks, "hasMainSupervisor"),
       ),
       progressionAllowed: asBoolean(
-        pick(checks, "progressionAllowed", "progression_allowed"),
+        pick(checks, "progressionAllowed"),
       ),
     },
     blockingReasons: Array.isArray(blockingReasons)
@@ -524,19 +513,19 @@ function normalizeEligibleProject(value: unknown): EligibleProjectRow {
 
 function normalizeAttachedRoundGroup(value: unknown): AttachedRoundGroup {
   const record = isRecord(value) ? value : {};
-  const supervisorIds = pick(record, "supervisorIds", "supervisor_ids");
+  const supervisorIds = pick(record, "supervisorIds");
   return {
-    groupId: asString(pick(record, "groupId", "group_id")),
-    groupCode: asString(pick(record, "groupCode", "group_code")),
+    groupId: asString(pick(record, "groupId")),
+    groupCode: asString(pick(record, "groupCode")),
     status: asString(pick(record, "status")),
-    projectCode: asString(pick(record, "projectCode", "project_code")),
+    projectCode: asString(pick(record, "projectCode")),
     title: asString(pick(record, "title")),
     activeMemberCount: asNumber(
-      pick(record, "activeMemberCount", "active_member_count"),
+      pick(record, "activeMemberCount"),
     ),
-    leaderName: asNullableString(pick(record, "leaderName", "leader_name")),
+    leaderName: asNullableString(pick(record, "leaderName")),
     selectedSlotCount: asNumber(
-      pick(record, "selectedSlotCount", "selected_slot_count"),
+      pick(record, "selectedSlotCount"),
     ),
     supervisorIds: Array.isArray(supervisorIds)
       ? supervisorIds
@@ -562,18 +551,17 @@ function normalizeRegistrationSummary(value: unknown): RegistrationSummary {
         pick(lecturers, "accepted") ?? pick(record, "responded"),
       ),
       availabilitySubmitted: asNumber(
-        pick(lecturers, "availabilitySubmitted", "availability_submitted") ??
-          pick(record, "lecturerAvailability", "lecturer_availability"),
+        pick(lecturers, "availabilitySubmitted") ?? pick(record, "lecturerAvailability"),
       ),
       missing: asNumber(pick(lecturers, "missing")),
     },
     groups: {
       eligible: asNumber(
         pick(groups, "eligible") ??
-          pick(record, "groupAvailability", "group_availability"),
+        pick(record, "groupAvailability"),
       ),
       preferenceSubmitted: asNumber(
-        pick(groups, "preferenceSubmitted", "preference_submitted"),
+        pick(groups, "preferenceSubmitted"),
       ),
       missing: asNumber(pick(groups, "missing")),
     },
@@ -596,7 +584,7 @@ export const fetchRounds = {
     const meta = metaRecord
       ? {
           page: asNumber(pick(metaRecord, "page")),
-          pageSize: asNumber(pick(metaRecord, "pageSize", "page_size")),
+          pageSize: asNumber(pick(metaRecord, "pageSize")),
           total: asNumber(pick(metaRecord, "total")),
         }
       : undefined;
@@ -623,21 +611,19 @@ export const fetchRounds = {
 
   /**
    * PATCH /rounds/:roundId — sửa cấu hình khi Round còn DRAFT/OPEN_REGISTRATION.
-   * Response BE trả nguyên cột snake_case của bảng `rounds` (không bọc `{data}`, không cùng
-   * shape contract camelCase như `GET /rounds/:roundId`) nên bỏ qua body, để caller invalidate
-   * và refetch qua `getById` lấy dữ liệu đã chuẩn hoá.
+   * Response được bỏ qua; caller invalidate và refetch qua `getById`.
    */
   update: async (roundId: string, payload: RoundUpdatePayload): Promise<void> => {
     const body: Record<string, unknown> = {};
-    if (payload.startDate !== undefined) body.start_date = payload.startDate;
-    if (payload.endDate !== undefined) body.end_date = payload.endDate;
-    if (payload.durationMinutes !== undefined) body.session_duration_minutes = payload.durationMinutes;
-    if (payload.maxGroupsPerTimeslot !== undefined) body.max_groups_per_timeslot = payload.maxGroupsPerTimeslot;
-    if (payload.registrationDeadline !== undefined) body.registration_deadline = payload.registrationDeadline;
-    if (payload.groupSelectionMode !== undefined) body.group_selection_mode = payload.groupSelectionMode;
-    if (payload.groupPreferenceDeadline !== undefined) body.group_preference_deadline = payload.groupPreferenceDeadline;
-    if (payload.resultOwnerMode !== undefined) body.result_owner_mode = payload.resultOwnerMode;
-    if (payload.roomTypes !== undefined) body.room_types = payload.roomTypes;
+    if (payload.startDate !== undefined) body.startDate = payload.startDate;
+    if (payload.endDate !== undefined) body.endDate = payload.endDate;
+    if (payload.durationMinutes !== undefined) body.durationMinutes = payload.durationMinutes;
+    if (payload.maxGroupsPerTimeslot !== undefined) body.maxGroupsPerTimeslot = payload.maxGroupsPerTimeslot;
+    if (payload.registrationDeadline !== undefined) body.registrationDeadline = payload.registrationDeadline;
+    if (payload.groupSelectionMode !== undefined) body.groupSelectionMode = payload.groupSelectionMode;
+    if (payload.groupPreferenceDeadline !== undefined) body.groupPreferenceDeadline = payload.groupPreferenceDeadline;
+    if (payload.resultOwnerMode !== undefined) body.resultOwnerMode = payload.resultOwnerMode;
+    if (payload.roomTypes !== undefined) body.roomTypes = payload.roomTypes;
     await apiService.patch(`api/v1/rounds/${roundId}`, body);
   },
 
@@ -704,9 +690,9 @@ export const fetchRounds = {
       return id;
     };
     await apiService.post(`api/v1/rounds/${roundId}/resources`, {
-      group_ids: payload.groupIds.map(toLegacyId),
-      timeslot_ids: payload.timeslotIds.map(toLegacyId),
-      room_types: payload.roomTypes,
+      groupIds: payload.groupIds.map(toLegacyId),
+      timeslotIds: payload.timeslotIds.map(toLegacyId),
+      roomTypes: payload.roomTypes,
     });
   },
 

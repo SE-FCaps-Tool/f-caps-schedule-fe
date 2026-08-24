@@ -57,7 +57,7 @@ export function SemestersTable({ semesters, currentContextId, onSetContext }: Se
 
   function handleConfirmClose(reason: string) {
     if (!closingTarget) return;
-    transition.mutate({ id: closingTarget.id, payload: { target_status: "CLOSED", reason } });
+    transition.mutate({ id: closingTarget.id, payload: { targetStatus: "CLOSED", reason } });
     setClosingTarget(null);
   }
 

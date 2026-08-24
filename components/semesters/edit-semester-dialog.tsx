@@ -35,7 +35,7 @@ function EditSemesterForm({ semester, onOpenChange }: { semester: SemesterApiIte
     updateSemester.mutate(
       {
         id: semester.id,
-        payload: { code, name, note: note.trim() ? note : undefined, start_date: startDate, end_date: endDate },
+        payload: { code, name, note: note.trim() ? note : undefined, startDate, endDate },
       },
       { onSuccess: () => onOpenChange(false) }
     );

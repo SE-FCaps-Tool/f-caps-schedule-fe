@@ -214,7 +214,7 @@ export function AddSemesterDialog() {
   function handleSave() {
     if (!canSave || !startDate || !endDate) return;
     mutate(
-      { code, name, start_date: startDate, end_date: endDate, note: note.trim() || undefined },
+      { code, name, startDate, endDate, note: note.trim() || undefined },
       {
         onSuccess: () => {
           setOpen(false);
