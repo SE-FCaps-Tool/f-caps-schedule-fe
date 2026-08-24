@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getCookie, setCookie, deleteCookie } from "cookies-next";
@@ -36,12 +36,10 @@ export function useMe(options?: { enabled?: boolean }) {
 export function useAuth() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [shouldFetchMe, setShouldFetchMe] = useState(false);
+  const [shouldFetchMe, setShouldFetchMe] = useState(() =>
+    typeof window !== "undefined" && Boolean(getCookie(SESSION_ROLE_COOKIE))
+  );
   const meQuery = useMe({ enabled: shouldFetchMe });
-
-  useEffect(() => {
-    setShouldFetchMe(Boolean(getCookie(SESSION_ROLE_COOKIE)));
-  }, []);
 
   const loginMutation = useMutation({
     mutationFn: (credentials: LoginPayload) => fetchAuth.login(credentials),
