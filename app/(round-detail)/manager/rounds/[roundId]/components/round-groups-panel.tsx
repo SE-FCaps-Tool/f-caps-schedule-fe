@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { UsersRound } from "lucide-react";
+import { Search, TriangleAlert, UsersRound, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -15,8 +16,7 @@ import {
 import { StatusDot } from "@/app/(manager)/manager/_shared/status-dot";
 import { useEligibleProjects, useAttachRoundResources, useRoundGroups } from "@/hooks/manager/useRounds";
 import { useAllGroups } from "@/hooks/manager/useGroups";
-import { ErrorBlock, LoadingBlock, PanelHeading, ROW_REVEAL_CLASS, rowRevealStyle } from "./round-detail-shared";
-import { CollapseButton } from "./collapsible-aside-panel";
+import { ErrorBlock, LoadingBlock, ROW_REVEAL_CLASS, rowRevealStyle } from "./round-detail-shared";
 import type { EligibleProjectRow, RoundDetail } from "@/lib/api/services/fetchRounds";
 import type { GroupListItem } from "@/lib/api/services/fetchGroups";
 
@@ -172,11 +172,9 @@ function AttachGroupsDialog({
 export function RoundGroupsPanel({
   roundId,
   round,
-  onCollapse,
 }: {
   roundId: string;
   round: RoundDetail;
-  onCollapse: () => void;
 }) {
   const { data: eligibleProjects, isLoading, isError } = useEligibleProjects(roundId);
   const {
@@ -186,6 +184,8 @@ export function RoundGroupsPanel({
   } = useRoundGroups(roundId);
   const { data: groups } = useAllGroups(round.semesterId);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"ALL" | "ATTACHED" | "READY" | "NOTE">("ALL");
 
   const groupById = useMemo(() => {
     const map = new Map<string, GroupListItem>();
@@ -238,7 +238,7 @@ export function RoundGroupsPanel({
           leaderName: group?.leader?.fullName ?? null,
           memberCount: group?.memberCount ?? null,
           tone: note ? ("amber" as const) : ("emerald" as const),
-          label: note ? "Lưu ý" : "Đủ",
+          label: note ? "Lưu ý" : "Có thể gắn",
           note,
         };
       });
@@ -246,34 +246,112 @@ export function RoundGroupsPanel({
     return [...attached, ...eligible];
   }, [attachedGroups, rows, groupById]);
 
+  const attachedCount = panelRows.filter((row) => row.tone === "sky").length;
+  const readyCount = panelRows.filter((row) => row.tone === "emerald").length;
+  const noteCount = panelRows.filter((row) => row.tone === "amber").length;
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredPanelRows = useMemo(() => {
+    return panelRows.filter((row) => {
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        [row.code, row.projectCode, row.leaderName, row.memberCount !== null ? String(row.memberCount) : null]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedSearch);
+      const matchesFilter =
+        filter === "ALL" ||
+        (filter === "ATTACHED" && row.tone === "sky") ||
+        (filter === "READY" && row.tone === "emerald") ||
+        (filter === "NOTE" && row.tone === "amber");
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [filter, normalizedSearch, panelRows]);
+
+  const filters = [
+    { value: "ALL" as const, label: "Tất cả", count: panelRows.length },
+    { value: "ATTACHED" as const, label: "Đã gắn", count: attachedCount },
+    { value: "READY" as const, label: "Chưa gắn", count: readyCount },
+    { value: "NOTE" as const, label: "Có lưu ý", count: noteCount },
+  ];
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      {/* Cùng bố cục với panel Giảng viên: đếm nằm trong tên panel, hành động là nút icon
-          trên header, thân panel là danh sách phẳng những gì đã gắn — không chia mục con. */}
-      <div className="flex shrink-0 items-center gap-1">
-        <PanelHeading>Nhóm{panelRows.length > 0 ? ` (${panelRows.length})` : ""}</PanelHeading>
+      <div className="flex shrink-0 items-start gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold tracking-tight">Nhóm</h2>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+              {eligibleProjects && attachedGroups ? panelRows.length : "…"}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {attachedCount} đã gắn · {readyCount} có thể gắn
+          </p>
+        </div>
         <div className="ml-auto flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Gắn nhóm vào Round"
-            title="Gắn nhóm vào Round"
-            onClick={() => setAttachOpen(true)}
-          >
+          <Button size="sm" aria-label="Gắn nhóm vào Round" title="Gắn nhóm vào Round" onClick={() => setAttachOpen(true)}>
             <UsersRound />
+            <span className="hidden sm:inline">Gắn nhóm</span>
+            <span className="sm:hidden">Gắn</span>
           </Button>
-          <CollapseButton onClick={onCollapse} label="Thu gọn Nhóm" />
         </div>
       </div>
 
       {(projectsWithoutGroup > 0 || blockedGroups > 0) && (
-        <p className="shrink-0 rounded-md bg-amber-500/10 px-2.5 py-2 text-xs text-amber-700 dark:text-amber-400">
-          {projectsWithoutGroup > 0 && `${projectsWithoutGroup} đề tài chưa có nhóm. `}
-          {blockedGroups > 0 && `${blockedGroups} nhóm chưa đủ điều kiện. `}
-          Xử lý ở trang Nhóm/Đề tài trước khi gắn.
-        </p>
+        <div className="flex shrink-0 items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-300" role="alert">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <div className="min-w-0">
+            <p className="font-semibold">Cần xử lý trước khi gắn</p>
+            <p className="mt-0.5">
+              {projectsWithoutGroup > 0 && `${projectsWithoutGroup} đề tài chưa có nhóm. `}
+              {blockedGroups > 0 && `${blockedGroups} nhóm chưa đủ điều kiện.`}
+            </p>
+            <p className="mt-0.5 text-amber-700/80 dark:text-amber-300/80">Mở trang Nhóm/Đề tài để xử lý trước khi gắn.</p>
+          </div>
+        </div>
       )}
+
+      <div className="shrink-0 space-y-2">
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Tìm theo mã nhóm, đề tài hoặc leader..."
+            aria-label="Tìm nhóm theo mã nhóm, đề tài hoặc leader"
+            className="h-9 pl-9 pr-9 text-sm"
+          />
+          {search && (
+            <button
+              type="button"
+              aria-label="Xóa tìm kiếm"
+              title="Xóa tìm kiếm"
+              onClick={() => setSearch("")}
+              className="absolute top-1/2 right-2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+        <div className="flex gap-1 overflow-x-auto pb-0.5" role="group" aria-label="Lọc nhóm">
+          {filters.map((item) => (
+            <Button
+              key={item.value}
+              type="button"
+              size="xs"
+              variant={filter === item.value ? "secondary" : "ghost"}
+              aria-pressed={filter === item.value}
+              onClick={() => setFilter(item.value)}
+              className="shrink-0"
+            >
+              {item.label}
+              <span className="tabular-nums text-muted-foreground">{item.count}</span>
+            </Button>
+          ))}
+        </div>
+      </div>
 
       {(isLoading || isLoadingAttached) && <LoadingBlock />}
       {(isError || isAttachedError) && <ErrorBlock label="Không tải được danh sách nhóm." />}
@@ -281,35 +359,49 @@ export function RoundGroupsPanel({
         <p className="py-6 text-center text-sm text-muted-foreground">Chưa có nhóm nào cho đợt này.</p>
       )}
       {panelRows.length > 0 && (
-        <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-0.5">
-          {panelRows.map((row, index) => (
-            <div
-              key={row.key}
-              className={`flex w-full items-start justify-between gap-2 rounded-lg border border-border px-3 py-2 text-left text-sm ${ROW_REVEAL_CLASS}`}
-              style={rowRevealStyle(index)}
-            >
-              <div className="min-w-0">
-                <p className="truncate font-medium">
-                  {row.code}
-                  {row.projectCode && (
-                    <span className="font-normal text-muted-foreground"> — {row.projectCode}</span>
-                  )}
-                </p>
-                <p
-                  className={`mt-0.5 truncate text-xs ${row.leaderName ? "text-muted-foreground" : "font-medium text-amber-600 dark:text-amber-400"}`}
+        <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+          {filteredPanelRows.length === 0 && (
+            <p className="py-10 text-center text-sm text-muted-foreground">Không tìm thấy nhóm phù hợp.</p>
+          )}
+          {filteredPanelRows.length > 0 && (
+            <div className="divide-y divide-border/80">
+              {filteredPanelRows.map((row, index) => (
+                <div
+                  key={row.key}
+                  className={`group flex w-full items-center gap-3 px-1 py-3 text-left text-sm transition-colors hover:bg-muted/35 ${ROW_REVEAL_CLASS}`}
+                  style={rowRevealStyle(index)}
                 >
-                  {row.leaderName ?? "Chưa có leader"}
-                  {row.memberCount !== null && ` · ${row.memberCount} thành viên`}
-                </p>
-                {row.note && (
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground" title={row.note}>
-                    {row.note}
-                  </p>
-                )}
-              </div>
-              <StatusDot tone={row.tone} label={row.label} className="shrink-0 text-xs" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold tracking-tight" title={row.code}>
+                      {row.code}
+                    </p>
+                    {row.projectCode && (
+                      <p className="mt-0.5 truncate text-sm text-muted-foreground" title={row.projectCode}>
+                        {row.projectCode}
+                      </p>
+                    )}
+                    <p
+                      className={`mt-1 flex items-center gap-1.5 truncate text-xs ${row.leaderName ? "text-muted-foreground" : "font-medium text-amber-700 dark:text-amber-400"}`}
+                    >
+                      <UsersRound className="size-3.5 shrink-0" aria-hidden />
+                      <span>{row.leaderName ?? "Chưa có leader"}</span>
+                      {row.memberCount !== null && <span>· {row.memberCount} thành viên</span>}
+                    </p>
+                    {row.note && (
+                      <p className="mt-1 truncate text-xs text-amber-700 dark:text-amber-400" title={row.note}>
+                        {row.note}
+                      </p>
+                    )}
+                  </div>
+                  <StatusDot
+                    tone={row.tone}
+                    label={row.label}
+                    className="shrink-0 rounded-full bg-muted/60 px-2 py-1 text-xs"
+                  />
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 

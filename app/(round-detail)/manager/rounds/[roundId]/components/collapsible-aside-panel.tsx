@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import { PanelRightOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -37,26 +37,11 @@ export function CollapsibleAsidePanel({
           open && "lg:hidden"
         )}
       >
-        <ChevronsLeft className="size-4 shrink-0" aria-hidden />
+        <PanelRightOpen className="size-4 shrink-0" aria-hidden />
         <span className="text-xs font-semibold tracking-wide uppercase [writing-mode:vertical-rl]">{title}</span>
       </button>
 
       <div className={cn("flex min-h-0 flex-1 flex-col p-4", !open && "lg:hidden")}>{children}</div>
     </aside>
-  );
-}
-
-/** Nút bấm trong heading của panel con để thu gọn — icon trỏ phải, khớp hướng thu gọn về bên phải. */
-export function CollapseButton({ onClick, label }: { onClick: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title="Thu gọn"
-      className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-    >
-      <ChevronsRight className="size-4" />
-    </button>
   );
 }

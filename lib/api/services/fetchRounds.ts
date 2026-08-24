@@ -562,12 +562,15 @@ function normalizeRegistrationSummary(value: unknown): RegistrationSummary {
       ),
       availabilitySubmitted: asNumber(
         pick(lecturers, "availabilitySubmitted", "availability_submitted") ??
-          pick(record, "lecturer_availability"),
+          pick(record, "lecturerAvailability", "lecturer_availability"),
       ),
       missing: asNumber(pick(lecturers, "missing")),
     },
     groups: {
-      eligible: asNumber(pick(groups, "eligible")),
+      eligible: asNumber(
+        pick(groups, "eligible") ??
+          pick(record, "groupAvailability", "group_availability"),
+      ),
       preferenceSubmitted: asNumber(
         pick(groups, "preferenceSubmitted", "preference_submitted"),
       ),

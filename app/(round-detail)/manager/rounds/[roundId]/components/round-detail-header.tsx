@@ -104,7 +104,6 @@ function PeopleSheet({
   roundId: string;
   round: RoundDetail;
 }) {
-  const close = () => onOpenChange(false);
   const title = activePanel === "lecturers" ? "Giảng viên" : "Nhóm";
 
   return (
@@ -115,8 +114,8 @@ function PeopleSheet({
           <SheetDescription>Danh sách {title.toLowerCase()} của đợt đánh giá.</SheetDescription>
         </SheetHeader>
         <div className="flex h-full min-h-0 flex-col p-4 pt-5">
-          {activePanel === "lecturers" && <RoundLecturersPanel roundId={roundId} onCollapse={close} />}
-          {activePanel === "groups" && <RoundGroupsPanel roundId={roundId} round={round} onCollapse={close} />}
+          {activePanel === "lecturers" && <RoundLecturersPanel roundId={roundId} />}
+          {activePanel === "groups" && <RoundGroupsPanel roundId={roundId} round={round} />}
         </div>
       </SheetContent>
     </Sheet>
