@@ -41,6 +41,7 @@ export function useSubmitResult() {
       await queryClient.invalidateQueries({ queryKey: managerKeys.remediation });
       await queryClient.invalidateQueries({ queryKey: ["manager", "dashboard"] });
       await queryClient.invalidateQueries({ queryKey: ["manager", "reports"] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "group"] });
       toast.success(`Đã ghi kết quả — nhóm chuyển trạng thái ${data.groupStatus}`);
     },
     onError: (error: ApiError) => {
@@ -79,6 +80,7 @@ export function useOverdueFailRemediation() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: managerKeys.remediation });
       await queryClient.invalidateQueries({ queryKey: ["manager", "reports"] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "group"] });
       toast.success("Đã đánh dấu FAILED do quá hạn khắc phục");
     },
     onError: (error: ApiError) => {
@@ -105,6 +107,7 @@ export function useSubmitSessionResult() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["manager", "project"] });
       await queryClient.invalidateQueries({ queryKey: ["manager", "dashboard"] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "group"] });
       toast.success("Đã ghi kết quả");
     },
     onError: (error: ApiError) => {
@@ -126,6 +129,7 @@ export function useVerifyRemediation() {
       fetchResults.verifyRemediation(remediationId, payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["manager", "project"] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "group"] });
       toast.success("Đã xác nhận kết quả khắc phục");
     },
     onError: (error: ApiError) => {
