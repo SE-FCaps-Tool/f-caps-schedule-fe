@@ -22,7 +22,7 @@ export function useAuthSyncAcrossTabs() {
       deleteCookie(SESSION_ROLE_COOKIE, getSecureCookieConfig());
       queryClient.clear();
       // Đã ở trang auth rồi thì thôi, tránh redirect lặp lại mỗi lần 401.
-      if (pathname !== "/login" && pathname !== "/auth/callback") router.replace("/login");
+      if (pathname !== "/login" && pathname !== "/auth/callback" && pathname !== "/auth/select-role") router.replace("/login");
     };
 
     const handleUnauthorized = () => signOut();

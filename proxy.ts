@@ -17,9 +17,10 @@ export function proxy(request: NextRequest) {
   if (pathname.endsWith(".xml") || pathname.endsWith(".json")) return NextResponse.next();
 
   // Không có trang chủ — "/" và mọi route chưa đăng nhập đều dồn về /login
-  const authRoutes = ["/login", "/auth/callback"];
+  const authRoutes = ["/login", "/auth/callback", "/auth/select-role"];
   const isAuthRoute = authRoutes.some((r) => pathname === r);
   const isOAuthCallback = pathname === "/auth/callback";
+  const isRoleSelection = pathname === "/auth/select-role";
 
   // Chưa đăng nhập
   if (!role) {
@@ -30,7 +31,7 @@ export function proxy(request: NextRequest) {
   }
 
   // Đã đăng nhập mà vào trang auth hoặc "/" ⇒ về dashboard theo role
-  if ((isAuthRoute && !isOAuthCallback) || pathname === "/") {
+  if ((isAuthRoute && !isOAuthCallback && !isRoleSelection) || pathname === "/") {
     return NextResponse.redirect(new URL(ROLE_HOME[role] ?? "/login", request.url));
   }
 

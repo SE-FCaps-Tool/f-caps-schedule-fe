@@ -20,8 +20,11 @@ Dùng cho health check của FE/dev tooling, không dùng để xác định use
 - **Success `200`:**
 
 ```json
-{ "role": "MANAGER", "expires_at": "2026-08-19T03:00:00+00:00" }
+{ "role": "MANAGER", "expiresAt": "2026-08-19T03:00:00+00:00", "requiresRoleSelection": false, "availableRoles": ["MANAGER"] }
 ```
+
+Account có nhiều role sẽ trả `requiresRoleSelection: true` và `availableRoles`, chưa tạo session
+đầy đủ. FE hiển thị `/auth/select-role` để người dùng chọn role.
 
 - **Set-Cookie:** session cookie HttpOnly và `scheduler_csrf` readable by JavaScript. Tên session cookie có thể cấu hình, vì vậy FE chỉ nên dùng `credentials: "include"`.
 - **`401`:** `Invalid credentials` nếu email/password sai hoặc account không active.
@@ -49,7 +52,23 @@ await fetch(`${API_URL}/api/v1/auth/login`, {
 { "status": "signed_out" }
 ```
 
-Backend xóa session cookie và `scheduler_csrf`. FE nên reset toàn bộ cached user/query sau khi gọi.
+Backend xóa session cookie, `scheduler_csrf` và login challenge nếu còn. FE nên reset toàn bộ cached user/query sau khi gọi.
+
+## Chọn role sau login
+
+Google và password dùng chung luồng:
+
+1. Xác thực identity.
+2. Nếu có nhiều role, BE giữ challenge trong HttpOnly cookie `scheduler_login_challenge` (10 phút).
+3. FE gọi `GET /api/v1/auth/pending` để lấy `availableRoles` và hiển thị `/auth/select-role`.
+4. FE gọi `POST /api/v1/auth/select-role` với `{ "role": "MANAGER" }`.
+5. BE tạo session gắn với role đã chọn; FE lưu `session_role` chỉ để định tuyến UX.
+
+`session_role` không phải cơ chế phân quyền. Backend luôn kiểm tra role gắn trong session và
+membership hiện tại của account.
+
+Google vẫn dùng callback URL và scope hiện tại; không cần đổi Google Console nếu các biến
+`GOOGLE_REDIRECT_URI` và `FRONTEND_URL` giữ nguyên.
 
 ## `GET /api/v1/auth/me`
 

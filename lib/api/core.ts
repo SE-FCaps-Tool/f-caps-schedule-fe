@@ -47,7 +47,11 @@ class ApiService {
 
         const apiError: ApiError = {
           code: error.response?.status,
-          message: error.response?.data?.message || error.message || "Có lỗi xảy ra",
+          message:
+            error.response?.data?.message ||
+            error.response?.data?.error?.message ||
+            error.message ||
+            "Có lỗi xảy ra",
           status: false,
           data: error.response?.data,
         };
