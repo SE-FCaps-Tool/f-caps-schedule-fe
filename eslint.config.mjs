@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // External/generated sources are checked out or maintained by tooling,
+    // not part of the frontend application lint surface.
+    ".contract-be/**",
+    ".agents/**",
+    ".claude/**",
   ]),
 ]);
 
