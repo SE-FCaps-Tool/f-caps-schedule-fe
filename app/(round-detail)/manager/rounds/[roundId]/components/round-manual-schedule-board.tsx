@@ -567,6 +567,13 @@ function ReviewerPicker({
 
 export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; round: RoundDetail }) {
   const roles = useMemo(() => buildReviewerRoles(round.reviewerCount), [round.reviewerCount]);
+  const canPublishManualSchedule = ![
+    "ONGOING",
+    "POSTPONED",
+    "COMPLETED",
+    "LOCKED",
+    "CANCELLED",
+  ].includes(round.status);
   const [sessions, setSessions] = useManualScheduleDraftStore(roundId, roles);
   const draftIdRef = useRef(sessions.length);
   const hydratedFromApiRef = useRef(false);
@@ -1093,7 +1100,8 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
           <Button
             type="button"
             size="sm"
-            disabled={revision === null || publishMutation.isPending}
+            disabled={revision === null || publishMutation.isPending || !canPublishManualSchedule}
+            title={canPublishManualSchedule ? undefined : "Round hiện tại không thể công bố bản nháp."}
             onClick={publishDraft}
           >
             Công bố lịch

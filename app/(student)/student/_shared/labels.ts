@@ -25,6 +25,7 @@ export const ROUND_STATUS_LABEL: Record<RoundStatus, string> = {
   SCHEDULED: "Đã xếp lịch",
   PUBLISHED: "Đã công bố",
   ONGOING: "Đang diễn ra",
+  POSTPONED: "Đã hoãn",
   COMPLETED: "Đã hoàn tất",
   LOCKED: "Đã khoá",
   CANCELLED: "Đã huỷ",

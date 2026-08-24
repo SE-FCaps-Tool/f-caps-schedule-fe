@@ -12,7 +12,7 @@ export type RoundType =
   | "REVIEW_3"
   | "DEFENSE_1";
 
-/** capstone-fe-be-implementation-spec.md §4 — CANCELLED thay cho POSTPONED cũ */
+/** Round lifecycle values mirror the BE round_status enum. */
 export type RoundStatus =
   | "DRAFT"
   | "OPEN_REGISTRATION"
@@ -21,6 +21,7 @@ export type RoundStatus =
   | "SCHEDULED"
   | "PUBLISHED"
   | "ONGOING"
+  | "POSTPONED"
   | "COMPLETED"
   | "LOCKED"
   | "CANCELLED";

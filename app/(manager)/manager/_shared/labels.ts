@@ -11,6 +11,7 @@ export const ROUND_STATUS_META: Record<RoundStatus, { label: string; tone: Statu
   SCHEDULED: { label: "Đã xếp lịch", tone: "violet" },
   PUBLISHED: { label: "Đã công bố", tone: "emerald" },
   ONGOING: { label: "Đang diễn ra", tone: "sky" },
+  POSTPONED: { label: "Đã hoãn", tone: "amber" },
   COMPLETED: { label: "Hoàn thành", tone: "emerald" },
   LOCKED: { label: "Đã khóa", tone: "neutral" },
   CANCELLED: { label: "Đã hủy", tone: "red" },
