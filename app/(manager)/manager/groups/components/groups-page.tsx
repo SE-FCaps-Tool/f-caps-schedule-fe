@@ -569,12 +569,17 @@ export function GroupsPage() {
                       }}
                     >
                       <TableCell className="pl-4 font-mono text-xs font-medium">{group.code}</TableCell>
-                      <TableCell className="text-xs">
-                        {group.project && projectStateMeta ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            <span className="font-mono text-muted-foreground">{group.project.code}</span>
-                            <StatusDot tone={projectStateMeta.tone} label={projectStateMeta.label} />
-                          </span>
+                      <TableCell className="max-w-[28rem] text-xs">
+                        {group.project ? (
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="shrink-0 font-mono text-muted-foreground">{group.project.code}</span>
+                              {projectStateMeta && <StatusDot tone={projectStateMeta.tone} label={projectStateMeta.label} />}
+                            </div>
+                            <p className="mt-1 truncate font-medium text-foreground" title={group.project.name}>
+                              {group.project.name}
+                            </p>
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
