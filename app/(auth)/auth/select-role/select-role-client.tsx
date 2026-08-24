@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BriefcaseBusiness, GraduationCap, Loader2, ShieldCheck, UserRound } from "lucide-react";
@@ -17,7 +17,6 @@ import { setCookie } from "cookies-next";
 import type { ApiError } from "@/types/api";
 
 const VALID_ROLES: UserRole[] = ["ADMIN", "MANAGER", "LECTURER", "STUDENT"];
-const PENDING_ROLE_LOAD_TIMEOUT_MS = 5000;
 
 function readRolesFromQuery(raw: string | null): UserRole[] {
   if (!raw) return [];
@@ -31,51 +30,12 @@ const ROLE_ICON: Record<UserRole, typeof ShieldCheck> = {
   STUDENT: UserRound,
 };
 
-function RoleSelectionLoading() {
-  return (
-    <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
-      <Loader2 className="size-6 animate-spin text-primary" />
-      Đang tải các vai trò của tài khoản...
-    </div>
-  );
-}
-
 export default function SelectRoleClient({ rolesParam }: { rolesParam: string | null }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const redirected = useRef(false);
   const cachedRoles = useMemo(() => readRolesFromQuery(rolesParam), [rolesParam]);
-  const [pendingRoles, setPendingRoles] = useState<UserRole[] | null>(
-    cachedRoles.length ? cachedRoles : null
-  );
-  const [pendingRoleState, setPendingRoleState] = useState<"loading" | "ready" | "error">(
-    cachedRoles.length ? "ready" : "loading"
-  );
 
-  useEffect(() => {
-    if (cachedRoles.length) return;
-
-    let active = true;
-    const timeoutId = window.setTimeout(() => {
-      if (active) setPendingRoleState("error");
-    }, PENDING_ROLE_LOAD_TIMEOUT_MS);
-
-    void fetchAuth.pendingRoleSelection()
-      .then(({ availableRoles }) => {
-        if (!active) return;
-        setPendingRoles(availableRoles);
-        setPendingRoleState("ready");
-      })
-      .catch(() => {
-        if (active) setPendingRoleState("error");
-      })
-      .finally(() => window.clearTimeout(timeoutId));
-
-    return () => {
-      active = false;
-      window.clearTimeout(timeoutId);
-    };
-  }, [cachedRoles]);
   const roleMutation = useMutation({
     mutationFn: fetchAuth.selectRole,
     onSuccess: async (data) => {
@@ -97,28 +57,15 @@ export default function SelectRoleClient({ rolesParam }: { rolesParam: string | 
     },
   });
 
-  const roles = useMemo(() => cachedRoles.length ? cachedRoles : pendingRoles ?? [], [cachedRoles, pendingRoles]);
+  const roles = cachedRoles;
   const roleCards = useMemo(() => roles.map((role) => ({ role, Icon: ROLE_ICON[role] })), [roles]);
 
   useEffect(() => {
-    if (pendingRoleState !== "error" || redirected.current) return;
+    if (cachedRoles.length > 1 || redirected.current) return;
     redirected.current = true;
-    toast.error("Phiên chọn vai trò đã hết hạn, vui lòng đăng nhập lại");
+    toast.error("Không có phiên chọn vai trò hợp lệ, vui lòng đăng nhập lại");
     router.replace("/login?oauth_error=role_selection_expired");
-  }, [pendingRoleState, router]);
-
-  if (pendingRoleState === "loading") return <RoleSelectionLoading />;
-
-  if (pendingRoleState === "error") {
-    return (
-      <Card className="w-full max-w-lg">
-        <CardHeader>
-          <CardTitle>Phiên chọn vai trò đã hết hạn</CardTitle>
-          <CardDescription>Vui lòng đăng nhập lại để chọn vai trò.</CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
+  }, [cachedRoles.length, router]);
 
   return (
     <Card className="w-full max-w-lg">
