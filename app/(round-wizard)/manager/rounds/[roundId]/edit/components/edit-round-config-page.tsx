@@ -88,7 +88,7 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
   }
 
   const duration = Number(durationMinutes) || 0;
-  const maxGroups = Number(maxGroupsPerTimeslot) || 0;
+  const maxGroups = maxGroupsPerTimeslot.trim() === "" ? null : Number(maxGroupsPerTimeslot) || 0;
   const deadlineDate = registrationDeadline.slice(0, 10);
   const deadlineBeforeGrading =
     registrationDeadline !== "" &&
@@ -103,7 +103,7 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
     endDate !== "" &&
     startDate <= endDate &&
     duration > 0 &&
-    maxGroups > 0 &&
+    (maxGroups === null || maxGroups > 0) &&
     deadlineBeforeGrading &&
     groupDeadlineValid &&
     roomTypes.size >= 1;
@@ -193,7 +193,7 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Nhóm tối đa</Label>
+                  <Label className="text-xs text-muted-foreground">Hội đồng tối đa / timeslot</Label>
                   <div className="relative">
                     <Input
                       type="number"
@@ -201,12 +201,12 @@ function EditRoundConfigForm({ round, backHref }: { round: RoundDetail; backHref
                       value={maxGroupsPerTimeslot}
                       onChange={(e) => setMaxGroupsPerTimeslot(e.target.value)}
                       className="bg-background pr-14"
-                      required
                     />
                     <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted-foreground">
                       /slot
                     </span>
                   </div>
+                  <p className="text-xs text-muted-foreground">Theo H13; để trống nếu không giới hạn.</p>
                 </div>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">

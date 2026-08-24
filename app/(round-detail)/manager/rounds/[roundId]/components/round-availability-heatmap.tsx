@@ -2,9 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { CalendarClock, Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/shared/date-field";
 import { TimeField } from "@/components/shared/time-field";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -12,10 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatDate, formatInVietnamTime } from "@/lib/utils/formatDate";
 import { useRoundMyAvailability, useRoundInvitations, useUpdateRound } from "@/hooks/manager/useRounds";
-import { useGroups } from "@/hooks/manager/useGroups";
-import { useSemesterContext } from "@/app/(manager)/manager/_shared/semester-context";
+import { useAllGroups } from "@/hooks/manager/useGroups";
 import type { RoundDetail, RoundTimeslot } from "@/lib/api/services/fetchRounds";
-import type { SchedulingReadiness } from "@/lib/api/services/fetchScheduling";
 import { ErrorBlock, ROW_REVEAL_CLASS, rowRevealStyle } from "./round-detail-shared";
 
 /** Cập nhật mỗi phút — đủ để hàng "giờ hiện tại" nhích theo, không cần tick giây. */
@@ -33,16 +29,8 @@ function buildDeadlineIso(date: string, time: string) {
   return `${date}T${time}:00+07:00`;
 }
 
-/** Tạo date key theo lịch địa phương, tránh lệch ngày khi qua UTC. */
-function addDaysStr(dateStr: string, days: number): string {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-  date.setDate(date.getDate() + days);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-/** Thẻ full-width cho 1 giảng viên/nhóm — dùng trong popover chi tiết của {@link TimeslotCell}. */
-function PersonCard({
+/** Một dòng người/nhóm trong ô timeslot, compact để đọc như bảng thay vì card lịch. */
+function RegistrationPersonRow({
   code,
   subtitle,
   tone,
@@ -56,82 +44,77 @@ function PersonCard({
   return (
     <div
       className={cn(
-        "w-full rounded-md border px-2 py-1.5 transition-transform",
-        tone === "orange" ? "border-orange-500/30 bg-orange-500/10" : "border-violet-500/30 bg-violet-500/10",
+        "flex min-w-0 items-start gap-2 rounded-md px-1.5 py-1 transition-colors",
+        tone === "orange" ? "hover:bg-orange-500/10" : "hover:bg-violet-500/10",
         ROW_REVEAL_CLASS
       )}
       style={rowRevealStyle(index)}
     >
-      <p className={cn("truncate text-xs font-semibold", tone === "orange" ? "text-orange-700 dark:text-orange-400" : "text-violet-700 dark:text-violet-400")}>
-        {code}
-      </p>
-      {subtitle && <p className="truncate text-[11px] text-muted-foreground">{subtitle}</p>}
+      <span
+        className={cn("mt-1 size-1.5 shrink-0 rounded-full", tone === "orange" ? "bg-orange-500" : "bg-violet-500")}
+        aria-hidden
+      />
+      <span className="min-w-0">
+        <span
+          className={cn(
+            "block truncate text-xs font-semibold",
+            tone === "orange" ? "text-orange-700 dark:text-orange-400" : "text-violet-700 dark:text-violet-400"
+          )}
+        >
+          {code}
+        </span>
+        {subtitle && <span className="block truncate text-[11px] text-muted-foreground">{subtitle}</span>}
+      </span>
     </div>
   );
 }
 
-/** Ngưỡng hiện card trực tiếp mỗi khung — quá {@link SECTION_MAX_INLINE} thì cắt bớt + nút "+N" riêng cho khung đó. */
-const SECTION_MAX_INLINE = 3;
+const CELL_PREVIEW_LIMIT = 2;
 
-/** 1 khung riêng (giảng viên HOẶC nhóm) trong ô — quá ngưỡng thì có popover riêng của chính khung đó. */
-function SectionBox({
+function RegistrationCellSection({
   tone,
   title,
   ids,
   renderCard,
-  dateLabel,
-  timeLabel,
+  preview = false,
 }: {
   tone: "orange" | "violet";
   title: string;
   ids: number[];
   renderCard: (id: number, index: number) => ReactNode;
-  dateLabel: string;
-  timeLabel: string;
+  preview?: boolean;
 }) {
   if (ids.length === 0) return null;
-  const overflow = ids.length > SECTION_MAX_INLINE ? ids.length - SECTION_MAX_INLINE : 0;
-  const visible = overflow > 0 ? ids.slice(0, SECTION_MAX_INLINE) : ids;
+  const visible = preview ? ids.slice(0, CELL_PREVIEW_LIMIT) : ids;
 
   return (
-    <div className={cn("space-y-1 rounded-md p-1", tone === "orange" ? "bg-orange-500/5" : "bg-violet-500/5")}>
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className={cn(
+            "text-[11px] font-semibold",
+            tone === "orange" ? "text-orange-700 dark:text-orange-400" : "text-violet-700 dark:text-violet-400"
+          )}
+        >
+          {title}
+        </span>
+        <span
+          className={cn(
+            "rounded px-1.5 py-0.5 text-[11px] font-semibold tabular-nums",
+            tone === "orange"
+              ? "bg-orange-500/10 text-orange-700 dark:text-orange-400"
+              : "bg-violet-500/10 text-violet-700 dark:text-violet-400"
+          )}
+        >
+          {ids.length}
+        </span>
+      </div>
       {visible.map((id, index) => renderCard(id, index))}
-      {overflow > 0 && (
-        <Popover>
-          <PopoverTrigger
-            render={
-              <button
-                type="button"
-                className="w-full rounded-md border border-border bg-muted px-2 py-1 text-center text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground"
-              >
-                +{overflow}
-              </button>
-            }
-          />
-          <PopoverContent side="right" align="start" className="w-72 space-y-2">
-            <div>
-              <p className="text-sm font-semibold">
-                {dateLabel} · {timeLabel}
-              </p>
-              <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className={cn("size-2 rounded-full", tone === "orange" ? "bg-orange-500" : "bg-violet-500")} aria-hidden />
-                {title} ({ids.length})
-              </p>
-            </div>
-            <div className="max-h-72 space-y-1.5 overflow-y-auto">{ids.map((id, index) => renderCard(id, index))}</div>
-          </PopoverContent>
-        </Popover>
-      )}
     </div>
   );
 }
 
-/**
- * 1 ô ngày × giờ — 2 khung riêng biệt (không dồn chung): giảng viên rảnh (trên) / nhóm đã chọn
- * (dưới). Mỗi khung hiện tối đa {@link SECTION_MAX_INLINE} card, vượt quá thì có nút "+N" và
- * popover riêng của chính khung đó — 2 khung không chia sẻ chung 1 popover.
- */
-function TimeslotCell({
+function TimeslotRegistrationCell({
   lecturerIds,
   groupIds,
   lecturerById,
@@ -150,94 +133,111 @@ function TimeslotCell({
   isToday: boolean;
   isNowRow: boolean;
 }) {
-  const topBorder = isNowRow ? "border-t-2 border-t-primary/70" : "border-t border-border";
+  const total = lecturerIds.length + groupIds.length;
+  const overflowCount =
+    Math.max(0, lecturerIds.length - CELL_PREVIEW_LIMIT) + Math.max(0, groupIds.length - CELL_PREVIEW_LIMIT);
 
-  if (lecturerIds.length === 0 && groupIds.length === 0) {
+  if (total === 0) {
     return (
-      <div
-        className={cn("min-h-full border-l border-border bg-background", topBorder, isToday && "bg-foreground/2")}
-        aria-label="Chưa có lựa chọn"
-      />
+      <td className={cn("h-24 min-w-44 border-b border-l border-border p-3 align-top", isToday && "bg-primary/5")}>
+        <span className="text-xs text-muted-foreground/70">Chưa có ai</span>
+      </td>
     );
   }
 
+  const renderLecturer = (id: number, index: number) => (
+    <RegistrationPersonRow
+      key={id}
+      tone="orange"
+      code={lecturerById.get(id)?.code ?? `GV${id}`}
+      subtitle={lecturerById.get(id)?.fullName}
+      index={index}
+    />
+  );
+  const renderGroup = (id: number, index: number) => (
+    <RegistrationPersonRow key={id} tone="violet" code={groupCodeById.get(id) ?? `#${id}`} index={index} />
+  );
+
   return (
-    <div
+    <td
       className={cn(
-        "flex flex-col gap-1.5 border-l border-border p-1.5 transition-shadow duration-200",
-        topBorder,
-        isToday && "bg-foreground/2",
-        "hover:relative hover:z-10 hover:shadow-md hover:ring-1 hover:ring-border"
+        "h-24 min-w-48 border-b border-l border-border bg-background p-2 align-top transition-colors",
+        isToday && "bg-primary/5",
+        isNowRow && "shadow-[inset_0_2px_0_var(--primary)]",
+        "hover:bg-muted/40"
       )}
     >
-      <SectionBox
-        tone="orange"
-        title="Giảng viên"
-        ids={lecturerIds}
-        dateLabel={dateLabel}
-        timeLabel={timeLabel}
-        renderCard={(id, index) => (
-          <PersonCard
-            key={id}
-            tone="orange"
-            code={lecturerById.get(id)?.code ?? `GV${id}`}
-            subtitle={lecturerById.get(id)?.fullName}
-            index={index}
-          />
-        )}
-      />
-      <SectionBox
-        tone="violet"
-        title="Nhóm"
-        ids={groupIds}
-        dateLabel={dateLabel}
-        timeLabel={timeLabel}
-        renderCard={(id, index) => <PersonCard key={id} tone="violet" code={groupCodeById.get(id) ?? `#${id}`} index={index} />}
-      />
-    </div>
+      <div className="flex min-h-20 flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold tabular-nums">{total} đăng ký</span>
+          {overflowCount > 0 && (
+            <Popover>
+              <PopoverTrigger
+                render={
+                  <button
+                    type="button"
+                    className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground"
+                    aria-label={`Xem đầy đủ đăng ký ${dateLabel} ${timeLabel}`}
+                  >
+                    +{overflowCount}
+                  </button>
+                }
+              />
+              <PopoverContent side="right" align="start" className="w-80">
+                <div>
+                  <p className="text-sm font-semibold">
+                    {dateLabel} · {timeLabel}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{total} đăng ký trong timeslot này</p>
+                </div>
+                <div className="max-h-80 space-y-3 overflow-y-auto">
+                  <RegistrationCellSection tone="orange" title="Giảng viên" ids={lecturerIds} renderCard={renderLecturer} />
+                  <RegistrationCellSection tone="violet" title="Nhóm" ids={groupIds} renderCard={renderGroup} />
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+        <RegistrationCellSection tone="orange" title="Giảng viên" ids={lecturerIds} renderCard={renderLecturer} preview />
+        <RegistrationCellSection tone="violet" title="Nhóm" ids={groupIds} renderCard={renderGroup} preview />
+      </div>
+    </td>
   );
 }
 
 /**
- * Cột giữa (giai đoạn chưa có phương án ACTIVE/PUBLISHED) — lịch xếp ca: mỗi giảng viên rảnh /
- * nhóm đã chọn hiện thành 1 thẻ riêng trong đúng ô ngày-giờ, nhiều thẻ xếp cạnh nhau trong cùng
- * khung. Ô không phải khung giờ thật của round hiện xám và không tương tác. Mượn phong cách lưới +
- * banner từ `RoundScheduleCalendar` (bước 2 wizard tạo round) chứ không phải chính component đó
- * (component đó chỉnh sửa draft cục bộ, không đọc dữ liệu lịch rảnh thật).
+ * Cột giữa (giai đoạn chưa có phương án ACTIVE/PUBLISHED) — bảng đăng ký theo timeslot × thứ/ngày.
+ * Mỗi ô trả lời trực tiếp "khung giờ này ai đăng ký", còn ô không phải timeslot thật của round
+ * hiện xám và không tương tác.
  */
 export function RoundAvailabilityHeatmap({
   roundId,
   round,
-  hasVersions,
-  readiness,
-  onRunSchedule,
-  runPending,
 }: {
   roundId: string;
   round: RoundDetail;
-  hasVersions: boolean;
-  readiness: SchedulingReadiness | undefined;
-  onRunSchedule: () => void;
-  runPending: boolean;
 }) {
   const reduceMotion = useReducedMotion();
   const { date: nowDate, time: nowTime } = useNowInVietnamTime();
   const legacyRoundId = Number(roundId);
   const { data: availability, isLoading, isError } = useRoundMyAvailability(legacyRoundId);
   const { data: invitations } = useRoundInvitations(roundId);
-  const { currentSemester } = useSemesterContext();
-  const { data: groupsResult } = useGroups(currentSemester?.id);
+  const { data: groups } = useAllGroups(round.semesterId);
   const updateRound = useUpdateRound();
 
   const canEditDeadline = round.status === "DRAFT" || round.status === "OPEN_REGISTRATION";
-  const canRun = readiness?.ready ?? false;
 
-  /** Luôn hiện đủ 7 ngày liên tiếp để giữ đúng layout tuần của Round Calendar. */
+  /** Chỉ hiện những ngày thật sự có timeslot, tránh trải full tuần khi không cần. */
   const dates = useMemo(() => {
-    const anchor = round.startDate || availability?.timeslots[0]?.dayDate;
-    if (!anchor) return [];
-    return Array.from({ length: 7 }, (_, index) => addDaysStr(anchor, index));
-  }, [round.startDate, availability]);
+    const configuredDates = Array.from(
+      new Set(round.days.filter((day) => day.slots.length > 0).map((day) => day.date))
+    ).sort();
+    if (configuredDates.length > 0) return configuredDates;
+
+    return Array.from(
+      new Set((availability?.timeslots ?? []).map((slot) => formatInVietnamTime(slot.startAt, "YYYY-MM-DD")))
+    ).sort();
+  }, [round.days, availability]);
 
   /** Lấy đúng các hàng slot đã cấu hình, giống lưới Calendar chính của Round Detail. */
   const timeRows = useMemo(() => {
@@ -310,9 +310,15 @@ export function RoundAvailabilityHeatmap({
   /** group_id (số, theo selected_by_group) -> mã nhóm hiển thị trên thẻ. */
   const groupCodeById = useMemo(() => {
     const map = new Map<number, string>();
-    for (const g of groupsResult?.data ?? []) map.set(Number(g.id), g.code);
+    for (const group of groups ?? []) {
+      const numericId = Number(group.id);
+      if (Number.isFinite(numericId)) map.set(numericId, group.code);
+
+      const prefixedNumericId = group.id.startsWith("grp_") ? Number(group.id.slice(4)) : NaN;
+      if (Number.isFinite(prefixedNumericId)) map.set(prefixedNumericId, group.code);
+    }
     return map;
-  }, [groupsResult]);
+  }, [groups]);
 
   const deadlineDate = round.registrationDeadline ? formatInVietnamTime(round.registrationDeadline, "YYYY-MM-DD") : null;
   const deadlineTime = round.registrationDeadline ? formatInVietnamTime(round.registrationDeadline, "HH:mm") : "23:59";
@@ -324,8 +330,6 @@ export function RoundAvailabilityHeatmap({
     updateRound.mutate({ roundId, payload: { registrationDeadline: buildDeadlineIso(date, time) } });
   }
 
-  const runLabel = runPending ? "Đang chạy..." : hasVersions ? "Chạy lại" : "Chạy xếp lịch";
-
   return (
     <motion.div
       initial={reduceMotion ? undefined : { opacity: 0, y: 8 }}
@@ -333,69 +337,54 @@ export function RoundAvailabilityHeatmap({
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       className="flex h-full min-h-104 flex-col"
     >
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-        <div className="flex items-center gap-2 text-sm">
-          <CalendarClock className="size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-          <p className="text-pretty text-amber-700 dark:text-amber-400">
-            {canEditDeadline
-              ? "Đặt hạn đăng ký trước hoặc đúng ngày bắt đầu chấm; lưới bên dưới chỉ hiển thị lịch rảnh."
-              : deadlineDate
-                ? `Hạn đăng ký: ${formatDate(deadlineDate, "DD/MM/YYYY")} — đợt đã qua giai đoạn chỉnh sửa.`
-                : "Đợt đã qua giai đoạn chỉnh sửa hạn đăng ký."}
+      {canEditDeadline && (
+        <div className="flex shrink-0 flex-wrap items-end gap-4 border-b border-border pb-4">
+          <div className="space-y-1.5">
+            <label htmlFor="detail-registration-deadline-date" className="text-xs font-medium text-foreground">
+              Hạn đăng ký chọn lịch
+            </label>
+            <DateField
+              id="detail-registration-deadline-date"
+              ariaLabel="Hạn đăng ký chọn lịch"
+              value={deadlineDraftDate}
+              max={round.startDate || undefined}
+              disabled={updateRound.isPending}
+              onChange={(date) => {
+                setDeadlineDraftDate(date);
+                updateDeadline(date, deadlineDraftTime);
+              }}
+              aria-describedby="detail-registration-deadline-help"
+              className="h-11 w-44"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="detail-registration-deadline-time" className="text-xs font-medium text-foreground">
+              Giờ hạn đăng ký
+            </label>
+            <TimeField
+              id="detail-registration-deadline-time"
+              ariaLabel="Giờ hạn đăng ký"
+              value={deadlineDraftTime}
+              disabled={updateRound.isPending}
+              onChange={(time) => {
+                setDeadlineDraftTime(time);
+                updateDeadline(deadlineDraftDate, time);
+              }}
+              className="h-11 w-36"
+            />
+          </div>
+          <p id="detail-registration-deadline-help" className="pb-1 text-xs text-muted-foreground">
+            Ngày phải vào hoặc trước ngày bắt đầu chấm ({round.startDate}).
           </p>
+          {deadlineDraftDate && deadlineDraftDate > round.startDate && (
+            <p className="basis-full text-xs text-destructive">
+              Hạn đăng ký không được sau ngày bắt đầu chấm.
+            </p>
+          )}
         </div>
-        <Button size="default" variant={"default"} disabled={runPending || !canRun} onClick={onRunSchedule}>
-          <Sparkles />
-          {runLabel}
-        </Button>
-      </div>
+      )}
 
-      <div className="flex shrink-0 flex-wrap items-end gap-4 border-b border-border py-4">
-        <div className="space-y-1.5">
-          <label htmlFor="detail-registration-deadline-date" className="text-xs font-medium text-foreground">
-            Hạn đăng ký chọn lịch
-          </label>
-          <DateField
-            id="detail-registration-deadline-date"
-            ariaLabel="Hạn đăng ký chọn lịch"
-            value={deadlineDraftDate}
-            max={round.startDate || undefined}
-            disabled={!canEditDeadline || updateRound.isPending}
-            onChange={(date) => {
-              setDeadlineDraftDate(date);
-              updateDeadline(date, deadlineDraftTime);
-            }}
-            aria-describedby="detail-registration-deadline-help"
-            className="h-11 w-44"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="detail-registration-deadline-time" className="text-xs font-medium text-foreground">
-            Giờ hạn đăng ký
-          </label>
-          <TimeField
-            id="detail-registration-deadline-time"
-            ariaLabel="Giờ hạn đăng ký"
-            value={deadlineDraftTime}
-            disabled={!canEditDeadline || updateRound.isPending}
-            onChange={(time) => {
-              setDeadlineDraftTime(time);
-              updateDeadline(deadlineDraftDate, time);
-            }}
-            className="h-11 w-36"
-          />
-        </div>
-        <p id="detail-registration-deadline-help" className="pb-1 text-xs text-muted-foreground">
-          Ngày phải vào hoặc trước ngày bắt đầu chấm ({round.startDate}).
-        </p>
-        {deadlineDraftDate && deadlineDraftDate > round.startDate && (
-          <p className="basis-full text-xs text-destructive">
-            Hạn đăng ký không được sau ngày bắt đầu chấm.
-          </p>
-        )}
-      </div>
-
-      <div className="flex min-h-0 flex-1 flex-col pt-4">
+      <div className={cn("flex min-h-0 flex-1 flex-col", canEditDeadline && "pt-4")}>
         {isLoading && <Skeleton className="h-56 w-full" />}
         {isError && <ErrorBlock label="Không tải được lịch rảnh." />}
 
@@ -404,102 +393,123 @@ export function RoundAvailabilityHeatmap({
         )}
 
         {availability && dates.length > 0 && (
-          <div className="flex-1 overflow-auto">
-            <div
-              className="grid h-full"
-              style={{
-                gridTemplateColumns: `56px repeat(${dates.length}, minmax(104px, 1fr))`,
-                gridTemplateRows: `64px repeat(${timeRows.length}, minmax(64px, 1fr))`,
-              }}
-            >
-              <div className="sticky top-0 left-0 z-30 border-r border-b border-border bg-background" />
-              {dates.map((date) => {
-                const isDeadline = date === deadlineDate;
-                const isToday = date === nowDate;
-                return (
-                  <div
-                    key={date}
-                    className={cn(
-                      "sticky top-0 z-20 flex flex-col items-center justify-center gap-1 border-b border-l border-border bg-background py-2",
-                    )}
-                  >
-                    <span className="text-[11px] font-medium text-muted-foreground capitalize">{formatDate(date, "dd")}</span>
-                    <span
-                      className={cn(
-                        "flex size-7 items-center justify-center rounded-full text-sm font-semibold tabular-nums transition-shadow",
-                        isDeadline ? "bg-amber-500 text-white" : "text-foreground",
-                        !isDeadline && isToday && "ring-2 ring-primary/50"
-                      )}
-                    >
-                      {formatDate(date, "DD")}
-                    </span>
-                  </div>
-                );
-              })}
+          <div className="flex-1 overflow-auto rounded-lg border border-border">
+            <table className="w-full min-w-[960px] border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th className="sticky top-0 left-0 z-30 w-28 min-w-28 border-r border-b border-border bg-muted px-3 py-3 text-left align-middle text-xs font-semibold text-muted-foreground">
+                    Timeslot
+                  </th>
+                  {dates.map((date) => {
+                    const isDeadline = date === deadlineDate;
+                    const isToday = date === nowDate;
+                    return (
+                      <th
+                        key={date}
+                        className="sticky top-0 z-20 min-w-48 border-b border-l border-border bg-muted px-3 py-2 text-left align-middle"
+                      >
+                        <span className="block text-[11px] font-medium text-muted-foreground capitalize">
+                          {formatDate(date, "dddd")}
+                        </span>
+                        <span className="mt-1 flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "inline-flex h-7 min-w-14 items-center justify-center rounded-md px-2 text-sm font-semibold tabular-nums transition-shadow",
+                              isDeadline ? "bg-amber-500 text-white" : "text-foreground",
+                              !isDeadline && isToday && "ring-2 ring-primary/50"
+                            )}
+                          >
+                            {formatDate(date, "DD/MM")}
+                          </span>
+                          {isDeadline && <span className="text-[11px] font-medium text-amber-700 dark:text-amber-400">Hạn đăng ký</span>}
+                        </span>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {timeRows.map((row) => {
+                  const isNowRow = nowTime >= row.start && nowTime < row.end;
+                  return (
+                    <tr key={row.start}>
+                      <th
+                        scope="row"
+                        className={cn(
+                          "sticky left-0 z-10 w-28 min-w-28 border-r border-b border-border bg-background px-3 py-3 text-left align-top transition-colors",
+                          isNowRow && "text-primary shadow-[inset_0_2px_0_var(--primary)]"
+                        )}
+                      >
+                        <span className="flex items-center gap-1.5 text-xs font-semibold tabular-nums">
+                          {isNowRow && (
+                            <span className="size-1.5 shrink-0 rounded-full bg-primary motion-safe:animate-pulse" aria-hidden />
+                          )}
+                          {row.start}
+                        </span>
+                        <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground tabular-nums">
+                          đến {row.end}
+                        </span>
+                      </th>
+                      {dates.map((date) => {
+                        const cellKey = `${date}__${row.start}`;
+                        const roundSlot = roundSlotByCell.get(cellKey);
+                        const timeslot = timeslotByCell.get(cellKey);
+                        const isToday = date === nowDate;
+                        const currentRowClass = isNowRow ? "shadow-[inset_0_2px_0_var(--primary)]" : "";
 
-              {timeRows.map((row) => {
-                const isNowRow = nowTime >= row.start && nowTime < row.end;
-                return (
-                  <div key={row.start} className="contents">
-                    <div
-                      className={cn(
-                        "sticky left-0 z-10 flex items-center justify-end gap-1.5 border-r border-border bg-background pr-2 text-[11px] font-medium tabular-nums transition-colors",
-                        isNowRow ? "text-primary font-semibold" : "text-muted-foreground"
-                      )}
-                    >
-                      {isNowRow && (
-                        <span className="size-1.5 shrink-0 rounded-full bg-primary motion-safe:animate-pulse" aria-hidden />
-                      )}
-                      {row.start}
-                    </div>
-                    {dates.map((date) => {
-                      const cellKey = `${date}__${row.start}`;
-                      const roundSlot = roundSlotByCell.get(cellKey);
-                      const timeslot = timeslotByCell.get(cellKey);
-                      const isToday = date === nowDate;
-                      const topBorder = isNowRow ? "border-t-2 border-t-primary/70" : "border-t border-border";
+                        if (!roundSlot) {
+                          return (
+                            <td
+                              key={`${date}-${row.start}`}
+                              aria-disabled
+                              className={cn(
+                                "h-24 min-w-48 border-b border-l border-border bg-primary/5 p-3 align-top",
+                                currentRowClass
+                              )}
+                            >
+                              <span className="text-xs text-muted-foreground">Không mở</span>
+                            </td>
+                          );
+                        }
 
-                      if (!roundSlot) {
+                        if (!timeslot) {
+                          return (
+                            <td
+                              key={`${date}-${row.start}`}
+                              className={cn(
+                                "h-24 min-w-48 border-b border-l border-border bg-background p-3 align-top",
+                                isToday && "bg-primary/5",
+                                currentRowClass
+                              )}
+                              title={`Khung giờ ${roundSlot.startTime} – ${roundSlot.endTime}`}
+                            >
+                              <span className="text-xs text-muted-foreground/70">Chưa có dữ liệu</span>
+                            </td>
+                          );
+                        }
+
+                        const lecturerIds = Array.from(lecturerAvailableByTimeslot.get(timeslot.id) ?? []);
+                        const groupIds = Array.from(groupSelectedByTimeslot.get(timeslot.id) ?? []);
+
                         return (
-                          <div
+                          <TimeslotRegistrationCell
                             key={`${date}-${row.start}`}
-                            aria-disabled
-                            className={cn("border-l border-primary/20 bg-primary/5", topBorder)}
+                            lecturerIds={lecturerIds}
+                            groupIds={groupIds}
+                            lecturerById={lecturerById}
+                            groupCodeById={groupCodeById}
+                            dateLabel={formatDate(date, "dddd, DD/MM")}
+                            timeLabel={`${roundSlot.startTime} – ${roundSlot.endTime}`}
+                            isToday={isToday}
+                            isNowRow={isNowRow}
                           />
                         );
-                      }
-
-                      if (!timeslot) {
-                        return (
-                          <div
-                            key={`${date}-${row.start}`}
-                            className={cn("border-l border-border bg-background", topBorder, isToday && "bg-foreground/2")}
-                            title={`Khung giờ ${roundSlot.startTime} – ${roundSlot.endTime}`}
-                          />
-                        );
-                      }
-
-                      const lecturerIds = Array.from(lecturerAvailableByTimeslot.get(timeslot.id) ?? []);
-                      const groupIds = Array.from(groupSelectedByTimeslot.get(timeslot.id) ?? []);
-
-                      return (
-                        <TimeslotCell
-                          key={`${date}-${row.start}`}
-                          lecturerIds={lecturerIds}
-                          groupIds={groupIds}
-                          lecturerById={lecturerById}
-                          groupCodeById={groupCodeById}
-                          dateLabel={formatDate(date, "dddd, DD/MM")}
-                          timeLabel={`${roundSlot.startTime} – ${roundSlot.endTime}`}
-                          isToday={isToday}
-                          isNowRow={isNowRow}
-                        />
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

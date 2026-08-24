@@ -66,19 +66,30 @@ export function RoundsPage() {
             {meta ? `${meta.total} đợt trong học kỳ ${currentSemesterId}` : "…"}
           </p>
         </div>
-        <Link
-          href={
-            currentSemesterId
-              ? `/manager/rounds/new?semester=${currentSemesterId}`
-              : "/manager/rounds/new"
-          }
-          aria-disabled={isLockedSemester}
-        >
-          <Button disabled={isLockedSemester}>
+        {isLockedSemester ? (
+          <Button
+            variant="outline"
+            disabled
+            title="Không thể tạo đợt trong học kỳ đã khóa"
+            className="min-h-10"
+          >
             <CalendarPlus />
             Tạo đợt đánh giá
           </Button>
-        </Link>
+        ) : (
+          <Link
+            href={
+              currentSemesterId
+                ? `/manager/rounds/new?semester=${currentSemesterId}`
+                : "/manager/rounds/new"
+            }
+          >
+            <Button title="Tạo đợt đánh giá mới" className="min-h-10">
+              <CalendarPlus />
+              Tạo đợt đánh giá
+            </Button>
+          </Link>
+        )}
       </div>
 
       {isLockedSemester && (
