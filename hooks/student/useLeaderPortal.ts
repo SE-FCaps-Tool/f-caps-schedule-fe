@@ -14,7 +14,7 @@ export function useLeaderDashboard() {
   return useQuery({
     queryKey: ["leader", "dashboard"] as const,
     queryFn: fetchLeaderPortal.dashboard,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -24,7 +24,7 @@ export function useGroupPreferences(roundId: string | null, groupId: string | nu
     queryKey: ["leader", "preferences", roundId, groupId] as const,
     queryFn: () => fetchLeaderPortal.groupPreferences(roundId as string, groupId as string),
     enabled: roundId !== null && groupId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -53,6 +53,6 @@ export function useLeaderSessions() {
   return useQuery({
     queryKey: ["leader", "sessions"] as const,
     queryFn: fetchLeaderPortal.mySessions,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }

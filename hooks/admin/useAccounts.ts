@@ -16,7 +16,7 @@ export function useAccounts() {
   return useQuery({
     queryKey: adminKeys.accounts,
     queryFn: fetchAccounts.list,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 

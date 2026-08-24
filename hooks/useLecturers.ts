@@ -17,7 +17,7 @@ export function useLecturers(params?: LecturerListParams) {
   return useQuery({
     queryKey: [...adminKeys.lecturers, params ?? null] as const,
     queryFn: async () => (await fetchLecturers.list(effectiveParams)).data,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -29,7 +29,7 @@ export function useLecturersPage(params: LecturerListParams) {
   return useQuery({
     queryKey: [...adminKeys.lecturers, "page", params] as const,
     queryFn: () => fetchLecturers.list(params),
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -40,6 +40,7 @@ export function useCreateLecturer() {
     mutationFn: (payload: LecturerCreatePayload) => fetchLecturers.create(payload),
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: adminKeys.lecturers });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "lecturers"] });
       await queryClient.invalidateQueries({ queryKey: adminKeys.accounts });
       await queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
       toast.success(`Đã thêm giảng viên ${data.lecturerCode}`);
@@ -62,6 +63,7 @@ export function useImportLecturers() {
     onSuccess: async (data) => {
       if (data.created > 0) {
         await queryClient.invalidateQueries({ queryKey: adminKeys.lecturers });
+        await queryClient.invalidateQueries({ queryKey: ["manager", "lecturers"] });
         await queryClient.invalidateQueries({ queryKey: adminKeys.accounts });
         await queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
       }

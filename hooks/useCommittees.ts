@@ -13,7 +13,7 @@ export function useCommittees(lecturerId?: string) {
   return useQuery({
     queryKey: adminKeys.committees(lecturerId),
     queryFn: async () => (await fetchCommittees.list(lecturerId)).data,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -31,7 +31,7 @@ export function useCreateCommittees() {
     mutationFn: (payload: CommitteeBatchRequest) => fetchCommittees.createBatch(payload),
     onSuccess: async (data) => {
       if (data.created > 0) {
-        await queryClient.invalidateQueries({ queryKey: adminKeys.committees() });
+        await queryClient.invalidateQueries({ queryKey: ["admin", "committees"] });
         await queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
       }
       if (data.created > 0 && data.skipped === 0) {
@@ -54,7 +54,7 @@ export function useDeleteCommittee() {
   return useMutation({
     mutationFn: (committeeId: string) => fetchCommittees.remove(committeeId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: adminKeys.committees() });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "committees"] });
       await queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
       toast.success("Đã xoá hội đồng");
     },
@@ -70,7 +70,7 @@ export function useBulkDeleteCommittees() {
   return useMutation({
     mutationFn: (committeeIds: string[]) => fetchCommittees.bulkDelete(committeeIds),
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: adminKeys.committees() });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "committees"] });
       await queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
       toast.success(`Đã xoá ${data.deleted} hội đồng`);
     },

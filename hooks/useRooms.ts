@@ -10,7 +10,7 @@ export function useRooms() {
   return useQuery({
     queryKey: adminKeys.rooms,
     queryFn: async () => (await fetchRooms.list()).data,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -21,6 +21,7 @@ export function useCreateRoom() {
     mutationFn: (payload: RoomCreatePayload) => fetchRooms.create(payload),
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: adminKeys.rooms });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "rooms", "catalog"] });
       await queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
       toast.success(`Đã thêm phòng ${data.code}`);
     },

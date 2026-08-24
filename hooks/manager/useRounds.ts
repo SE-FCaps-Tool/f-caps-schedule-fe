@@ -19,7 +19,7 @@ export function useRounds(semesterId?: number | null, params?: { page?: number; 
     queryKey: [...managerKeys.rounds(semesterId), params ?? null] as const,
     queryFn: () => fetchRounds.list(String(semesterId), params),
     enabled: semesterId != null,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -28,6 +28,7 @@ function useInvalidateRounds() {
   return async (roundId?: string) => {
     await queryClient.invalidateQueries({ queryKey: ["manager", "rounds"] });
     if (roundId) await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId] });
+    await queryClient.invalidateQueries({ queryKey: ["manager", "dashboard"] });
   };
 }
 
@@ -85,7 +86,7 @@ export function useRoundDetail(roundId: string | null) {
     queryKey: ["manager", "round", roundId] as const,
     queryFn: () => fetchRounds.getById(roundId as string),
     enabled: roundId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -95,7 +96,7 @@ export function useRoundInvitations(roundId: string | null) {
     queryKey: ["manager", "round", roundId, "invitations"] as const,
     queryFn: () => fetchRounds.invitations(roundId as string),
     enabled: roundId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -140,7 +141,7 @@ export function useEligibleProjects(roundId: string | null) {
     queryKey: ["manager", "round", roundId, "eligible-projects"] as const,
     queryFn: () => fetchRounds.eligibleProjects(roundId as string),
     enabled: roundId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -150,7 +151,7 @@ export function useRoundGroups(roundId: string | null) {
     queryKey: ["manager", "round", roundId, "groups"] as const,
     queryFn: () => fetchRounds.groups(roundId as string),
     enabled: roundId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -177,7 +178,7 @@ export function useRegistrationSummary(roundId: string | null) {
     queryKey: ["manager", "round", roundId, "registration-summary"] as const,
     queryFn: () => fetchRounds.registrationSummary(roundId as string),
     enabled: roundId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -187,7 +188,7 @@ export function useRoundMyAvailability(roundId: number | null) {
     queryKey: managerKeys.roundMyAvailability(roundId ?? 0),
     queryFn: () => fetchRounds.myAvailability(roundId as number),
     enabled: roundId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 

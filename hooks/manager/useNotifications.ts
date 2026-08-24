@@ -12,7 +12,7 @@ export function useNotifications(limit = 50) {
   return useQuery({
     queryKey: managerKeys.notifications(limit),
     queryFn: () => fetchNotifications.list(limit),
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 

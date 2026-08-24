@@ -8,6 +8,6 @@ export function useAudit(params?: AuditListParams) {
   return useQuery({
     queryKey: adminKeys.audit(params),
     queryFn: () => fetchAudit.list(params),
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }

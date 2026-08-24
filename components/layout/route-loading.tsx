@@ -5,11 +5,7 @@ type RouteLoadingVariant = "workspace" | "detail" | "form";
 
 function WorkspaceLoading() {
   return (
-    <div className="space-y-6" aria-hidden>
-      <div className="space-y-2">
-        <Skeleton className="h-8 w-52" />
-        <Skeleton className="h-4 w-72" />
-      </div>
+    <div className="space-y-6 pt-2" aria-hidden>
       <div className="grid gap-4 lg:grid-cols-2">
         <Skeleton className="h-32 w-full rounded-lg" />
         <Skeleton className="h-32 w-full rounded-lg" />
@@ -49,15 +45,10 @@ function DetailLoading() {
 
 function FormLoading() {
   return (
-    <div className="mx-auto max-w-4xl space-y-6" aria-hidden>
-      <div className="space-y-2">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-80" />
-      </div>
+    <div className="mx-auto max-w-4xl pt-2" aria-hidden>
       <div className="space-y-5 rounded-lg border border-border p-5">
         {Array.from({ length: 5 }, (_, index) => (
           <div key={index} className="space-y-2">
-            <Skeleton className="h-4 w-28" />
             <Skeleton className="h-10 w-full rounded-md" />
           </div>
         ))}

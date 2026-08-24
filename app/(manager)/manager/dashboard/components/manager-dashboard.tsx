@@ -133,10 +133,27 @@ export function ManagerDashboard() {
     );
   }
 
+  const pageHeader = (
+    <div className="motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <h1 className="text-2xl font-semibold tracking-tight">Tổng quan</h1>
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        <span className="font-medium text-foreground">Học kỳ {currentSemesterId}</span>
+        <span className="text-muted-foreground/50">·</span>
+        <span className="text-muted-foreground">
+          {projects ? `${projects.meta?.total ?? projects.data?.length ?? 0} đề tài` : "…"}
+        </span>
+        <span className="text-muted-foreground/50">·</span>
+        <span className="text-muted-foreground">
+          {groups ? `${groups.meta?.total ?? groups.data?.length ?? 0} nhóm` : "…"}
+        </span>
+      </div>
+    </div>
+  );
+
   if (isLoading) {
     return (
       <div>
-        <Skeleton className="h-8 w-48" />
+        {pageHeader}
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -158,20 +175,7 @@ export function ManagerDashboard() {
 
   return (
     <div>
-      <div className="motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-2 duration-500">
-        <h1 className="text-2xl font-semibold tracking-tight">Tổng quan</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          <span className="font-medium text-foreground">Học kỳ {currentSemesterId}</span>
-          <span className="text-muted-foreground/50">·</span>
-          <span className="text-muted-foreground">
-            {projects ? `${projects.meta?.total ?? projects.data?.length ?? 0} đề tài` : "…"}
-          </span>
-          <span className="text-muted-foreground/50">·</span>
-          <span className="text-muted-foreground">
-            {groups ? `${groups.meta?.total ?? groups.data?.length ?? 0} nhóm` : "…"}
-          </span>
-        </div>
-      </div>
+      {pageHeader}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <Link

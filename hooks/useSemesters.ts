@@ -17,6 +17,7 @@ function useInvalidateSemesters() {
   const queryClient = useQueryClient();
   return async () => {
     await queryClient.invalidateQueries({ queryKey: ["admin", "semesters"] });
+    await queryClient.invalidateQueries({ queryKey: ["admin", "semester"] });
     await queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
   };
 }
@@ -25,7 +26,7 @@ export function useSemesters(params?: SemesterListParams) {
   return useQuery({
     queryKey: adminKeys.semesters(params),
     queryFn: async () => (await fetchSemesters.list(params)).data,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -34,7 +35,7 @@ export function useSemester(id: number | null) {
     queryKey: adminKeys.semester(id ?? 0),
     queryFn: () => fetchSemesters.getById(id as number),
     enabled: id !== null,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 

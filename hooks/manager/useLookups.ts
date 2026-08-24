@@ -9,7 +9,7 @@ export function useMajors() {
   return useQuery({
     queryKey: managerKeys.majors,
     queryFn: fetchMasterDataLookups.majors,
-    staleTime: 5 * 60 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -18,6 +18,6 @@ export function useStudents() {
   return useQuery({
     queryKey: managerKeys.students,
     queryFn: fetchMasterDataLookups.students,
-    staleTime: 5 * 60 * 1000,
+    staleTime: Infinity,
   });
 }

@@ -41,7 +41,7 @@ export function useGroups(semesterId?: number | null, params?: GroupListParams) 
     queryKey: [...managerKeys.groups(semesterId), params ?? null] as const,
     queryFn: () => fetchGroups.list(String(semesterId), params),
     enabled: semesterId != null,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -51,7 +51,7 @@ export function useAllGroups(semesterId?: string | null) {
     queryKey: [...managerKeys.groups(semesterId ? Number(semesterId) : null), "all"] as const,
     queryFn: () => fetchAllGroups(semesterId as string),
     enabled: semesterId != null,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -61,7 +61,7 @@ export function useGroupDetail(groupId: string | null) {
     queryKey: ["manager", "group", groupId] as const,
     queryFn: () => fetchGroups.getById(groupId as string),
     enabled: groupId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -71,7 +71,7 @@ export function useGroupMembers(groupId: string | null) {
     queryKey: ["manager", "group", groupId, "members"] as const,
     queryFn: () => fetchGroups.members(groupId as string),
     enabled: groupId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -80,6 +80,7 @@ function useInvalidateGroups() {
   return async (groupId?: string) => {
     await queryClient.invalidateQueries({ queryKey: ["manager", "groups"] });
     if (groupId) await queryClient.invalidateQueries({ queryKey: ["manager", "group", groupId] });
+    await queryClient.invalidateQueries({ queryKey: ["manager", "dashboard"] });
   };
 }
 
@@ -139,12 +140,14 @@ export function useGroupMemberLeave() {
 
 export function useAssignGroupProject() {
   const invalidate = useInvalidateGroups();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ groupId, payload }: { groupId: string; payload: AssignProjectPayload }) =>
       fetchGroups.assignProject(groupId, payload),
     onSuccess: async (_data, variables) => {
       await invalidate(variables.groupId);
+      await queryClient.invalidateQueries({ queryKey: ["manager", "projects"] });
       toast.success("Đã gắn đề tài cho nhóm");
     },
     onError: (error: ApiError) => {

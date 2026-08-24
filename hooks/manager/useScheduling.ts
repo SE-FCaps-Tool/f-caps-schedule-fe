@@ -78,7 +78,7 @@ export function useScheduleVersions(roundId: number | null, semesterId?: number 
     queryKey: managerKeys.scheduleVersions(roundId ?? 0),
     queryFn: () => fetchScheduling.versions(roundId as number, semesterId),
     enabled: roundId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -88,7 +88,7 @@ export function useScheduleVersion(versionId: number | null, semesterId?: number
     queryKey: managerKeys.scheduleVersion(versionId ?? 0),
     queryFn: () => fetchScheduling.versionDetail(versionId as number, semesterId),
     enabled: versionId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -116,7 +116,7 @@ export function useSchedulingReadiness(roundId: string | null) {
     queryKey: ["manager", "round", roundId, "scheduling-readiness"] as const,
     queryFn: () => fetchScheduling.readiness(roundId as string),
     enabled: roundId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -126,7 +126,7 @@ export function useRoundScheduleVersions(roundId: string | null) {
     queryKey: ["manager", "round", roundId, "schedules"] as const,
     queryFn: () => fetchScheduling.roundScheduleVersions(roundId as string),
     enabled: roundId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -198,7 +198,7 @@ export function usePublishReadiness(roundId: string | null) {
     queryKey: ["manager", "round", roundId, "publish-readiness"] as const,
     queryFn: () => fetchScheduling.publishReadiness(roundId as string),
     enabled: roundId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -399,7 +399,7 @@ export function useReplacementSuggestions(sessionId: number | null) {
     queryKey: managerKeys.replacementSuggestions(sessionId ?? 0),
     queryFn: () => fetchScheduling.replacementSuggestions(sessionId as number),
     enabled: sessionId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 

@@ -19,7 +19,7 @@ export function useSessionResult(sessionId: number | null, semesterId?: number |
     queryKey: managerKeys.sessionResult(sessionId ?? 0),
     queryFn: () => fetchResults.sessionResult(sessionId as number, semesterId),
     enabled: sessionId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -66,7 +66,7 @@ export function useRemediationCases() {
   return useQuery({
     queryKey: managerKeys.remediation,
     queryFn: fetchResults.remediation,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 

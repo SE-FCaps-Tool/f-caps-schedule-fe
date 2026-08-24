@@ -12,7 +12,7 @@ export function useDashboard(semesterId?: number | null, roundId?: number | null
   return useQuery({
     queryKey: managerKeys.dashboard(semesterId, roundId),
     queryFn: () => fetchReports.dashboard(semesterId, roundId),
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -21,7 +21,7 @@ export function useLecturerLoadReport(semesterId?: number | null, roundId?: numb
   return useQuery({
     queryKey: managerKeys.reportsLecturerLoad(semesterId, roundId),
     queryFn: () => fetchReports.lecturerLoad(semesterId, roundId),
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -31,7 +31,7 @@ export function useUnscheduledReport(roundId: number | null, semesterId?: number
     queryKey: managerKeys.reportsUnscheduled(roundId ?? 0, semesterId),
     queryFn: () => fetchReports.unscheduled(roundId as number, semesterId),
     enabled: roundId !== null,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -40,7 +40,7 @@ export function useQualityReport(semesterId?: number | null) {
   return useQuery({
     queryKey: managerKeys.reportsQuality(semesterId),
     queryFn: () => fetchReports.quality(semesterId),
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -49,7 +49,7 @@ export function useRemediationReport(semesterId?: number | null, roundId?: numbe
   return useQuery({
     queryKey: managerKeys.reportsRemediation(semesterId, roundId),
     queryFn: () => fetchReports.remediation(semesterId, roundId),
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -58,7 +58,7 @@ export function useOutcomesReport(semesterId?: number | null, roundId?: number |
   return useQuery({
     queryKey: managerKeys.reportsOutcomes(semesterId, roundId),
     queryFn: () => fetchReports.outcomes(semesterId, roundId),
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -68,7 +68,7 @@ export function useProvenance(versionId: number | null, semesterId?: number | nu
     queryKey: managerKeys.provenance(versionId ?? 0, semesterId),
     queryFn: () => fetchReports.provenance(versionId as number, semesterId),
     enabled: versionId !== null,
-    staleTime: 60 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -77,7 +77,7 @@ export function useGroupProgress(semesterId?: number | null) {
   return useQuery({
     queryKey: ["manager", "reports", "group-progress", semesterId ?? null] as const,
     queryFn: () => fetchReports.groupProgress(semesterId),
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 

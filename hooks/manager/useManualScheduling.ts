@@ -19,7 +19,7 @@ export function useManualScheduleBoard(roundId: string | null) {
     queryKey: manualScheduleKey(roundId ?? ""),
     queryFn: () => fetchManualScheduling.get(roundId as string),
     enabled: roundId !== null,
-    staleTime: 10 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -32,7 +32,7 @@ export function useManualScheduleOptions(
     queryKey: [...manualScheduleKey(roundId ?? ""), "options", params] as const,
     queryFn: () => fetchManualScheduling.options(roundId as string, params as ManualScheduleOptionsParams),
     enabled: roundId !== null && params !== null && enabled,
-    staleTime: 5 * 1000,
+    staleTime: Infinity,
     placeholderData: (previousData) => previousData,
   });
 }
@@ -121,7 +121,7 @@ export function useManualScheduleReadiness(roundId: string | null, enabled = tru
     queryKey: [...manualScheduleKey(roundId ?? ""), "publish-readiness"] as const,
     queryFn: () => fetchManualScheduling.publishReadiness(roundId as string),
     enabled: roundId !== null && enabled,
-    staleTime: 5 * 1000,
+    staleTime: Infinity,
   });
 }
 

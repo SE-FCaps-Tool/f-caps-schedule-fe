@@ -40,7 +40,7 @@ export function useInfiniteScroll<T>({
       return loaded < lastPage.meta.total ? lastPage.meta.page + 1 : undefined;
     },
     enabled,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;

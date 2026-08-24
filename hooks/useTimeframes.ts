@@ -22,7 +22,7 @@ export function useTimeframes(includeArchived = false) {
     queryKey: timeframeKeys.list(includeArchived),
     queryFn: () => fetchTimeframes.list(includeArchived),
     select: (result) => result.data,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 

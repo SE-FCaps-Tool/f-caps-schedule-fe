@@ -45,7 +45,7 @@ export function useRoundSessions(roundId: string | null, versionId: string | nul
     queryKey: ["manager", "round", roundId, "sessions", versionId] as const,
     queryFn: () => fetchRoomAssignment.sessions(roundId as string, versionId as string),
     enabled: roundId !== null && versionId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -55,7 +55,7 @@ export function useAvailableRooms(roundId: string | null, params?: AvailableRoom
     queryKey: ["manager", "round", roundId, "rooms-available", params ?? null] as const,
     queryFn: () => fetchRoomAssignment.availableRooms(roundId as string, params),
     enabled: roundId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -65,7 +65,7 @@ export function useRoomCatalog(enabled: boolean) {
     queryKey: ["manager", "rooms", "catalog"] as const,
     queryFn: fetchRoomCatalog,
     enabled,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 

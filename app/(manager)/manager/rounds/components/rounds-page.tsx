@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { CalendarPlus, ChevronRight, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,9 +24,11 @@ import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { normalizeListResponse } from "@/lib/api/pagination";
 import { startNavigationProgress } from "@/components/layout/navigation-progress";
+import { fetchRounds } from "@/lib/api/services/fetchRounds";
 
 export function RoundsPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { currentSemesterId, currentSemester } = useSemesterContext();
   const { containerRef, pageSize } = useAutoPageSize();
   const [page, setPage] = useState(1);
@@ -47,6 +50,21 @@ export function RoundsPage() {
   function openRound(roundId: string) {
     startNavigationProgress();
     router.push(roundHref(roundId));
+  }
+
+  function prefetchRound(roundId: string) {
+    const href = roundHref(roundId);
+    router.prefetch(href);
+    void queryClient.prefetchQuery({
+      queryKey: ["manager", "round", roundId] as const,
+      queryFn: () => fetchRounds.getById(roundId),
+      staleTime: Infinity,
+    });
+    void queryClient.prefetchQuery({
+      queryKey: ["manager", "round", roundId, "registration-summary"] as const,
+      queryFn: () => fetchRounds.registrationSummary(roundId),
+      staleTime: Infinity,
+    });
   }
   // Học kỳ CLOSED hiển thị mọi đợt ở trạng thái LOCKED (chỉ xem, không thao tác) — §8 doc
   const isLockedSemester = currentSemester?.status === "CLOSED";
@@ -152,8 +170,8 @@ export function RoundsPage() {
                       <TableRow
                         key={round.id}
                         className="cursor-pointer"
-                        onMouseEnter={() => router.prefetch(roundHref(round.id))}
-                        onFocus={() => router.prefetch(roundHref(round.id))}
+                        onMouseEnter={() => prefetchRound(round.id)}
+                        onFocus={() => prefetchRound(round.id)}
                         onClick={(event) => {
                           if (
                             event.target instanceof Element &&

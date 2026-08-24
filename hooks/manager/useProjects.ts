@@ -19,7 +19,7 @@ export function useProjects(semesterId?: number | null, params?: ProjectListPara
     queryKey: [...managerKeys.projects(semesterId), params ?? null] as const,
     queryFn: () => fetchProjects.list(String(semesterId), params),
     enabled: semesterId != null,
-    staleTime: 30 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -48,6 +48,7 @@ export function useCreateProject(semesterId?: number | null) {
     mutationFn: (payload: ProjectCreatePayload) => fetchProjects.create(String(semesterId), payload),
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ["manager", "projects"] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "dashboard"] });
       toast.success(`Đã tạo đề tài ${data.code}`);
     },
     onError: (error: ApiError) => {
@@ -63,8 +64,10 @@ export function useUpdateProject() {
   return useMutation({
     mutationFn: ({ projectId, payload }: { projectId: string; payload: ProjectUpdatePayload }) =>
       fetchProjects.update(projectId, payload),
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
       await queryClient.invalidateQueries({ queryKey: ["manager", "projects"] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "project", variables.projectId] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "dashboard"] });
       toast.success("Đã cập nhật GVHD đề tài");
     },
     onError: (error: ApiError) => {
@@ -79,7 +82,7 @@ export function useProjectDetail(projectId: string | null) {
     queryKey: ["manager", "project", projectId] as const,
     queryFn: () => fetchProjects.getById(projectId as string),
     enabled: projectId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -89,7 +92,7 @@ export function useProjectProgression(projectId: string | null) {
     queryKey: ["manager", "project", projectId, "progression"] as const,
     queryFn: () => fetchProjects.progression(projectId as string),
     enabled: projectId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -99,6 +102,6 @@ export function useProjectResults(projectId: string | null) {
     queryKey: ["manager", "project", projectId, "results"] as const,
     queryFn: () => fetchProjects.results(projectId as string),
     enabled: projectId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }

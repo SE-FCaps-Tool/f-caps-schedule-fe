@@ -28,7 +28,7 @@ export function useMe(options?: { enabled?: boolean }) {
     queryKey: authKeys.me,
     queryFn: fetchAuth.me,
     retry: false,
-    staleTime: 5 * 60 * 1000,
+    staleTime: Infinity,
     enabled: options?.enabled,
   });
 }

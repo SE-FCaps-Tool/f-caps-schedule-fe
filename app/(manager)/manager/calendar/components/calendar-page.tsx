@@ -131,7 +131,17 @@ export function CalendarPage() {
   }
 
   if (roundsLoading) {
-    return <Skeleton className="h-64 w-full" />;
+    return (
+      <div className="flex h-full flex-col">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Lịch đánh giá</h1>
+          <div className="mt-1.5">
+            <Skeleton className="h-7 w-32" />
+          </div>
+        </div>
+        <Skeleton className="mt-6 h-64 w-full" />
+      </div>
+    );
   }
 
   if (!rounds || rounds.length === 0) {
@@ -409,4 +419,3 @@ export function CalendarPage() {
     </div>
   );
 }
-

@@ -45,7 +45,10 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
   if (isLoading) {
     return (
       <div>
-        <Skeleton className="h-4 w-32" />
+        <Link href="/manager/projects" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ChevronLeft className="size-4" />
+          Đề tài
+        </Link>
         <Skeleton className="mt-4 h-8 w-64" />
         <div className="mt-8">
           <LoadingBlock />

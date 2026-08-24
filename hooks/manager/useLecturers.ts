@@ -26,7 +26,7 @@ export function useLecturers() {
   return useQuery({
     queryKey: ["manager", "lecturers"] as const,
     queryFn: fetchAllLecturers,
-    staleTime: 5 * 60 * 1000,
+    staleTime: Infinity,
   });
 }
 

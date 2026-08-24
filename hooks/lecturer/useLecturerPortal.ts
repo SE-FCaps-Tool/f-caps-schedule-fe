@@ -17,7 +17,7 @@ export function useLecturerInvitations() {
   return useQuery({
     queryKey: ["lecturer", "invitations"] as const,
     queryFn: fetchLecturerPortal.invitations,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -44,7 +44,7 @@ export function useLecturerAvailability(roundId: string | null) {
     queryKey: ["lecturer", "availability", roundId] as const,
     queryFn: () => fetchLecturerPortal.availability(roundId as string),
     enabled: roundId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -69,7 +69,7 @@ export function useLecturerSessions(params: MySessionsParams = {}) {
   return useQuery({
     queryKey: ["lecturer", "sessions", params] as const,
     queryFn: () => fetchLecturerPortal.mySessions(params),
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -78,7 +78,7 @@ export function useSupervisedProjects() {
   return useQuery({
     queryKey: ["lecturer", "supervised-projects"] as const,
     queryFn: fetchLecturerPortal.supervisedProjects,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -87,7 +87,7 @@ export function useLecturerRemediations() {
   return useQuery({
     queryKey: ["lecturer", "remediations"] as const,
     queryFn: fetchLecturerPortal.remediations,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
@@ -115,7 +115,7 @@ export function useLecturerSessionDetail(sessionId: string | null) {
     queryKey: ["lecturer", "session", sessionId] as const,
     queryFn: () => fetchLecturerPortal.sessionDetail(sessionId as string),
     enabled: sessionId !== null,
-    staleTime: 15 * 1000,
+    staleTime: Infinity,
   });
 }
 
