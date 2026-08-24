@@ -13,10 +13,11 @@ import { friendlyErrorMessage, detailMessage } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
 
 /** GET /lecturer/me/invitations — spec §31 */
-export function useLecturerInvitations() {
+export function useLecturerInvitations(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["lecturer", "invitations"] as const,
     queryFn: fetchLecturerPortal.invitations,
+    enabled: options?.enabled ?? true,
     staleTime: Infinity,
   });
 }

@@ -12,7 +12,7 @@ export function PreferencesLanding() {
   const { data, isLoading, isError } = useLeaderDashboard();
 
   return (
-    <div>
+    <div className="h-full overflow-y-auto p-4 md:p-6">
       <h1 className="text-2xl font-semibold tracking-tight">Đăng ký lịch</h1>
       <p className="mt-1 text-sm text-muted-foreground">Chọn khung giờ ưu tiên cho nhóm ở đợt đang mở đăng ký.</p>
 

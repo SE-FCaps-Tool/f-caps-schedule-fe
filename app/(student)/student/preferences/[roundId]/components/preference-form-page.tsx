@@ -106,7 +106,7 @@ export function PreferenceFormPage({ roundId }: { roundId: string }) {
   const isError = dashboardError || slotsError;
 
   return (
-    <div>
+    <div className="h-full overflow-y-auto p-4 md:p-6">
       <Link
         href="/student/preferences"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
