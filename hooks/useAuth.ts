@@ -47,7 +47,8 @@ export function useAuth() {
     onSuccess: async (data) => {
       if (data.requiresRoleSelection) {
         toast.success("Vui lòng chọn vai trò để tiếp tục");
-        router.replace("/auth/select-role");
+        const roles = encodeURIComponent(data.availableRoles.join(","));
+        router.replace(`/auth/select-role?roles=${roles}`);
         return;
       }
       if (!data.role) {
