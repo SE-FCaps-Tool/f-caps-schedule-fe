@@ -20,7 +20,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AsyncCombobox } from "@/components/shared/async-combobox";
 import { StatusDot } from "../../_shared/status-dot";
-import { GROUP_STATUS_META, PROJECT_STATUS_META, type ProjectProgressState } from "../../_shared/labels";
+import { PROJECT_STATUS_META, type ProjectProgressState } from "../../_shared/labels";
 import { useSemesterContext } from "../../_shared/semester-context";
 import {
   useGroups,
@@ -535,7 +535,6 @@ export function GroupsPage() {
                   <TableHead>Đề tài</TableHead>
                   <TableHead className="text-right">Thành viên</TableHead>
                   <TableHead>Leader</TableHead>
-                  <TableHead>Trạng thái</TableHead>
                   <TableHead>Cảnh báo</TableHead>
                   <TableHead className="pr-4 text-right">
                     <span className="sr-only">Hành động</span>
@@ -545,13 +544,12 @@ export function GroupsPage() {
               <TableBody>
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                       Chưa có nhóm nào khớp tìm kiếm.
                     </TableCell>
                   </TableRow>
                 )}
                 {filtered.map((group) => {
-                  const stateMeta = GROUP_STATUS_META[group.status];
                   const projectStateMeta = group.project
                     ? PROJECT_STATUS_META[group.project.status as ProjectProgressState]
                     : null;
@@ -593,9 +591,6 @@ export function GroupsPage() {
                         ) : (
                           <span className="text-amber-600 dark:text-amber-400">Chưa có</span>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <StatusDot tone={stateMeta.tone} label={stateMeta.label} />
                       </TableCell>
                       <TableCell>
                         {group.warnings.length > 0 ? (
