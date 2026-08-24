@@ -42,7 +42,14 @@ export const fetchAuth = {
 
   /** GET /api/v1/auth/pending — roles available after a multi-role login. */
   pendingRoleSelection: async (): Promise<PendingRoleSelectionResponse> => {
-    const response = await apiService.get<PendingRoleSelectionResponse>("api/v1/auth/pending");
+    // This endpoint only reads a short-lived login challenge. Do not let a
+    // dead/unreachable API leave the role-selection screen spinning for the
+    // global scheduler timeout (which must remain long for schedule runs).
+    const response = await apiService.request<PendingRoleSelectionResponse>({
+      method: "GET",
+      url: "api/v1/auth/pending",
+      timeout: 15000,
+    });
     return response.data;
   },
 
