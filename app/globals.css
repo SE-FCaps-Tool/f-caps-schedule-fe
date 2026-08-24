@@ -134,6 +134,18 @@
   }
 }
 
+@keyframes navigation-progress {
+  0% {
+    transform: translateX(-140%);
+  }
+  55% {
+    transform: translateX(180%);
+  }
+  100% {
+    transform: translateX(360%);
+  }
+}
+
 @utility scrollbar-hide {
   scrollbar-width: none;
   -ms-overflow-style: none;

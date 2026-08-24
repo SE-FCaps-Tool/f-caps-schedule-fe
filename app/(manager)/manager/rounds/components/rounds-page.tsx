@@ -22,6 +22,7 @@ import { useRounds } from "@/hooks/manager/useRounds";
 import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { normalizeListResponse } from "@/lib/api/pagination";
+import { startNavigationProgress } from "@/components/layout/navigation-progress";
 
 export function RoundsPage() {
   const router = useRouter();
@@ -44,6 +45,7 @@ export function RoundsPage() {
   }
 
   function openRound(roundId: string) {
+    startNavigationProgress();
     router.push(roundHref(roundId));
   }
   // Học kỳ CLOSED hiển thị mọi đợt ở trạng thái LOCKED (chỉ xem, không thao tác) — §8 doc
@@ -150,6 +152,8 @@ export function RoundsPage() {
                       <TableRow
                         key={round.id}
                         className="cursor-pointer"
+                        onMouseEnter={() => router.prefetch(roundHref(round.id))}
+                        onFocus={() => router.prefetch(roundHref(round.id))}
                         onClick={(event) => {
                           if (
                             event.target instanceof Element &&
