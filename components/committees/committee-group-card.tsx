@@ -82,14 +82,14 @@ export function CommitteeGroupCard({
     onMembersChange(arrayMove(group.members, oldIndex, newIndex));
   }
 
-  function handleAdd(lecturer: { id: number; lecturer_code: string; display_name: string }) {
+  function handleAdd(lecturer: { id: number; lecturerCode: string; displayName: string }) {
     if (group.members.length >= MAX_MEMBERS) return;
     onMembersChange([
       ...group.members,
       {
         externalId: toLecturerExternalId(lecturer.id),
-        lecturerCode: lecturer.lecturer_code,
-        displayName: lecturer.display_name,
+        lecturerCode: lecturer.lecturerCode,
+        displayName: lecturer.displayName,
       },
     ]);
   }

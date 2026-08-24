@@ -113,14 +113,17 @@ export interface TimeframeListResponse {
 
 export const fetchTimeframes = {
   preview: async (payload: TimeframePreviewRequest): Promise<TimeframePreview> => {
-    const response = await apiService.post<{ data: TimeframePreview }>("api/v1/timeframes/preview", payload);
+    const response = await apiService.post<{ data: TimeframePreview }, TimeframePreviewRequest>(
+      "api/v1/timeframes/preview",
+      payload
+    );
     return response.data.data;
   },
 
   manualPreview: async (
     payload: ManualTimeframePreviewRequest,
   ): Promise<TimeframePreview> => {
-    const response = await apiService.post<{ data: TimeframePreview }>(
+    const response = await apiService.post<{ data: TimeframePreview }, ManualTimeframePreviewRequest>(
       "api/v1/timeframes/manual/preview",
       payload,
     );
@@ -128,9 +131,10 @@ export const fetchTimeframes = {
   },
 
   list: async (includeArchived = false): Promise<{ data: Timeframe[]; meta?: ListMeta }> => {
-    const response = await apiService.get<TimeframeListResponse>("api/v1/timeframes", {
-      includeArchived: includeArchived || undefined,
-    });
+    const response = await apiService.get<TimeframeListResponse, { includeArchived?: boolean }>(
+      "api/v1/timeframes",
+      { includeArchived: includeArchived || undefined }
+    );
     return response.data;
   },
 
@@ -140,14 +144,17 @@ export const fetchTimeframes = {
   },
 
   create: async (payload: TimeframeMutationRequest): Promise<Timeframe> => {
-    const response = await apiService.post<{ data: Timeframe }>("api/v1/timeframes", payload);
+    const response = await apiService.post<{ data: Timeframe }, TimeframeMutationRequest>(
+      "api/v1/timeframes",
+      payload
+    );
     return response.data.data;
   },
 
   createManual: async (
     payload: ManualTimeframeMutationRequest,
   ): Promise<Timeframe> => {
-    const response = await apiService.post<{ data: Timeframe }>(
+    const response = await apiService.post<{ data: Timeframe }, ManualTimeframeMutationRequest>(
       "api/v1/timeframes/manual",
       payload,
     );
@@ -155,7 +162,10 @@ export const fetchTimeframes = {
   },
 
   update: async (id: number, payload: TimeframeMutationRequest): Promise<Timeframe> => {
-    const response = await apiService.patch<{ data: Timeframe }>(`api/v1/timeframes/${id}`, payload);
+    const response = await apiService.patch<{ data: Timeframe }, TimeframeMutationRequest>(
+      `api/v1/timeframes/${id}`,
+      payload
+    );
     return response.data.data;
   },
 
@@ -163,7 +173,7 @@ export const fetchTimeframes = {
     id: number,
     payload: ManualTimeframeMutationRequest,
   ): Promise<Timeframe> => {
-    const response = await apiService.patch<{ data: Timeframe }>(
+    const response = await apiService.patch<{ data: Timeframe }, ManualTimeframeMutationRequest>(
       `api/v1/timeframes/${id}/manual`,
       payload,
     );

@@ -53,7 +53,7 @@ function ResultSummary({ result }: { result: LecturerImportResponse }) {
               onClick={() =>
                 copyToClipboard(
                   result.accounts
-                    .map((a) => `${a.lecturer_code}\t${a.email}\t${a.temp_password}`)
+                    .map((a) => `${a.lecturerCode}\t${a.email}\t${a.tempPassword}`)
                     .join("\n")
                 )
               }
@@ -77,17 +77,17 @@ function ResultSummary({ result }: { result: LecturerImportResponse }) {
               </TableHeader>
               <TableBody>
                 {result.accounts.map((account) => (
-                  <TableRow key={account.lecturer_id}>
-                    <TableCell className="font-medium">{account.lecturer_code}</TableCell>
+                  <TableRow key={account.lecturerId}>
+                    <TableCell className="font-medium">{account.lecturerCode}</TableCell>
                     <TableCell className="text-muted-foreground">{account.email}</TableCell>
-                    <TableCell className="font-mono text-xs">{account.temp_password}</TableCell>
+                    <TableCell className="font-mono text-xs">{account.tempPassword}</TableCell>
                     <TableCell>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         className="size-7"
-                        onClick={() => copyToClipboard(account.temp_password)}
+                        onClick={() => copyToClipboard(account.tempPassword)}
                       >
                         <Copy className="size-3.5" />
                       </Button>

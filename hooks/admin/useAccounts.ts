@@ -35,7 +35,7 @@ export function useCreateAccount() {
     mutationFn: (payload: AccountCreatePayload) => fetchAccounts.create(payload),
     onSuccess: async (data) => {
       await invalidate();
-      toast.success(`Đã tạo tài khoản ${data.display_name}`);
+      toast.success(`Đã tạo tài khoản ${data.displayName}`);
     },
     onError: (error: ApiError) => {
       if (error.code === 409) {

@@ -7,8 +7,8 @@ export interface ConflictCreatePayload {
 
 export interface ConflictCreateResponse {
   id: number;
-  lecturer_id: number;
-  project_id: number;
+  lecturerId: number;
+  projectId: number;
 }
 
 export const fetchConflicts = {
@@ -18,7 +18,7 @@ export const fetchConflicts = {
    * candidate Reviewer khi chạy scheduler (ràng buộc H8).
    */
   create: async (lecturerId: number, payload: ConflictCreatePayload): Promise<ConflictCreateResponse> => {
-    const response = await apiService.post<ConflictCreateResponse>(
+    const response = await apiService.post<ConflictCreateResponse, ConflictCreatePayload>(
       `api/v1/lecturers/${lecturerId}/conflicts`,
       payload
     );

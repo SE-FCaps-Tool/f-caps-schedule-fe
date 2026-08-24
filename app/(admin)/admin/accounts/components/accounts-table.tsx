@@ -78,7 +78,7 @@ export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
             {accounts.map((account) => (
               <TableRow key={account.id}>
                 <TableCell className="pl-4 font-mono text-xs">{account.email}</TableCell>
-                <TableCell className="font-medium">{account.display_name}</TableCell>
+                <TableCell className="font-medium">{account.displayName}</TableCell>
                 <TableCell>
                   <Badge variant="secondary">{ROLE_LABEL_VI[account.role]}</Badge>
                 </TableCell>
@@ -95,7 +95,7 @@ export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
                   </span>
                 </TableCell>
                 <TableCell className="text-muted-foreground tabular-nums">
-                  {formatDate(account.created_at, "DD/MM/YYYY")}
+                  {formatDate(account.createdAt, "DD/MM/YYYY")}
                 </TableCell>
                 <TableCell className="pr-4 text-right">
                   <DropdownMenu>
@@ -155,7 +155,7 @@ export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
               ? `Gỡ vai trò ${pending.role ? ROLE_LABEL_VI[pending.role] : ""}`
               : `Gán vai trò ${pending?.role ? ROLE_LABEL_VI[pending.role] : ""}`
         }
-        description={`Áp dụng cho ${pending?.account.display_name ?? ""} (${pending?.account.email ?? ""}). Lý do sẽ được ghi vào audit log.`}
+        description={`Áp dụng cho ${pending?.account.displayName ?? ""} (${pending?.account.email ?? ""}). Lý do sẽ được ghi vào audit log.`}
         destructive={pending?.kind === "remove-role" || (pending?.kind === "toggle-status" && pending.account.status === "ACTIVE")}
         confirmLabel={pending?.kind === "assign-role" ? "Gán vai trò" : "Xác nhận"}
         onConfirm={handleConfirm}

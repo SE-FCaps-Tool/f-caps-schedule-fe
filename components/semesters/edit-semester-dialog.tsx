@@ -23,8 +23,8 @@ function EditSemesterForm({ semester, onOpenChange }: { semester: SemesterApiIte
   const [code, setCode] = useState(semester.code);
   const [name, setName] = useState(semester.name);
   const [note, setNote] = useState(semester.note ?? "");
-  const [startDate, setStartDate] = useState(semester.start_date);
-  const [endDate, setEndDate] = useState(semester.end_date);
+  const [startDate, setStartDate] = useState(semester.startDate);
+  const [endDate, setEndDate] = useState(semester.endDate);
 
   // DateField là <button> nên không có validation `required` của input native — chặn ở đây.
   const canSubmit = Boolean(code.trim() && name.trim() && startDate && endDate && startDate <= endDate);

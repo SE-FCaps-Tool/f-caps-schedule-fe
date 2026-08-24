@@ -234,7 +234,7 @@ export function RoundAvailabilityHeatmap({
 
   /** Luôn hiện đủ 7 ngày liên tiếp để giữ đúng layout tuần của Round Calendar. */
   const dates = useMemo(() => {
-    const anchor = round.startDate || availability?.timeslots[0]?.day_date;
+    const anchor = round.startDate || availability?.timeslots[0]?.dayDate;
     if (!anchor) return [];
     return Array.from({ length: 7 }, (_, index) => addDaysStr(anchor, index));
   }, [round.startDate, availability]);
@@ -249,8 +249,8 @@ export function RoundAvailabilityHeatmap({
     }
     if (rows.size === 0) {
       for (const slot of availability?.timeslots ?? []) {
-        const start = formatInVietnamTime(slot.start_at, "HH:mm");
-        const end = formatInVietnamTime(slot.end_at, "HH:mm");
+        const start = formatInVietnamTime(slot.startAt, "HH:mm");
+        const end = formatInVietnamTime(slot.endAt, "HH:mm");
         rows.set(start, { start, end });
       }
     }
@@ -271,8 +271,8 @@ export function RoundAvailabilityHeatmap({
   const timeslotByCell = useMemo(() => {
     const map = new Map<string, RoundTimeslot>();
     for (const slot of availability?.timeslots ?? []) {
-      const date = formatInVietnamTime(slot.start_at, "YYYY-MM-DD");
-      const startTime = formatInVietnamTime(slot.start_at, "HH:mm");
+      const date = formatInVietnamTime(slot.startAt, "YYYY-MM-DD");
+      const startTime = formatInVietnamTime(slot.startAt, "HH:mm");
       map.set(`${date}__${startTime}`, slot);
     }
     return map;
@@ -280,20 +280,20 @@ export function RoundAvailabilityHeatmap({
 
   const lecturerAvailableByTimeslot = useMemo(() => {
     const map = new Map<number, Set<number>>();
-    for (const row of availability?.selected_by_lecturer ?? []) {
+    for (const row of availability?.selectedByLecturer ?? []) {
       if (row.state !== "AVAILABLE") continue;
-      if (!map.has(row.timeslot_id)) map.set(row.timeslot_id, new Set());
-      map.get(row.timeslot_id)!.add(row.lecturer_id);
+      if (!map.has(row.timeslotId)) map.set(row.timeslotId, new Set());
+      map.get(row.timeslotId)!.add(row.lecturerId);
     }
     return map;
   }, [availability]);
 
   const groupSelectedByTimeslot = useMemo(() => {
     const map = new Map<number, Set<number>>();
-    for (const row of availability?.selected_by_group ?? []) {
+    for (const row of availability?.selectedByGroup ?? []) {
       if (!row.selected) continue;
-      if (!map.has(row.timeslot_id)) map.set(row.timeslot_id, new Set());
-      map.get(row.timeslot_id)!.add(row.group_id);
+      if (!map.has(row.timeslotId)) map.set(row.timeslotId, new Set());
+      map.get(row.timeslotId)!.add(row.groupId);
     }
     return map;
   }, [availability]);

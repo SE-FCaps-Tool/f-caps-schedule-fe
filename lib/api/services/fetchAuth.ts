@@ -9,7 +9,7 @@ export interface LoginPayload {
 // Shape đúng theo docs/auth.md — không có accessToken/refreshToken, session nằm ở HttpOnly cookie.
 export interface LoginResponse {
   role: UserRole;
-  expires_at: string;
+  expiresAt: string;
 }
 
 export interface LogoutResponse {
@@ -19,7 +19,7 @@ export interface LogoutResponse {
 export interface MeResponse {
   role: UserRole;
   status: string;
-  account_id: number;
+  accountId: number;
 }
 
 export const fetchAuth = {
@@ -27,7 +27,7 @@ export const fetchAuth = {
    * POST /api/v1/auth/login
    */
   login: async (data: LoginPayload): Promise<LoginResponse> => {
-    const response = await apiService.post<LoginResponse>("api/v1/auth/login", data);
+    const response = await apiService.post<LoginResponse, LoginPayload>("api/v1/auth/login", data);
     return response.data;
   },
 
@@ -35,7 +35,7 @@ export const fetchAuth = {
    * POST /api/v1/auth/logout
    */
   logout: async (): Promise<LogoutResponse> => {
-    const response = await apiService.post<LogoutResponse>("api/v1/auth/logout");
+    const response = await apiService.post<LogoutResponse, undefined>("api/v1/auth/logout");
     return response.data;
   },
 

@@ -219,22 +219,22 @@ export interface AttachRoundResourcesPayload {
 
 export interface RoundTimeslot {
   id: number;
-  start_at: string;
-  end_at: string;
-  day_date: string;
+  startAt: string;
+  endAt: string;
+  dayDate: string;
 }
 
 export interface RoundLecturerAvailabilityEntry {
-  lecturer_id: number;
-  timeslot_id: number;
+  lecturerId: number;
+  timeslotId: number;
   state: "AVAILABLE" | "UNAVAILABLE" | string;
-  load_preference: string | null;
+  loadPreference: string | null;
   source: string;
 }
 
 export interface RoundGroupAvailabilityEntry {
-  group_id: number;
-  timeslot_id: number;
+  groupId: number;
+  timeslotId: number;
   selected: boolean;
   source: string;
 }
@@ -243,16 +243,16 @@ export interface RoundMyAvailabilityResponse {
   round: {
     id: number;
     type: RoundType;
-    group_selection_mode: boolean;
-    registration_deadline: string | null;
+    groupSelectionMode: boolean;
+    registrationDeadline: string | null;
   };
   timeslots: RoundTimeslot[];
   /**
    * Chỉ có khi caller là ADMIN/MANAGER — audit view. BE xác nhận đây là mảng object
    * (không phải map theo id), lọc `state === "AVAILABLE"` để biết giảng viên rảnh slot đó.
    */
-  selected_by_lecturer?: RoundLecturerAvailabilityEntry[];
-  selected_by_group?: RoundGroupAvailabilityEntry[];
+  selectedByLecturer?: RoundLecturerAvailabilityEntry[];
+  selectedByGroup?: RoundGroupAvailabilityEntry[];
 }
 
 type ApiRecord = Record<string, unknown>;
@@ -436,27 +436,28 @@ function normalizeInvitation(value: unknown): RoundInvitation {
     ? (pick(record, "lecturer") as ApiRecord)
     : {};
   const lecturerId = asString(
-    pick(lecturerRecord, "id", "lecturer_id") ?? pick(record, "lecturer_id"),
+    pick(lecturerRecord, "id", "lecturer_id") ??
+      pick(record, "lecturerId", "lecturer_id"),
   );
 
   return {
-    id: asString(pick(record, "id", "invitation_id"), lecturerId),
+    id: asString(pick(record, "id", "invitationId", "invitation_id"), lecturerId),
     lecturer: {
       id: lecturerId,
       code: asString(
         pick(lecturerRecord, "code", "lecturer_code") ??
-          pick(record, "lecturer_code"),
+          pick(record, "lecturerCode", "lecturer_code"),
       ),
       fullName: asString(
         pick(lecturerRecord, "fullName", "full_name", "display_name") ??
-          pick(record, "display_name"),
+          pick(record, "displayName", "display_name"),
       ),
     },
     status: normalizeInvitationStatus(
       pick(record, "status", "invitation_status"),
     ),
     availabilitySlotCount: asNumber(
-      pick(record, "availabilitySlotCount", "available_slot_count"),
+      pick(record, "availableSlotCount", "availabilitySlotCount", "available_slot_count"),
     ),
     usedQuota: asNumber(pick(record, "usedQuota", "used_quota")),
     semesterQuota: asNumber(pick(record, "semesterQuota", "semester_quota")),
@@ -561,7 +562,7 @@ export const fetchRounds = {
     semesterId: string,
     params?: { page?: number; pageSize?: number },
   ): Promise<{ data: RoundListItem[]; meta?: RoundListMeta }> => {
-    const response = await apiService.get<unknown>(
+    const response = await apiService.get<unknown, { page?: number; pageSize?: number }>(
       `api/v1/semesters/${semesterId}/rounds`,
       params,
     );
@@ -589,7 +590,7 @@ export const fetchRounds = {
     semesterId: string,
     payload: RoundCreatePayload,
   ): Promise<RoundCreateResponse> => {
-    const response = await apiService.post<{ data: RoundCreateResponse }>(
+    const response = await apiService.post<{ data: RoundCreateResponse }, RoundCreatePayload>(
       `api/v1/semesters/${semesterId}/rounds`,
       payload,
     );
@@ -701,9 +702,7 @@ export const fetchRounds = {
   myAvailability: async (
     roundId: number,
   ): Promise<RoundMyAvailabilityResponse> => {
-    const response = await apiService.get<RoundMyAvailabilityResponse>(
-      `api/v1/rounds/${roundId}/my-availability`,
-    );
+    const response = await apiService.get<RoundMyAvailabilityResponse>(`api/v1/rounds/${roundId}/my-availability`);
     return response.data;
   },
 };

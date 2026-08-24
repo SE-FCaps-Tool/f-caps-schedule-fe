@@ -37,7 +37,7 @@ export function MemberPicker({
       }}
       items={selectable}
       getId={(l) => String(l.id)}
-      getLabel={(l) => `${l.lecturer_code} — ${l.display_name}`}
+      getLabel={(l) => `${l.lecturerCode} — ${l.displayName}`}
       sentinelRef={sentinelRef}
       isLoading={isLoading}
       isFetchingNextPage={isFetchingNextPage}

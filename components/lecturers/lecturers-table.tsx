@@ -33,8 +33,8 @@ export function LecturersTable({ lecturers }: { lecturers: LecturerApiItem[] }) 
           <TableBody>
             {lecturers.map((lecturer) => (
               <TableRow key={lecturer.id}>
-                <TableCell className="pl-4 font-mono text-xs font-medium">{lecturer.lecturer_code}</TableCell>
-                <TableCell className="font-medium">{lecturer.display_name}</TableCell>
+                <TableCell className="pl-4 font-mono text-xs font-medium">{lecturer.lecturerCode}</TableCell>
+                <TableCell className="font-medium">{lecturer.displayName}</TableCell>
                 <TableCell className="text-muted-foreground">{lecturer.email}</TableCell>
                 <TableCell>
                   {lecturer.conflicts.length > 0 ? (
@@ -51,7 +51,7 @@ export function LecturersTable({ lecturers }: { lecturers: LecturerApiItem[] }) 
                         <ul className="space-y-0.5">
                           {lecturer.conflicts.map((c, i) => (
                             <li key={i}>
-                              Dự án #{c.project_id} — {c.reason}
+                              Dự án #{c.projectId} — {c.reason}
                             </li>
                           ))}
                         </ul>
@@ -63,9 +63,9 @@ export function LecturersTable({ lecturers }: { lecturers: LecturerApiItem[] }) 
                 </TableCell>
                 <TableCell className="pr-4 text-right">
                   <Switch
-                    checked={lecturer.account_status === "ACTIVE"}
+                    checked={lecturer.accountStatus === "ACTIVE"}
                     onCheckedChange={() => setPending(lecturer)}
-                    aria-label={`${lecturer.account_status === "ACTIVE" ? "Vô hiệu hóa" : "Kích hoạt"} ${lecturer.display_name}`}
+                    aria-label={`${lecturer.accountStatus === "ACTIVE" ? "Vô hiệu hóa" : "Kích hoạt"} ${lecturer.displayName}`}
                   />
                 </TableCell>
               </TableRow>
@@ -77,14 +77,14 @@ export function LecturersTable({ lecturers }: { lecturers: LecturerApiItem[] }) 
       <ReasonDialog
         open={pending !== null}
         onOpenChange={(open) => !open && setPending(null)}
-        title={pending?.account_status === "ACTIVE" ? "Vô hiệu hóa giảng viên" : "Kích hoạt giảng viên"}
-        description={`Áp dụng cho tài khoản ${pending?.display_name ?? ""} (${pending?.email ?? ""}) gắn với mã GV ${pending?.lecturer_code ?? ""}.`}
-        destructive={pending?.account_status === "ACTIVE"}
+        title={pending?.accountStatus === "ACTIVE" ? "Vô hiệu hóa giảng viên" : "Kích hoạt giảng viên"}
+        description={`Áp dụng cho tài khoản ${pending?.displayName ?? ""} (${pending?.email ?? ""}) gắn với mã GV ${pending?.lecturerCode ?? ""}.`}
+        destructive={pending?.accountStatus === "ACTIVE"}
         onConfirm={(reason) => {
           if (!pending) return;
           updateStatus.mutate({
-            accountId: pending.account_id,
-            payload: { status: pending.account_status === "ACTIVE" ? "INACTIVE" : "ACTIVE", reason },
+            accountId: pending.accountId,
+            payload: { status: pending.accountStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE", reason },
           });
           setPending(null);
         }}
