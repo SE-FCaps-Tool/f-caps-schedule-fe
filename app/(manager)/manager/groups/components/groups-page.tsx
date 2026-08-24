@@ -533,8 +533,7 @@ export function GroupsPage() {
                 <TableRow>
                   <TableHead className="pl-4">Nhóm</TableHead>
                   <TableHead>Đề tài</TableHead>
-                  <TableHead className="text-right">Thành viên</TableHead>
-                  <TableHead>Leader</TableHead>
+                  <TableHead>TV / Leader</TableHead>
                   <TableHead>Cảnh báo</TableHead>
                   <TableHead className="pr-4 text-right">
                     <span className="sr-only">Hành động</span>
@@ -582,15 +581,18 @@ export function GroupsPage() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className={`text-right tabular-nums ${group.memberCount < 4 ? "font-medium text-amber-600 dark:text-amber-400" : ""}`}>
-                        {group.memberCount}
-                      </TableCell>
-                      <TableCell>
-                        {group.leader ? (
-                          <span className="text-muted-foreground">{group.leader.fullName}</span>
-                        ) : (
-                          <span className="text-amber-600 dark:text-amber-400">Chưa có</span>
-                        )}
+                      <TableCell className="max-w-[280px]">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className={`shrink-0 tabular-nums ${group.memberCount < 4 ? "font-medium text-amber-600 dark:text-amber-400" : ""}`}>
+                            {group.memberCount} TV
+                          </span>
+                          <span className="text-muted-foreground/50" aria-hidden="true">·</span>
+                          {group.leader ? (
+                            <span className="truncate text-muted-foreground" title={group.leader.fullName}>{group.leader.fullName}</span>
+                          ) : (
+                            <span className="text-amber-600 dark:text-amber-400">Chưa có leader</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {group.warnings.length > 0 ? (
