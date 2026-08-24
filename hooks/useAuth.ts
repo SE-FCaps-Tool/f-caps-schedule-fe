@@ -16,7 +16,8 @@ export const authKeys = {
   me: ["auth", "me"] as const,
 };
 
-function maxAgeFromExpiresAt(expiresAt: string): number | undefined {
+function maxAgeFromExpiresAt(expiresAt: string | null): number | undefined {
+  if (!expiresAt) return undefined;
   const expiresMs = new Date(expiresAt).getTime();
   if (Number.isNaN(expiresMs)) return undefined;
   const seconds = Math.floor((expiresMs - Date.now()) / 1000);
@@ -44,6 +45,15 @@ export function useAuth() {
   const loginMutation = useMutation({
     mutationFn: (credentials: LoginPayload) => fetchAuth.login(credentials),
     onSuccess: async (data) => {
+      if (data.requiresRoleSelection) {
+        toast.success("Vui lòng chọn vai trò để tiếp tục");
+        router.replace("/auth/select-role");
+        return;
+      }
+      if (!data.role) {
+        toast.error("Tài khoản chưa có vai trò hợp lệ");
+        return;
+      }
       setCookie(
         SESSION_ROLE_COOKIE,
         data.role,

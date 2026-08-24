@@ -53,9 +53,11 @@ export function useRunSchedule() {
     onSuccess: async (data, variables) => {
       await invalidate(variables.roundId);
       toast.success(
-        data.unscheduled.length > 0
-          ? `Đã chạy xếp lịch: ${data.scheduledCount} nhóm xếp được, ${data.unscheduled.length} nhóm chưa xếp được`
-          : `Đã xếp lịch đủ ${data.scheduledCount} nhóm`
+        data.versions.length > 0
+          ? `Đã tạo ${data.versions.length} phương án: ${data.scheduledCount} nhóm xếp được trong bản đầu tiên`
+          : data.unscheduled.length > 0
+            ? `Đã chạy xếp lịch: ${data.scheduledCount} nhóm xếp được, ${data.unscheduled.length} nhóm chưa xếp được`
+            : `Đã xếp lịch đủ ${data.scheduledCount} nhóm`
       );
     },
     onError: (error: ApiError) => {

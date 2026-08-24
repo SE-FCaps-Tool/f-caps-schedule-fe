@@ -2,19 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CalendarDays, Pencil } from "lucide-react";
+import { CalendarDays, Pencil, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RoundDetail } from "@/lib/api/services/fetchRounds";
 import { RoundAvailabilityHeatmap } from "./round-availability-heatmap";
+import { ScheduleVariantsPanel } from "./schedule-variants-panel";
 
-type RoundCalendarTab = "registrations" | "manual-schedule";
+type RoundCalendarTab = "registrations" | "preview" | "manual-schedule";
 
 const TABS: Array<{ value: RoundCalendarTab; label: string; icon: typeof CalendarDays }> = [
   { value: "registrations", label: "Đăng ký lịch", icon: CalendarDays },
+  { value: "preview", label: "Xem trước", icon: Sparkles },
   { value: "manual-schedule", label: "Xếp lịch", icon: Pencil },
 ];
 
-/** Cột giữa — xem đăng ký lịch; tab Xếp lịch mở thẳng editor thủ công. */
+/** Cột giữa — chuyển giữa đăng ký, xem trước phương án và xếp lịch thủ công. */
 export function RoundCalendarPanel({ roundId, round }: { roundId: string; round: RoundDetail }) {
   const [activeTab, setActiveTab] = useState<RoundCalendarTab>("registrations");
 
@@ -64,6 +66,7 @@ export function RoundCalendarPanel({ roundId, round }: { roundId: string; round:
 
       <div className="min-h-0 flex-1">
         {activeTab === "registrations" && <RoundAvailabilityHeatmap roundId={roundId} round={round} />}
+        {activeTab === "preview" && <ScheduleVariantsPanel roundId={roundId} round={round} />}
       </div>
     </div>
   );
