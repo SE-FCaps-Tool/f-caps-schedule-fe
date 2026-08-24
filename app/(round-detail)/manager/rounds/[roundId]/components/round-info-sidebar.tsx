@@ -125,7 +125,10 @@ export function RoundInfoSidebar({
               value={`#${round.timeframeId} · revision #${round.timeframeVersionId ?? "—"}`}
             />
           )}
-          <StatRow label="Nhóm tối đa / slot" value={round.maxGroupsPerTimeslot} />
+          <StatRow
+            label="Hội đồng tối đa / slot"
+            value={round.maxGroupsPerTimeslot === null ? "Không giới hạn" : round.maxGroupsPerTimeslot}
+          />
           <StatRow label="Nhóm tự chọn lịch" value={<OnOffBadge on={round.groupSelectionMode} />} />
           <StatRow label="Chỉ định Result Owner" value={<OnOffBadge on={round.resultOwnerMode} />} />
         </div>

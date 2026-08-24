@@ -334,7 +334,7 @@ export function CreateRoundWizard() {
     name.trim() !== "" &&
     duration > 0 &&
     Number(reviewerCount) > 0 &&
-    Number(maxGroupsPerTimeslot) > 0 &&
+    (maxGroupsPerTimeslot.trim() === "" || Number(maxGroupsPerTimeslot) > 0) &&
     roomTypes.size >= 1;
 
   const totalSlots = days.reduce((sum, d) => sum + d.slots.length, 0);
@@ -371,7 +371,8 @@ export function CreateRoundWizard() {
       endDate,
       durationMinutes: duration,
       reviewerCount: Number(reviewerCount),
-      maxGroupsPerTimeslot: Number(maxGroupsPerTimeslot),
+      maxGroupsPerTimeslot:
+        maxGroupsPerTimeslot.trim() === "" ? null : Number(maxGroupsPerTimeslot),
       registrationDeadline: `${registrationDeadline.date}T${registrationDeadline.time}:00+07:00`,
       groupSelectionMode,
       resultOwnerMode: RESULT_OWNER_ALLOWED_TYPES.has(type) && resultOwnerMode,
@@ -579,7 +580,7 @@ export function CreateRoundWizard() {
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs text-muted-foreground">
-                          Nhóm tối đa
+                          Hội đồng tối đa / timeslot
                         </Label>
                         <div className="relative">
                           <Input
@@ -590,12 +591,12 @@ export function CreateRoundWizard() {
                               setMaxGroupsPerTimeslot(e.target.value)
                             }
                             className="bg-background pr-14"
-                            required
                           />
                           <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted-foreground">
                             /slot
                           </span>
                         </div>
+                        <p className="text-xs text-muted-foreground">Theo H13; để trống nếu không giới hạn.</p>
                       </div>
                     </div>
                   </div>

@@ -89,7 +89,8 @@ export interface RoundDetail {
   endDate: string;
   durationMinutes: number;
   reviewerCount: number;
-  maxGroupsPerTimeslot: number;
+  /** Null means there is no H13 cap for manual scheduling and validation. */
+  maxGroupsPerTimeslot: number | null;
   registrationDeadline: string | null;
   groupSelectionMode: boolean;
   groupPreferenceDeadline?: string | null;
@@ -112,7 +113,7 @@ interface RoundCreateBase {
   endDate: string;
   durationMinutes: number;
   reviewerCount: number;
-  maxGroupsPerTimeslot: number;
+  maxGroupsPerTimeslot: number | null;
   registrationDeadline: string;
   groupSelectionMode: boolean;
   groupPreferenceDeadline?: string;
@@ -151,7 +152,7 @@ export interface RoundUpdatePayload {
   startDate?: string;
   endDate?: string;
   durationMinutes?: number;
-  maxGroupsPerTimeslot?: number;
+  maxGroupsPerTimeslot?: number | null;
   registrationDeadline?: string;
   groupSelectionMode?: boolean;
   groupPreferenceDeadline?: string | null;
@@ -209,6 +210,8 @@ export interface AttachedRoundGroup {
   activeMemberCount: number;
   leaderName: string | null;
   selectedSlotCount: number;
+  /** FE dùng để ẩn nhóm khi hội đồng chấm có GVHD của chính nhóm đó. */
+  supervisorIds: string[];
 }
 
 export interface AttachRoundResourcesPayload {
@@ -293,6 +296,17 @@ function asNumber(value: unknown, fallback = 0): number {
         ? Number(value)
         : NaN;
   return Number.isFinite(number) ? number : fallback;
+}
+
+function asNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const number =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value)
+        : NaN;
+  return Number.isFinite(number) ? number : null;
 }
 
 function asBoolean(value: unknown, fallback = false): boolean {
@@ -389,7 +403,7 @@ function normalizeRoundDetail(value: unknown): RoundDetail {
     endDate: asString(pick(record, "endDate", "end_date")),
     durationMinutes: durationMinutes(record),
     reviewerCount: asNumber(pick(record, "reviewerCount", "reviewer_count")),
-    maxGroupsPerTimeslot: asNumber(
+    maxGroupsPerTimeslot: asNullableNumber(
       pick(record, "maxGroupsPerTimeslot", "max_groups_per_timeslot"),
     ),
     registrationDeadline: asNullableString(
@@ -509,6 +523,7 @@ function normalizeEligibleProject(value: unknown): EligibleProjectRow {
 
 function normalizeAttachedRoundGroup(value: unknown): AttachedRoundGroup {
   const record = isRecord(value) ? value : {};
+  const supervisorIds = pick(record, "supervisorIds", "supervisor_ids");
   return {
     groupId: asString(pick(record, "groupId", "group_id")),
     groupCode: asString(pick(record, "groupCode", "group_code")),
@@ -522,6 +537,11 @@ function normalizeAttachedRoundGroup(value: unknown): AttachedRoundGroup {
     selectedSlotCount: asNumber(
       pick(record, "selectedSlotCount", "selected_slot_count"),
     ),
+    supervisorIds: Array.isArray(supervisorIds)
+      ? supervisorIds
+          .map((id) => asString(id))
+          .filter((id) => id.length > 0)
+      : [],
   };
 }
 
