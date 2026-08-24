@@ -43,7 +43,7 @@ export function useAuth() {
       setCookie(
         SESSION_ROLE_COOKIE,
         data.role,
-        getSecureCookieConfig({ maxAge: maxAgeFromExpiresAt(data.expires_at) })
+        getSecureCookieConfig({ maxAge: maxAgeFromExpiresAt(data.expiresAt) })
       );
       await queryClient.invalidateQueries({ queryKey: authKeys.me });
       toast.success("Đăng nhập thành công");

@@ -4,9 +4,9 @@ import type { UserRole } from "@/lib/types/roles";
 export interface AccountApiItem {
   id: number;
   email: string;
-  display_name: string;
+  displayName: string;
   status: "ACTIVE" | "INACTIVE";
-  created_at: string;
+  createdAt: string;
   /** Account có nhiều role trong DB sẽ chỉ trả role đầu tiên theo thứ tự ưu tiên cố định của backend */
   role: UserRole;
 }
@@ -21,7 +21,7 @@ export interface AccountCreatePayload {
 export interface AccountCreateResponse {
   id: number;
   email: string;
-  display_name: string;
+  displayName: string;
   role: UserRole;
   status: "ACTIVE";
 }
@@ -45,13 +45,13 @@ export const fetchAccounts = {
 
   /** POST /accounts */
   create: async (payload: AccountCreatePayload): Promise<AccountCreateResponse> => {
-    const response = await apiService.post<AccountCreateResponse>("api/v1/accounts", payload);
+    const response = await apiService.post<AccountCreateResponse, AccountCreatePayload>("api/v1/accounts", payload);
     return response.data;
   },
 
   /** PATCH /accounts/{account_id}/status */
   updateStatus: async (accountId: number, payload: AccountStatusPayload): Promise<{ id: number; status: string }> => {
-    const response = await apiService.patch<{ id: number; status: string }>(
+    const response = await apiService.patch<{ id: number; status: string }, AccountStatusPayload>(
       `api/v1/accounts/${accountId}/status`,
       payload
     );
@@ -60,7 +60,7 @@ export const fetchAccounts = {
 
   /** POST /accounts/{account_id}/roles */
   assignRole: async (accountId: number, payload: AccountRolePayload): Promise<{ id: number; role: UserRole }> => {
-    const response = await apiService.post<{ id: number; role: UserRole }>(
+    const response = await apiService.post<{ id: number; role: UserRole }, AccountRolePayload>(
       `api/v1/accounts/${accountId}/roles`,
       payload
     );

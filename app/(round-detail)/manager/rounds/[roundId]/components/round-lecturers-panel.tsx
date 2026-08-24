@@ -100,8 +100,8 @@ function InviteLecturersDialog({
                 className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
               >
                 <Checkbox checked={selected.has(String(lecturer.id))} onCheckedChange={() => toggle(String(lecturer.id))} />
-                <span className="font-medium">{lecturer.lecturer_code}</span>
-                <span className="text-muted-foreground">— {lecturer.display_name}</span>
+                <span className="font-medium">{lecturer.lecturerCode}</span>
+                <span className="text-muted-foreground">— {lecturer.displayName}</span>
               </label>
             ))}
           </div>
@@ -130,10 +130,10 @@ export function RoundLecturersPanel({ roundId, onCollapse }: { roundId: string; 
   const timeslots = availability?.timeslots ?? [];
   const selectedByLecturer = useMemo(() => {
     const map = new Map<number, Set<number>>();
-    for (const row of availability?.selected_by_lecturer ?? []) {
+    for (const row of availability?.selectedByLecturer ?? []) {
       if (row.state !== "AVAILABLE") continue;
-      const lecturerId = Number(row.lecturer_id);
-      const timeslotId = Number(row.timeslot_id);
+      const lecturerId = Number(row.lecturerId);
+      const timeslotId = Number(row.timeslotId);
       if (!map.has(lecturerId)) map.set(lecturerId, new Set());
       map.get(lecturerId)!.add(timeslotId);
     }
@@ -254,7 +254,7 @@ export function RoundLecturersPanel({ roundId, onCollapse }: { roundId: string; 
                             className="flex items-center justify-between rounded-md border border-border px-3 py-1.5 text-sm"
                           >
                             <span className="tabular-nums">
-                              {formatDate(slot.day_date, "DD/MM")} · {formatTimeRange(slot.start_at, slot.end_at)}
+                              {formatDate(slot.dayDate, "DD/MM")} · {formatTimeRange(slot.startAt, slot.endAt)}
                             </span>
                             {assigned ? <StatusDot tone="violet" label="Đã xếp" /> : <StatusDot tone="emerald" label="Rảnh" />}
                           </div>

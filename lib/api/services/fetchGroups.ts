@@ -162,7 +162,7 @@ export function groupMemberLabel(member: GroupMemberDetail): string {
 export const fetchGroups = {
   /** GET /semesters/:semesterId/groups — spec §11/§41 */
   list: async (semesterId: string, params?: GroupListParams): Promise<{ data: GroupListItem[]; meta?: GroupListMeta }> => {
-    const response = await apiService.get<{ data: GroupListItem[]; meta?: GroupListMeta }>(
+    const response = await apiService.get<{ data: GroupListItem[]; meta?: GroupListMeta }, GroupListParams>(
       `api/v1/semesters/${semesterId}/groups`,
       params
     );
@@ -189,7 +189,7 @@ export const fetchGroups = {
 
   /** POST /semesters/:semesterId/groups — spec §12/§42 */
   create: async (semesterId: string, payload: GroupCreatePayload): Promise<GroupCreateResponse> => {
-    const response = await apiService.post<{ data: GroupCreateResponse }>(
+    const response = await apiService.post<{ data: GroupCreateResponse }, GroupCreatePayload>(
       `api/v1/semesters/${semesterId}/groups`,
       payload
     );

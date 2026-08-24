@@ -85,7 +85,7 @@ export interface CommitteeListResponse {
 export const fetchCommittees = {
   /** POST /committees/preview — validate + gán role, không ghi DB. Luôn 200 nếu shape hợp lệ. */
   preview: async (payload: CommitteeBatchRequest): Promise<CommitteePreviewResponse> => {
-    const response = await apiService.post<{ data: CommitteePreviewResponse }>(
+    const response = await apiService.post<{ data: CommitteePreviewResponse }, CommitteeBatchRequest>(
       "api/v1/committees/preview",
       payload
     );
@@ -94,7 +94,7 @@ export const fetchCommittees = {
 
   /** POST /committees — tạo hàng loạt, partial success (201 dù có skipped > 0). */
   createBatch: async (payload: CommitteeBatchRequest): Promise<CommitteeBulkCreateResponse> => {
-    const response = await apiService.post<{ data: CommitteeBulkCreateResponse }>(
+    const response = await apiService.post<{ data: CommitteeBulkCreateResponse }, CommitteeBatchRequest>(
       "api/v1/committees",
       payload
     );
@@ -103,7 +103,7 @@ export const fetchCommittees = {
 
   /** GET /committees — chưa phân trang thật (BE luôn trả full mảng), có thể lọc theo lecturerId. */
   list: async (lecturerId?: string): Promise<CommitteeListResponse> => {
-    const response = await apiService.get<CommitteeListResponse>("api/v1/committees", {
+    const response = await apiService.get<CommitteeListResponse, { lecturerId?: string }>("api/v1/committees", {
       lecturerId,
     });
     return response.data;
@@ -120,7 +120,7 @@ export const fetchCommittees = {
   },
 
   bulkDelete: async (committeeIds: string[]): Promise<CommitteeBulkDeleteResponse> => {
-    const response = await apiService.post<{ data: CommitteeBulkDeleteResponse }>(
+    const response = await apiService.post<{ data: CommitteeBulkDeleteResponse }, { committeeIds: string[] }>(
       "api/v1/committees/bulk-delete",
       { committeeIds }
     );

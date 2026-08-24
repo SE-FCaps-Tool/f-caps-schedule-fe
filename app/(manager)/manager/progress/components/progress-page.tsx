@@ -42,7 +42,7 @@ export function ProgressPage() {
     if (!groups) return [];
     const q = search.trim().toLowerCase();
     if (!q) return groups;
-    return groups.filter((g) => g.group_code.toLowerCase().includes(q) || g.project_name.toLowerCase().includes(q));
+    return groups.filter((g) => g.groupCode.toLowerCase().includes(q) || g.projectName.toLowerCase().includes(q));
   }, [groups, search]);
 
   const [page, setPage] = usePageState(search, pageSize);
@@ -96,23 +96,23 @@ export function ProgressPage() {
                   </TableRow>
                 )}
                 {pageItems.map((group) => (
-                  <TableRow key={group.group_id}>
+                  <TableRow key={group.groupId}>
                     <TableCell className="pl-4">
-                      <span className="font-mono text-xs font-medium">{group.group_code}</span>
-                      <span className="ml-2 max-w-40 truncate align-middle text-xs text-muted-foreground" title={group.project_name}>
-                        {group.project_name}
+                      <span className="font-mono text-xs font-medium">{group.groupCode}</span>
+                      <span className="ml-2 max-w-40 truncate align-middle text-xs text-muted-foreground" title={group.projectName}>
+                        {group.projectName}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <ReviewCell outcome={group.review_1} />
+                      <ReviewCell outcome={group.review1} />
                     </TableCell>
                     <TableCell>
-                      <ReviewCell outcome={group.review_2} />
+                      <ReviewCell outcome={group.review2} />
                     </TableCell>
                     <TableCell>
-                      <DefenseCell outcome={group.review_3} />
+                      <DefenseCell outcome={group.review3} />
                     </TableCell>
-                    <TableCell className={cn("pr-4", group.group_status === "FAILED" ? "font-medium text-destructive" : "text-muted-foreground")}>
+                    <TableCell className={cn("pr-4", group.groupStatus === "FAILED" ? "font-medium text-destructive" : "text-muted-foreground")}>
                       {group.next_step}
                     </TableCell>
                   </TableRow>

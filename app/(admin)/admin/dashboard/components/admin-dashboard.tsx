@@ -114,12 +114,12 @@ export function AdminDashboard() {
               >
                 <p className="min-w-0 truncate">
                   <span className="font-medium text-foreground">
-                    {accountsById.get(activity.actor_id)?.display_name ?? `Tài khoản #${activity.actor_id}`}
+                    {accountsById.get(activity.actorId)?.displayName ?? `Tài khoản #${activity.actorId}`}
                   </span>{" "}
                   <span className="text-muted-foreground">{actionLabel(activity.action)}</span>
                 </p>
                 <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  {formatDate(activity.occurred_at, "DD/MM HH:mm")}
+                  {formatDate(activity.occurredAt, "DD/MM HH:mm")}
                 </span>
               </motion.div>
             ))}

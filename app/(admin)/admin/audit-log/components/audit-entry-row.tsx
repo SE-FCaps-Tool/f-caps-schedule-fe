@@ -76,13 +76,13 @@ export function AuditEntryRow({ entry, actorName }: { entry: AuditEntryApi; acto
             <span className="text-sm text-muted-foreground">{actionLabel(entry.action)}</span>
           </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {entry.entity_type} #{entry.entity_id} · {entry.reason}
+            {entry.entityType} #{entry.entityId} · {entry.reason}
           </p>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
           <span className="text-xs text-muted-foreground tabular-nums">
-            {formatDate(entry.occurred_at, "DD/MM HH:mm")}
+            {formatDate(entry.occurredAt, "DD/MM HH:mm")}
           </span>
           <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", expanded && "rotate-180")} />
         </div>
@@ -100,7 +100,7 @@ export function AuditEntryRow({ entry, actorName }: { entry: AuditEntryApi; acto
             <div className="space-y-3 py-3.5 pl-11">
               <p className="text-sm leading-6 text-foreground text-pretty">{entry.reason}</p>
               <div className="rounded-lg bg-muted/60 p-3">
-                <DiffFields before={entry.before_json} after={entry.after_json} />
+                <DiffFields before={entry.beforeJson} after={entry.afterJson} />
               </div>
             </div>
           </motion.div>

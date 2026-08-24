@@ -33,7 +33,7 @@ export function AuditLogPage() {
   });
 
   const accountsById = useMemo(() => new Map((accounts ?? []).map((a) => [a.id, a])), [accounts]);
-  const actorName = (id: number) => accountsById.get(id)?.display_name ?? `Tài khoản #${id}`;
+  const actorName = (id: number) => accountsById.get(id)?.displayName ?? `Tài khoản #${id}`;
 
   const actionsInData = useMemo(() => {
     const fromData = new Set((entries ?? []).map((e) => e.action));
@@ -53,14 +53,14 @@ export function AuditLogPage() {
         <Select value={actorId} onValueChange={setActorId}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Người thực hiện">
-              {(v: string) => (v === "ALL" ? "Tất cả người thực hiện" : (accountsById.get(Number(v))?.display_name ?? v))}
+              {(v: string) => (v === "ALL" ? "Tất cả người thực hiện" : (accountsById.get(Number(v))?.displayName ?? v))}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">Tất cả người thực hiện</SelectItem>
             {(accounts ?? []).map((a) => (
               <SelectItem key={a.id} value={String(a.id)}>
-                {a.display_name}
+                {a.displayName}
               </SelectItem>
             ))}
           </SelectContent>
@@ -112,7 +112,7 @@ export function AuditLogPage() {
           >
             {entries.map((entry) => (
               <motion.div key={entry.id} variants={reduceMotion ? undefined : itemVariants}>
-                <AuditEntryRow entry={entry} actorName={actorName(entry.actor_id)} />
+                <AuditEntryRow entry={entry} actorName={actorName(entry.actorId)} />
               </motion.div>
             ))}
           </motion.div>

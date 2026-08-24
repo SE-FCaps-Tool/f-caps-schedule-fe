@@ -1,5 +1,4 @@
 import apiService from "../core";
-import { snakeizeKeys } from "../caseConvert";
 
 /**
  * Phần dưới đây theo capstone-fe-be-implementation-spec.md §9/§74/§76 (Phase 8 — Result &
@@ -58,23 +57,23 @@ export type ResultOutcome = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "LEVEL_4" | "PAS
 
 export interface SessionResultDetail {
   id: number;
-  session_id: number;
+  sessionId: number;
   outcome: ResultOutcome;
   note: string | null;
-  entered_by: number;
-  entered_at: string;
-  correction_reason: string | null;
-  remediation_due_at: string | null;
-  verifier_lecturer_id: number | null;
-  verify_status: string | null;
-  before_group_status: string;
-  after_group_status: string;
+  enteredBy: number;
+  enteredAt: string;
+  correctionReason: string | null;
+  remediationDueAt: string | null;
+  verifierLecturerId: number | null;
+  verifyStatus: string | null;
+  beforeGroupStatus: string;
+  afterGroupStatus: string;
 }
 
 export interface SessionResultResponse {
-  session_id: number;
-  round_type: string;
-  group_status: string;
+  sessionId: number;
+  roundType: string;
+  groupStatus: string;
   result: SessionResultDetail | null;
 }
 
@@ -88,22 +87,22 @@ export interface ResultPayload {
 
 export interface ResultSubmitResponse {
   id: number;
-  session_id: number;
+  sessionId: number;
   outcome: string;
-  group_status: string;
+  groupStatus: string;
 }
 
 export type RemediationStatus = "OPEN" | "OVERDUE" | "PASSED" | "FAILED";
 
 export interface RemediationCase {
   id: number;
-  group_id: number;
-  group_code: string;
+  groupId: number;
+  groupCode: string;
   status: RemediationStatus;
-  due_at: string;
-  verifier_lecturer_id: number | null;
+  dueAt: string;
+  verifierLecturerId: number | null;
   note: string | null;
-  round_type: string;
+  roundType: string;
 }
 
 export interface OverdueFailPayload {
@@ -118,9 +117,10 @@ export interface OverdueFailResponse {
 export const fetchResults = {
   /** GET /sessions/{session_id}/result?semester_id= — tất cả role, chỉ trong scope actor */
   sessionResult: async (sessionId: number, semesterId?: number | null): Promise<SessionResultResponse> => {
-    const response = await apiService.get<SessionResultResponse>(`api/v1/sessions/${sessionId}/result`, {
-      semester_id: semesterId ?? undefined,
-    });
+    const response = await apiService.get<SessionResultResponse, { semesterId?: number }>(
+      `api/v1/sessions/${sessionId}/result`,
+      { semesterId: semesterId ?? undefined }
+    );
     return response.data;
   },
 
@@ -134,10 +134,10 @@ export const fetchResults = {
     payload: ResultPayload,
     semesterId?: number | null
   ): Promise<ResultSubmitResponse> => {
-    const response = await apiService.post<ResultSubmitResponse>(
+    const response = await apiService.post<ResultSubmitResponse, ResultPayload, { semesterId?: number }>(
       `api/v1/sessions/${sessionId}/result`,
       payload,
-      { semester_id: semesterId ?? undefined }
+      { semesterId: semesterId ?? undefined }
     );
     return response.data;
   },
@@ -146,8 +146,8 @@ export const fetchResults = {
    * GET /remediation — tất cả role, Manager thấy tất cả case.
    * BE có thể trả mảng phẳng HOẶC `{data: [...], meta}` qua success_payload() tuỳ đã migrate
    * hay chưa (xem docs/be-checklist-open-questions.md mục 6) — chấp nhận cả 2 dạng cho an toàn.
-   * `snakeizeKeys` không đổi gì nếu field đã là snake_case (chỉ convert ký tự hoa), nên áp
-   * dụng vô điều kiện không rủi ro.
+   * `normalizeToSnakeCase` không đổi gì nếu field đã là snake_case, nên áp dụng vô điều kiện
+   * không rủi ro.
    */
   remediation: async (): Promise<RemediationCase[]> => {
     const response = await apiService.get<unknown>("api/v1/remediation");
@@ -157,7 +157,7 @@ export const fetchResults = {
       : raw && typeof raw === "object" && Array.isArray((raw as { data?: unknown }).data)
         ? (raw as { data: unknown[] }).data
         : [];
-    return snakeizeKeys<RemediationCase[]>(list);
+    return list as RemediationCase[];
   },
 
   /**
@@ -165,7 +165,7 @@ export const fetchResults = {
    * Chỉ fail case OPEN/OVERDUE sau khi đã quá due_at — bán tự động theo BR-REM-04.
    */
   overdueFail: async (caseId: number, payload: OverdueFailPayload): Promise<OverdueFailResponse> => {
-    const response = await apiService.post<OverdueFailResponse>(
+    const response = await apiService.post<OverdueFailResponse, OverdueFailPayload>(
       `api/v1/remediation/${caseId}/overdue-fail`,
       payload
     );

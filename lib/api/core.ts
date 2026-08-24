@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import { getCookie } from "cookies-next";
 import type { ApiError } from "@/types/api";
@@ -62,28 +61,28 @@ class ApiService {
     return this.client.request<T>(config);
   }
 
-  async get<T>(url: string, params?: Record<string, any>): Promise<AxiosResponse<T>> {
+  async get<T, P = never>(url: string, params?: P): Promise<AxiosResponse<T>> {
     return this.request<T>({ method: "GET", url, params });
   }
 
-  async post<T, D = any>(url: string, data?: D, params?: Record<string, any>): Promise<AxiosResponse<T>> {
+  async post<T, D, P = never>(url: string, data?: D, params?: P): Promise<AxiosResponse<T>> {
     return this.request<T>({ method: "POST", url, data, params });
   }
 
-  async put<T, D = any>(url: string, data?: D, params?: Record<string, any>): Promise<AxiosResponse<T>> {
+  async put<T, D, P = never>(url: string, data?: D, params?: P): Promise<AxiosResponse<T>> {
     return this.request<T>({ method: "PUT", url, data, params });
   }
 
-  async patch<T, D = any>(url: string, data?: D, params?: Record<string, any>): Promise<AxiosResponse<T>> {
+  async patch<T, D, P = never>(url: string, data?: D, params?: P): Promise<AxiosResponse<T>> {
     return this.request<T>({ method: "PATCH", url, data, params });
   }
 
-  async delete<T>(url: string, params?: Record<string, any>): Promise<AxiosResponse<T>> {
+  async delete<T, P = never>(url: string, params?: P): Promise<AxiosResponse<T>> {
     return this.request<T>({ method: "DELETE", url, params });
   }
 
   /** GET trả về binary (vd. export .xlsx) — dùng responseType 'blob' để axios không cố parse JSON. */
-  async download(url: string, params?: Record<string, any>): Promise<AxiosResponse<Blob>> {
+  async download<P = never>(url: string, params?: P): Promise<AxiosResponse<Blob>> {
     return this.request<Blob>({ method: "GET", url, params, responseType: "blob" });
   }
 
