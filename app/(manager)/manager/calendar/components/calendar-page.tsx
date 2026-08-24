@@ -19,11 +19,10 @@ import {
   useReplaceSessionReviewer,
   usePostponeRoundSession,
 } from "@/hooks/manager/useScheduling";
-import { ReasonDialog } from "@/components/shared/reason-dialog";
 import { SessionDrawer } from "./session-drawer";
-import { DayGrid, matchesSearch, toDisplaySession } from "./day-grid";
+import { matchesSearch, toDisplaySession } from "./day-grid";
+import { ScheduleBoard } from "@/app/(round-detail)/manager/rounds/[roundId]/components/schedule-board";
 import type { DisplaySession } from "./types";
-import type { AssignableRoom } from "@/lib/api/services/fetchRoomAssignment";
 
 type ViewMode = "calendar" | "week" | "table";
 
@@ -82,8 +81,6 @@ export function CalendarPage() {
   );
 
   const dates = useMemo(() => round?.days.map((d) => d.date) ?? [], [round]);
-  const [dateOverride, setDateOverride] = useState<string | null>(null);
-  const selectedDate = dateOverride && dates.includes(dateOverride) ? dateOverride : (dates[0] ?? null);
 
   const timeslotRowsByDate = useMemo(() => {
     const rows = new Map<string, { start: string; end: string }[]>();
@@ -94,19 +91,13 @@ export function CalendarPage() {
     }
     return rows;
   }, [round]);
-  const timeslotRows = timeslotRowsByDate.get(selectedDate ?? "") ?? [];
-
   const roomColumns = rooms ?? [];
 
   const [view, setView] = useState<ViewMode>("calendar");
   const [search, setSearch] = useState("");
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [hoveredCell, setHoveredCell] = useState<{ roomId: string; start: string } | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [pendingRoomMove, setPendingRoomMove] = useState<{ sessionId: string; roomId: string } | null>(null);
 
   const activeSession = sessions.find((s) => s.id === activeSessionId) ?? null;
-  const sessionsForDate = useMemo(() => sessions.filter((s) => s.date === selectedDate), [sessions, selectedDate]);
   const tableSessions = useMemo(
     () =>
       sessions
@@ -114,21 +105,6 @@ export function CalendarPage() {
         .sort((a, b) => `${a.date}-${a.start}-${a.groupCode}`.localeCompare(`${b.date}-${b.start}-${b.groupCode}`)),
     [search, sessions]
   );
-
-  function handleDrop(room: AssignableRoom, start: string) {
-    if (!draggingId) return;
-    const session = sessions.find((s) => s.id === draggingId);
-    setHoveredCell(null);
-    setDraggingId(null);
-    if (!session || session.start !== start || session.roomId === room.id) return;
-    setPendingRoomMove({ sessionId: draggingId, roomId: room.id });
-  }
-
-  function confirmRoomMove(reason: string) {
-    if (!pendingRoomMove) return;
-    changeRoom.mutate({ sessionId: pendingRoomMove.sessionId, payload: { roomId: pendingRoomMove.roomId, reason } });
-    setPendingRoomMove(null);
-  }
 
   if (roundsLoading) {
     return (
@@ -214,21 +190,7 @@ export function CalendarPage() {
       {currentVersion && (
         <>
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-1">
-              {dates.map((date) => (
-                <button
-                  key={date}
-                  type="button"
-                  onClick={() => setDateOverride(date)}
-                  className={cn(
-                    "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                    selectedDate === date ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-                  )}
-                >
-                  {formatDate(date, "dd, DD/MM")}
-                </button>
-              ))}
-            </div>
+            <div className="min-h-8" />
 
             <div className="flex items-center gap-3">
               <div className="relative w-52">
@@ -270,20 +232,24 @@ export function CalendarPage() {
               </div>
             )}
 
-            {!sessionsLoading && !sessionsError && view === "calendar" && selectedDate && (
-              <DayGrid
-                sessions={sessionsForDate}
-                rooms={roomColumns}
-                timeslotRows={timeslotRows}
-                search={search}
-                draggingId={draggingId}
-                hoveredCell={hoveredCell}
-                onDragStart={setDraggingId}
-                onDragEnd={() => setDraggingId(null)}
-                onCellDragOver={setHoveredCell}
-                onDrop={handleDrop}
-                onSelect={setActiveSessionId}
-              />
+            {!sessionsLoading && !sessionsError && view === "calendar" && round && (
+              <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+                <div className="flex items-center justify-between border-b border-border bg-muted/20 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold">Lịch theo ngày</p>
+                    <p className="text-xs text-muted-foreground">Mỗi ô hiển thị các nhóm và hội đồng trong cùng khung giờ.</p>
+                  </div>
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs tabular-nums text-muted-foreground">
+                    {sessions.length} buổi
+                  </span>
+                </div>
+                <ScheduleBoard
+                  round={round}
+                  sessions={sessions}
+                  search={search}
+                  onSelect={setActiveSessionId}
+                />
+              </div>
             )}
 
             {!sessionsLoading && !sessionsError && view === "week" && (
@@ -291,20 +257,7 @@ export function CalendarPage() {
                 {dates.map((date) => (
                   <div key={date}>
                     <p className="mb-2 text-sm font-medium">{formatDate(date, "dddd, DD/MM")}</p>
-                    <DayGrid
-                      sessions={sessions.filter((s) => s.date === date)}
-                      rooms={roomColumns}
-                      timeslotRows={timeslotRowsByDate.get(date) ?? []}
-                      search={search}
-                      draggingId={null}
-                      hoveredCell={null}
-                      compact
-                      onDragStart={() => {}}
-                      onDragEnd={() => {}}
-                      onCellDragOver={() => {}}
-                      onDrop={() => {}}
-                      onSelect={setActiveSessionId}
-                    />
+                    <ScheduleBoard round={{ ...round!, days: (round?.days ?? []).filter((day) => day.date === date) }} sessions={sessions.filter((s) => s.date === date)} search={search} compact onSelect={setActiveSessionId} />
                   </div>
                 ))}
               </div>
@@ -408,14 +361,6 @@ export function CalendarPage() {
         }}
       />
 
-      <ReasonDialog
-        open={pendingRoomMove !== null}
-        onOpenChange={(open) => !open && setPendingRoomMove(null)}
-        title="Xác nhận đổi phòng"
-        description="Lý do sẽ được ghi vào audit log."
-        confirmLabel="Xác nhận đổi"
-        onConfirm={confirmRoomMove}
-      />
     </div>
   );
 }

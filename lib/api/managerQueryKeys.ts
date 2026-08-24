@@ -3,6 +3,7 @@ export const managerKeys = {
   students: ["manager", "students"] as const,
   projects: (semesterId?: number | null) => ["manager", "projects", semesterId ?? null] as const,
   groups: (semesterId?: number | null) => ["manager", "groups", semesterId ?? null] as const,
+  groupOverview: (groupId: string | number) => ["manager", "group", groupId, "overview"] as const,
   rounds: (semesterId?: number | null) => ["manager", "rounds", semesterId ?? null] as const,
   // Lưu ý: key KHÔNG nhúng semesterId — resource đã định danh duy nhất bởi id riêng
   // (round_id/version_id/session_id); nhúng thêm semesterId vào key sẽ làm invalidateQueries

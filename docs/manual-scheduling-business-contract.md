@@ -46,22 +46,25 @@ Tất cả endpoint dành cho MANAGER hoặc ADMIN, dùng cookie session và CSR
 
 ### 2.1. Round được phép thao tác
 
-Cho phép tạo/sửa/xóa draft khi round ở:
+Cho phép tạo/sửa/xóa draft khi round ở mọi trạng thái, nhưng chỉ ADMIN/MANAGER được
+thực hiện mutation:
 
     DRAFT
     OPEN_REGISTRATION
     REGISTRATION_CLOSED
     SCHEDULING
-
-Không cho sửa khi:
-
+    SCHEDULED
     PUBLISHED
     ONGOING
+    POSTPONED
     COMPLETED
     LOCKED
     CANCELLED
 
-Thay đổi sau publish phải đi qua controlled-change/version riêng, không mutate lịch đã công bố.
+Với `SCHEDULED`, `PUBLISHED`, `ONGOING` hoặc `POSTPONED`, mutation chỉ thay đổi
+bản nháp; lịch live hiện tại không bị mutate. Chỉ thao tác “Công bố lịch” mới tạo
+version mới. Round `ONGOING`, `POSTPONED`, `COMPLETED`, `LOCKED`, `CANCELLED` vẫn
+cho sửa bản nháp nhưng không cho công bố bản nháp.
 
 ### 2.2. Trạng thái session
 

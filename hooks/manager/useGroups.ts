@@ -65,6 +65,15 @@ export function useGroupDetail(groupId: string | null) {
   });
 }
 
+export function useGroupOverview(groupId: string | null) {
+  return useQuery({
+    queryKey: managerKeys.groupOverview(groupId ?? ""),
+    queryFn: () => fetchGroups.overview(groupId as string),
+    enabled: groupId !== null,
+    staleTime: 30 * 1000,
+  });
+}
+
 /** GET /groups/:groupId/members — spec §14 */
 export function useGroupMembers(groupId: string | null) {
   return useQuery({
@@ -79,7 +88,10 @@ function useInvalidateGroups() {
   const queryClient = useQueryClient();
   return async (groupId?: string) => {
     await queryClient.invalidateQueries({ queryKey: ["manager", "groups"] });
-    if (groupId) await queryClient.invalidateQueries({ queryKey: ["manager", "group", groupId] });
+    if (groupId) {
+      await queryClient.invalidateQueries({ queryKey: ["manager", "group", groupId] });
+      await queryClient.invalidateQueries({ queryKey: managerKeys.groupOverview(groupId) });
+    }
     await queryClient.invalidateQueries({ queryKey: ["manager", "dashboard"] });
   };
 }

@@ -88,6 +88,62 @@ export interface GroupDetail {
   } | null;
 }
 
+export interface GroupOverviewMember {
+  membershipId: number;
+  studentId: number;
+  studentCode: string;
+  fullName: string | null;
+  role: GroupMemberRole;
+  status: GroupMembershipStatus;
+  leftAt: string | null;
+}
+
+export interface GroupOverview {
+  id: number;
+  code: string;
+  status: string;
+  semester: { id: number; code: string; name: string } | null;
+  memberCount: number;
+  leader: GroupOverviewMember | null;
+  members: GroupOverviewMember[];
+  project: {
+    id: number;
+    code: string;
+    name: string;
+    status: string;
+    mainSupervisor: { id: number; code: string; fullName: string | null } | null;
+    coSupervisor: { id: number; code: string; fullName: string | null } | null;
+  } | null;
+  progress: {
+    groupStatus: string;
+    rounds: Array<{
+      roundId: number;
+      roundType: string;
+      roundStatus: string;
+      sessionId: number | null;
+      sessionStatus: string | null;
+      scheduledAt: string | null;
+      roomCode: string | null;
+      result: {
+        id: number;
+        outcome: string;
+        note: string | null;
+        enteredAt: string;
+        verifyStatus: string | null;
+      } | null;
+    }>;
+  };
+  remediation: {
+    id: number;
+    status: string;
+    dueAt: string;
+    verifierLecturerId: number | null;
+    note: string | null;
+    roundType: string;
+  } | null;
+  warnings: GroupWarning[];
+}
+
 export interface ChangeLeaderPayload {
   leaderId: string;
   reason: string;
@@ -172,6 +228,12 @@ export const fetchGroups = {
   /** GET /groups/:groupId — spec §13 */
   getById: async (groupId: string): Promise<GroupDetail> => {
     const response = await apiService.get<{ data: GroupDetail }>(`api/v1/groups/${groupId}`);
+    return response.data.data;
+  },
+
+  /** GET /groups/:groupId/overview — Group 360 read model */
+  overview: async (groupId: string): Promise<GroupOverview> => {
+    const response = await apiService.get<{ data: GroupOverview }>(`api/v1/groups/${groupId}/overview`);
     return response.data.data;
   },
 

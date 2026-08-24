@@ -137,6 +137,7 @@ export type RoundStatus =
   | "SCHEDULED"
   | "PUBLISHED"
   | "ONGOING"
+  | "POSTPONED"
   | "COMPLETED"
   | "LOCKED";
 

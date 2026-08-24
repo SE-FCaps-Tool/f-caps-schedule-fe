@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusDot } from "@/app/(manager)/manager/_shared/status-dot";
@@ -11,6 +11,20 @@ import { useSemesterContext } from "@/app/(manager)/manager/_shared/semester-con
 import { useRoundDetail } from "@/hooks/manager/useRounds";
 import { ErrorBlock, LoadingBlock } from "../../components/round-detail-shared";
 import { RoundManualScheduleBoard } from "../../components/round-manual-schedule-board";
+
+const NORMAL_MANUAL_EDIT_STATUSES = new Set([
+  "DRAFT",
+  "OPEN_REGISTRATION",
+  "REGISTRATION_CLOSED",
+  "SCHEDULING",
+]);
+const NON_PUBLISHABLE_ROUND_STATUSES = new Set([
+  "ONGOING",
+  "POSTPONED",
+  "COMPLETED",
+  "LOCKED",
+  "CANCELLED",
+]);
 
 export function RoundManualSchedulePage({ roundId }: { roundId: string }) {
   const reduceMotion = useReducedMotion();
@@ -43,6 +57,8 @@ export function RoundManualSchedulePage({ roundId }: { roundId: string }) {
 
   const statusMeta = ROUND_STATUS_META[round.status];
   const name = round.name || `${ROUND_TYPE_LABEL[round.type]} - ${currentSemesterId}`;
+  const editingVersionedDraft = !NORMAL_MANUAL_EDIT_STATUSES.has(round.status);
+  const cannotPublish = NON_PUBLISHABLE_ROUND_STATUSES.has(round.status);
 
   return (
     <motion.div
@@ -74,8 +90,24 @@ export function RoundManualSchedulePage({ roundId }: { roundId: string }) {
         </Button>
       </header>
 
-      <main className="min-h-0 flex-1 p-4 lg:p-5">
-        <RoundManualScheduleBoard roundId={roundId} round={round} />
+      <main className="flex min-h-0 flex-1 flex-col p-4 lg:p-5">
+        {editingVersionedDraft && (
+          <div
+            role="status"
+            className="mb-3 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100"
+          >
+            <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>
+              Bạn đang chỉnh <strong>bản nháp lịch riêng</strong>. Lịch đang công bố không thay đổi.
+              {cannotPublish
+                ? " Trạng thái round hiện tại chưa cho phép công bố bản nháp."
+                : " Chỉ khi bấm “Công bố lịch” thì hệ thống mới tạo version lịch mới."}
+            </span>
+          </div>
+        )}
+        <div className="min-h-0 flex-1">
+          <RoundManualScheduleBoard roundId={roundId} round={round} />
+        </div>
       </main>
     </motion.div>
   );

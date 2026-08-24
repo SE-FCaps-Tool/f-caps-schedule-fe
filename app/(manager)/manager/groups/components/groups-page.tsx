@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Crown, FolderKanban, MoreHorizontal, Search, UserMinus, UsersRound, WifiOff } from "lucide-react";
+import { AlertTriangle, CalendarDays, CheckCircle2, Clock3, Crown, FolderKanban, MoreHorizontal, Search, UserMinus, UsersRound, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,19 +20,23 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AsyncCombobox } from "@/components/shared/async-combobox";
 import { StatusDot } from "../../_shared/status-dot";
-import { GROUP_STATUS_META, PROJECT_STATUS_META, type ProjectProgressState } from "../../_shared/labels";
+import { PROJECT_STATUS_META, type ProjectProgressState } from "../../_shared/labels";
 import { useSemesterContext } from "../../_shared/semester-context";
 import {
   useGroups,
+  useGroupOverview,
   useCreateGroup,
   useGroupMembers,
   useChangeGroupLeader,
   useGroupMemberLeave,
   useAssignGroupProject,
 } from "@/hooks/manager/useGroups";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useProjectsInfinite } from "@/hooks/manager/useProjects";
 import { useStudents } from "@/hooks/manager/useLookups";
-import { groupMemberLabel, type GroupListItem } from "@/lib/api/services/fetchGroups";
+import { groupMemberLabel, type GroupListItem, type GroupOverview } from "@/lib/api/services/fetchGroups";
 import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { normalizeListResponse } from "@/lib/api/pagination";
@@ -413,6 +417,53 @@ function AssignProjectDialog({
   );
 }
 
+function formatOverviewDate(value: string | null) {
+  if (!value) return "Chưa có lịch";
+  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+function OverviewStatus({ value }: { value: string }) {
+  return <Badge variant="outline" className="capitalize">{value.replaceAll("_", " ").toLowerCase()}</Badge>;
+}
+
+function GroupOverviewSheet({ groupId, onOpenChange }: { groupId: string | null; onOpenChange: (open: boolean) => void }) {
+  const { data, isLoading, isError } = useGroupOverview(groupId);
+
+  return (
+    <Sheet open={groupId !== null} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader className="border-b border-border pr-12">
+          <SheetTitle>{data?.code ?? "Chi tiết nhóm"}</SheetTitle>
+          <SheetDescription>{data?.semester ? `${data.semester.code} · ${data.semester.name}` : "Tổng quan nhóm"}</SheetDescription>
+        </SheetHeader>
+        {isLoading && <div className="space-y-3 p-4"><Skeleton className="h-20 w-full" /><Skeleton className="h-32 w-full" /><Skeleton className="h-48 w-full" /></div>}
+        {isError && <div className="p-4 text-sm text-destructive">Không tải được chi tiết nhóm.</div>}
+        {data && <GroupOverviewContent data={data} />}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function GroupOverviewContent({ data }: { data: GroupOverview }) {
+  return (
+    <div className="space-y-6 p-4 pb-8">
+      <div className="flex flex-wrap items-center gap-2"><OverviewStatus value={data.status} /><span className="text-sm text-muted-foreground">{data.memberCount} thành viên đang hoạt động</span></div>
+      {data.warnings.length > 0 && <div className="space-y-2 rounded-lg border border-amber-300/70 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"><p className="flex items-center gap-2 font-medium"><AlertTriangle className="size-4" /> Cần chú ý</p>{data.warnings.map((warning) => <p key={warning.code}>{warning.message}</p>)}</div>}
+
+      <section className="space-y-3"><h3 className="font-heading text-sm font-semibold">Đề tài và hướng dẫn</h3>{data.project ? <div className="space-y-3 rounded-lg border border-border p-3"><div><p className="font-mono text-xs text-muted-foreground">{data.project.code}</p><p className="font-medium">{data.project.name}</p></div><div className="grid gap-3 text-sm sm:grid-cols-2"><div><p className="text-xs text-muted-foreground">Hướng dẫn chính</p><p>{data.project.mainSupervisor?.fullName ?? "Chưa có"}</p></div><div><p className="text-xs text-muted-foreground">Đồng hướng dẫn</p><p>{data.project.coSupervisor?.fullName ?? "Chưa có"}</p></div></div></div> : <p className="text-sm text-muted-foreground">Nhóm chưa được gắn đề tài.</p>}</section>
+
+      <Separator />
+      <section className="space-y-3"><h3 className="font-heading text-sm font-semibold">Thành viên</h3><div className="divide-y divide-border rounded-lg border border-border">{data.members.map((member) => <div key={member.membershipId} className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm"><div><p className="font-medium">{member.studentCode}</p><p className="text-xs text-muted-foreground">{member.fullName || "Chưa có họ tên"}</p></div><div className="flex items-center gap-2"><OverviewStatus value={member.role} /><span className="text-xs text-muted-foreground">{member.status}</span></div></div>)}</div></section>
+
+      <Separator />
+      <section className="space-y-3"><div><h3 className="font-heading text-sm font-semibold">Tiến độ đánh giá</h3><p className="text-xs text-muted-foreground">Bao gồm cả các round chưa có kết quả.</p></div><div className="space-y-2">{data.progress.rounds.length === 0 && <p className="text-sm text-muted-foreground">Chưa có round nào.</p>}{data.progress.rounds.map((round) => <div key={round.roundId} className="rounded-lg border border-border p-3"><div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><span className="font-medium">{round.roundType}</span><OverviewStatus value={round.roundStatus} /></div>{round.result ? <CheckCircle2 className="size-4 text-emerald-600" /> : <Clock3 className="size-4 text-muted-foreground" />}</div><div className="mt-2 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2"><span className="inline-flex items-center gap-1.5"><CalendarDays className="size-3.5" />{formatOverviewDate(round.scheduledAt)}</span><span>{round.roomCode ? `Phòng ${round.roomCode}` : "Chưa có phòng"}</span></div><div className="mt-3 border-t border-border pt-2 text-sm">{round.result ? <><span className="font-medium">{round.result.outcome}</span>{round.result.note && <span className="ml-2 text-muted-foreground">{round.result.note}</span>}</> : <span className="text-muted-foreground">Chưa có kết quả</span>}</div></div>)}</div></section>
+
+      <Separator />
+      <section className="space-y-3"><h3 className="font-heading text-sm font-semibold">Khắc phục</h3>{data.remediation ? <div className="rounded-lg border border-border p-3 text-sm"><div className="flex items-center justify-between gap-3"><span className="font-medium">{data.remediation.roundType}</span><OverviewStatus value={data.remediation.status} /></div><p className="mt-2 text-muted-foreground">Hạn: {formatOverviewDate(data.remediation.dueAt)}</p>{data.remediation.note && <p className="mt-1">{data.remediation.note}</p>}</div> : <p className="text-sm text-muted-foreground">Không có case khắc phục đang mở.</p>}</section>
+    </div>
+  );
+}
+
 export function GroupsPage() {
   const { currentSemesterId, currentSemester } = useSemesterContext();
   const [search, setSearch] = useState("");
@@ -421,6 +472,7 @@ export function GroupsPage() {
   const [leaderTarget, setLeaderTarget] = useState<GroupListItem | null>(null);
   const [leaveTarget, setLeaveTarget] = useState<GroupListItem | null>(null);
   const [assignTarget, setAssignTarget] = useState<GroupListItem | null>(null);
+  const [overviewTarget, setOverviewTarget] = useState<string | null>(null);
   const { containerRef, pageSize } = useAutoPageSize();
   const [page, setPage] = usePageState(debouncedSearch, pageSize);
 
@@ -453,6 +505,7 @@ export function GroupsPage() {
       <SetLeaderDialog group={leaderTarget} onOpenChange={(open) => !open && setLeaderTarget(null)} />
       <MemberLeaveDialog group={leaveTarget} onOpenChange={(open) => !open && setLeaveTarget(null)} />
       <AssignProjectDialog group={assignTarget} onOpenChange={(open) => !open && setAssignTarget(null)} semesterId={currentSemester?.id} />
+      <GroupOverviewSheet groupId={overviewTarget} onOpenChange={(open) => !open && setOverviewTarget(null)} />
 
       <div className="relative mt-6 max-w-sm">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -480,9 +533,7 @@ export function GroupsPage() {
                 <TableRow>
                   <TableHead className="pl-4">Nhóm</TableHead>
                   <TableHead>Đề tài</TableHead>
-                  <TableHead className="text-right">Thành viên</TableHead>
-                  <TableHead>Leader</TableHead>
-                  <TableHead>Trạng thái</TableHead>
+                  <TableHead>TV / Leader</TableHead>
                   <TableHead>Cảnh báo</TableHead>
                   <TableHead className="pr-4 text-right">
                     <span className="sr-only">Hành động</span>
@@ -492,41 +543,56 @@ export function GroupsPage() {
               <TableBody>
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                       Chưa có nhóm nào khớp tìm kiếm.
                     </TableCell>
                   </TableRow>
                 )}
                 {filtered.map((group) => {
-                  const stateMeta = GROUP_STATUS_META[group.status];
                   const projectStateMeta = group.project
                     ? PROJECT_STATUS_META[group.project.status as ProjectProgressState]
                     : null;
                   return (
-                    <TableRow key={group.id}>
+                    <TableRow
+                      key={group.id}
+                      className="cursor-pointer"
+                      tabIndex={0}
+                      onClick={() => setOverviewTarget(group.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setOverviewTarget(group.id);
+                        }
+                      }}
+                    >
                       <TableCell className="pl-4 font-mono text-xs font-medium">{group.code}</TableCell>
-                      <TableCell className="text-xs">
-                        {group.project && projectStateMeta ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            <span className="font-mono text-muted-foreground">{group.project.code}</span>
-                            <StatusDot tone={projectStateMeta.tone} label={projectStateMeta.label} />
-                          </span>
+                      <TableCell className="max-w-[28rem] text-xs">
+                        {group.project ? (
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="shrink-0 font-mono text-muted-foreground">{group.project.code}</span>
+                              {projectStateMeta && <StatusDot tone={projectStateMeta.tone} label={projectStateMeta.label} />}
+                            </div>
+                            <p className="mt-1 truncate font-medium text-foreground" title={group.project.name}>
+                              {group.project.name}
+                            </p>
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className={`text-right tabular-nums ${group.memberCount < 4 ? "font-medium text-amber-600 dark:text-amber-400" : ""}`}>
-                        {group.memberCount}
-                      </TableCell>
-                      <TableCell>
-                        {group.leader ? (
-                          <span className="text-muted-foreground">{group.leader.fullName}</span>
-                        ) : (
-                          <span className="text-amber-600 dark:text-amber-400">Chưa có</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <StatusDot tone={stateMeta.tone} label={stateMeta.label} />
+                      <TableCell className="max-w-[280px]">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className={`shrink-0 tabular-nums ${group.memberCount < 4 ? "font-medium text-amber-600 dark:text-amber-400" : ""}`}>
+                            {group.memberCount} TV
+                          </span>
+                          <span className="text-muted-foreground/50" aria-hidden="true">·</span>
+                          {group.leader ? (
+                            <span className="truncate text-muted-foreground" title={group.leader.fullName}>{group.leader.fullName}</span>
+                          ) : (
+                            <span className="text-amber-600 dark:text-amber-400">Chưa có leader</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {group.warnings.length > 0 ? (
@@ -538,7 +604,7 @@ export function GroupsPage() {
                           <span className="text-sm text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="pr-4 text-right">
+                      <TableCell className="pr-4 text-right" onClick={(event) => event.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger
                             render={
