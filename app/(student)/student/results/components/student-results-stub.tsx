@@ -8,7 +8,7 @@ import { Info } from "lucide-react";
  */
 export function StudentResultsStub() {
   return (
-    <div>
+    <div className="h-full overflow-y-auto p-4 md:p-6">
       <h1 className="text-2xl font-semibold tracking-tight">Kết quả</h1>
       <div className="mt-10 flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
         <Info className="size-5" />

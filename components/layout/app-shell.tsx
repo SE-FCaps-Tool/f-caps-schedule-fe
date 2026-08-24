@@ -25,9 +25,11 @@ import {
   CalendarCheck,
   CalendarDays,
   Award,
+  Menu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +40,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
+import { useLecturerInvitations } from "@/hooks/lecturer/useLecturerPortal";
 import { ROLE_LABEL_VI } from "@/lib/utils/roleLabels";
 import { ROLE_ADMIN, ROLE_MANAGER, ROLE_LECTURER, ROLE_STUDENT, type UserRole } from "@/lib/types/roles";
 
@@ -122,9 +125,19 @@ const NAV_CONFIG: Record<UserRole, { areaLabel: string; groups: NavGroup[] }> = 
       {
         items: [
           { label: "Tổng quan", href: "/lecturer/dashboard", icon: LayoutDashboard },
+        ],
+      },
+      {
+        label: "Lịch & tham gia",
+        items: [
           { label: "Lời mời", href: "/lecturer/invitations", icon: Mail },
           { label: "Đăng ký lịch rảnh", href: "/lecturer/availability", icon: CalendarCheck },
           { label: "Lịch của tôi", href: "/lecturer/schedule", icon: CalendarClock },
+        ],
+      },
+      {
+        label: "Theo dõi",
+        items: [
           { label: "Nhóm hướng dẫn", href: "/lecturer/supervised-groups", icon: Users2 },
           { label: "Khắc phục", href: "/lecturer/results", icon: ClipboardList },
         ],
@@ -156,6 +169,97 @@ interface AppShellProps {
   onDisabledClick?: (href: string) => void;
   /** Query string (vd. "?semester=SU26") nối vào href của các nav item còn hoạt động, để giữ context qua điều hướng */
   navQuery?: string;
+}
+
+function NavigationGroups({
+  groups,
+  pathname,
+  disabledHrefs,
+  onDisabledClick,
+  navQuery,
+  pendingInvitationCount,
+  mobile = false,
+}: {
+  groups: NavGroup[];
+  pathname: string;
+  disabledHrefs?: string[];
+  onDisabledClick?: (href: string) => void;
+  navQuery?: string;
+  pendingInvitationCount: number;
+  mobile?: boolean;
+}) {
+  return (
+    <>
+      {groups.map((group, groupIndex) => (
+        <div key={group.label ?? `group-${groupIndex}`} className={cn(groupIndex > 0 && "mt-5")}>
+          {group.label && (
+            <p className="px-3 pb-2 text-[11px] font-semibold tracking-wide text-muted-foreground/75 uppercase">
+              {group.label}
+            </p>
+          )}
+          <div className="space-y-1">
+            {group.items.map((item) => {
+              const isActive = isNavItemActive(item, pathname);
+              const isDisabled = disabledHrefs?.includes(item.href) ?? false;
+              const badge = item.href === "/lecturer/invitations" && pendingInvitationCount > 0 ? pendingInvitationCount : undefined;
+              const itemClassName = cn(
+                "group/nav flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                isActive
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
+                isDisabled && "cursor-not-allowed text-sidebar-foreground/40 hover:bg-transparent hover:text-sidebar-foreground/40"
+              );
+              const iconClassName = cn(
+                "size-4 shrink-0 transition-colors",
+                isActive ? "text-primary" : "text-muted-foreground group-hover/nav:text-sidebar-accent-foreground",
+                isDisabled && "text-sidebar-foreground/40"
+              );
+
+              if (isDisabled) {
+                return (
+                  <button
+                    key={item.href}
+                    type="button"
+                    onClick={() => onDisabledClick?.(item.href)}
+                    className={itemClassName}
+                    aria-disabled="true"
+                  >
+                    <item.icon className={iconClassName} />
+                    <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+                    <Lock className="size-3.5 shrink-0" />
+                  </button>
+                );
+              }
+
+              const link = (
+                <Link
+                  key={item.href}
+                  href={navQuery ? `${item.href}${navQuery}` : item.href}
+                  className={itemClassName}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  <item.icon className={iconClassName} />
+                  <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+                  {badge !== undefined && (
+                    <span
+                      className={cn(
+                        "min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] leading-none font-semibold tabular-nums",
+                        isActive ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+                      )}
+                    >
+                      {badge}
+                    </span>
+                  )}
+                </Link>
+              );
+
+              return mobile ? <SheetClose key={item.href} render={link} /> : link;
+            })}
+          </div>
+        </div>
+      ))}
+    </>
+  );
 }
 
 function UserMenu({
@@ -230,64 +334,32 @@ export function AppShell({ children, area, headerExtra, disabledHrefs, onDisable
   const { user, logout } = useAuth();
   const { areaLabel, groups } = NAV_CONFIG[area];
   const navItems = groups.flatMap((group) => group.items);
+  const { data: lecturerInvitations } = useLecturerInvitations({ enabled: area === ROLE_LECTURER });
+  const pendingInvitationCount = lecturerInvitations?.filter((invitation) => invitation.status === "PENDING").length ?? 0;
 
   const activeItem = navItems.find((item) => isNavItemActive(item, pathname));
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
       <aside className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar md:flex">
-        <div className="flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border px-6">
-          <CalendarClock className="size-5 text-primary" />
-          <span className="font-semibold text-sidebar-foreground">Capstone Scheduler</span>
+        <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-sidebar-border px-5">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <CalendarClock className="size-4" />
+          </span>
+          <span className="font-semibold tracking-tight text-sidebar-foreground">Capstone Scheduler</span>
         </div>
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <p className="px-3 pb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        <nav className="flex-1 overflow-y-auto px-3 py-5">
+          <p className="px-3 pb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             {areaLabel}
           </p>
-          {groups.map((group, groupIndex) => (
-            <div key={group.label ?? `group-${groupIndex}`} className={cn("space-y-1", groupIndex > 0 && "mt-4")}>
-              {group.label && (
-                <p className="px-3 pb-1 text-[11px] font-medium tracking-wide text-muted-foreground/70 uppercase">
-                  {group.label}
-                </p>
-              )}
-              {group.items.map((item) => {
-                const isActive = isNavItemActive(item, pathname);
-                const isDisabled = disabledHrefs?.includes(item.href) ?? false;
-
-                if (isDisabled) {
-                  return (
-                    <button
-                      key={item.href}
-                      type="button"
-                      onClick={() => onDisabledClick?.(item.href)}
-                      className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/40 transition-colors hover:bg-sidebar-accent/50"
-                    >
-                      <item.icon className="size-4" />
-                      <span className="flex-1 text-left">{item.label}</span>
-                      <Lock className="size-3.5 shrink-0" />
-                    </button>
-                  );
-                }
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={navQuery ? `${item.href}${navQuery}` : item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                    )}
-                  >
-                    <item.icon className="size-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
+          <NavigationGroups
+            groups={groups}
+            pathname={pathname}
+            disabledHrefs={disabledHrefs}
+            onDisabledClick={onDisabledClick}
+            navQuery={navQuery}
+            pendingInvitationCount={pendingInvitationCount}
+          />
         </nav>
         <div className="shrink-0 border-t border-sidebar-border p-2">
           <UserMenu
@@ -301,9 +373,40 @@ export function AppShell({ children, area, headerExtra, disabledHrefs, onDisable
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background px-4 md:px-6">
-          <div className="flex items-center gap-2 md:hidden">
-            <CalendarClock className="size-5 text-primary" />
-            <span className="font-semibold">Capstone Scheduler</span>
+          <div className="flex min-w-0 items-center gap-2 md:hidden">
+            <Sheet>
+              <SheetTrigger
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                aria-label="Mở menu điều hướng"
+                title="Mở menu điều hướng"
+              >
+                <Menu className="size-5" />
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[min(86vw,18rem)] gap-0 p-0">
+                <SheetHeader className="border-b border-border px-5 py-4 text-left">
+                  <SheetTitle className="flex items-center gap-2.5 tracking-tight">
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <CalendarClock className="size-4" />
+                    </span>
+                    Capstone Scheduler
+                  </SheetTitle>
+                  <SheetDescription className="sr-only">Điều hướng khu vực {areaLabel}</SheetDescription>
+                </SheetHeader>
+                <nav className="flex-1 overflow-y-auto px-3 py-5">
+                  <p className="px-3 pb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{areaLabel}</p>
+                  <NavigationGroups
+                    groups={groups}
+                    pathname={pathname}
+                    disabledHrefs={disabledHrefs}
+                    onDisabledClick={onDisabledClick}
+                    navQuery={navQuery}
+                    pendingInvitationCount={pendingInvitationCount}
+                    mobile
+                  />
+                </nav>
+              </SheetContent>
+            </Sheet>
+            <span className="truncate font-semibold tracking-tight">Capstone Scheduler</span>
           </div>
 
           <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-sm md:flex">
