@@ -1,23 +1,12 @@
-"use client";
+import GoogleAuthCallbackClient from "./callback-client";
 
-import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+type GoogleAuthCallbackPageProps = {
+  searchParams: Promise<{ roles?: string | string[] }>;
+};
 
-export default function GoogleAuthCallbackPage() {
-  const router = useRouter();
-  const handled = useRef(false);
+export default async function GoogleAuthCallbackPage({ searchParams }: GoogleAuthCallbackPageProps) {
+  const params = await searchParams;
+  const roles = Array.isArray(params.roles) ? params.roles[0] : params.roles;
 
-  useEffect(() => {
-    if (handled.current) return;
-    handled.current = true;
-    router.replace("/auth/select-role");
-  }, [router]);
-
-  return (
-    <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
-      <Loader2 className="size-6 animate-spin text-primary" />
-      Đang hoàn tất đăng nhập...
-    </div>
-  );
+  return <GoogleAuthCallbackClient rolesParam={roles ?? null} />;
 }

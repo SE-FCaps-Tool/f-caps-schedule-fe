@@ -14,10 +14,6 @@ export interface LoginResponse {
   availableRoles: UserRole[];
 }
 
-export interface PendingRoleSelectionResponse {
-  availableRoles: UserRole[];
-}
-
 export interface LogoutResponse {
   status: string;
 }
@@ -37,12 +33,6 @@ export const fetchAuth = {
    */
   login: async (data: LoginPayload): Promise<LoginResponse> => {
     const response = await apiService.post<LoginResponse, LoginPayload>("api/v1/auth/login", data);
-    return response.data;
-  },
-
-  /** GET /api/v1/auth/pending — roles available after a multi-role login. */
-  pendingRoleSelection: async (): Promise<PendingRoleSelectionResponse> => {
-    const response = await apiService.get<PendingRoleSelectionResponse>("api/v1/auth/pending");
     return response.data;
   },
 
