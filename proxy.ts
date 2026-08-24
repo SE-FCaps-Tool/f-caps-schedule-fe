@@ -17,19 +17,20 @@ export function proxy(request: NextRequest) {
   if (pathname.endsWith(".xml") || pathname.endsWith(".json")) return NextResponse.next();
 
   // Không có trang chủ — "/" và mọi route chưa đăng nhập đều dồn về /login
-  const authRoutes = ["/login"];
+  const authRoutes = ["/login", "/auth/callback"];
   const isAuthRoute = authRoutes.some((r) => pathname === r);
+  const isOAuthCallback = pathname === "/auth/callback";
 
   // Chưa đăng nhập
   if (!role) {
-    if (isAuthRoute) return NextResponse.next();
+    if (isAuthRoute || isOAuthCallback) return NextResponse.next();
     const res = NextResponse.redirect(new URL("/login", request.url));
     res.cookies.delete(SESSION_ROLE_COOKIE);
     return res;
   }
 
   // Đã đăng nhập mà vào trang auth hoặc "/" ⇒ về dashboard theo role
-  if (isAuthRoute || pathname === "/") {
+  if ((isAuthRoute && !isOAuthCallback) || pathname === "/") {
     return NextResponse.redirect(new URL(ROLE_HOME[role] ?? "/login", request.url));
   }
 

@@ -23,6 +23,9 @@ export interface MeResponse {
 }
 
 export const fetchAuth = {
+  /** Start the server-side Google OAuth flow. */
+  googleLoginUrl: (): string => new URL("api/v1/auth/google/start", process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/").toString(),
+
   /**
    * POST /api/v1/auth/login
    */

@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Mail, KeyRound } from "lucide-react";
+import { Loader2, LogIn, Mail, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchAuth } from "@/lib/api/services/fetchAuth";
 import { MOCK_ACCOUNTS } from "@/lib/mock/mockUsers";
 import { ROLE_LABEL_VI } from "@/lib/utils/roleLabels";
 import type { UserRole } from "@/lib/types/roles";
@@ -30,6 +32,8 @@ const DEMO_ACCOUNTS = Object.entries(MOCK_ACCOUNTS).map(([email, account]) => ({
 export function LoginForm() {
   const { login, isLoading } = useAuth();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const oauthError = useSearchParams().get("oauth_error");
 
   const {
     register,
@@ -56,7 +60,7 @@ export function LoginForm() {
           <Input
             id="email"
             type="email"
-            placeholder="ten.gv@fe.edu.vn"
+            placeholder="email@example.com"
             autoComplete="email"
             className="rounded-xl border-transparent bg-muted/60 pl-9 transition-colors focus-visible:border-primary/40 focus-visible:bg-background focus-visible:ring-primary/15"
             {...register("email")}
@@ -91,6 +95,33 @@ export function LoginForm() {
       >
         {isLoading && <Loader2 className="size-4 animate-spin" />}
         Đăng nhập
+      </Button>
+
+      <div className="relative flex items-center justify-center">
+        <span className="absolute inset-x-0 border-t border-border" />
+        <span className="relative bg-background px-3 text-xs text-muted-foreground">hoặc</span>
+      </div>
+
+      {oauthError && (
+        <p className="text-sm text-destructive">
+          {oauthError === "account_not_provisioned"
+            ? "Email Google chưa được cấp tài khoản. Vui lòng liên hệ quản trị viên."
+            : "Đăng nhập Google không thành công. Vui lòng thử lại."}
+        </p>
+      )}
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full rounded-xl"
+        disabled={isLoading || isGoogleLoading}
+        onClick={() => {
+          setIsGoogleLoading(true);
+          window.location.assign(fetchAuth.googleLoginUrl());
+        }}
+      >
+        {isGoogleLoading ? <Loader2 className="size-4 animate-spin" /> : <LogIn className="size-4" />}
+        Đăng nhập với Google
       </Button>
 
       <div className="space-y-2 border-t border-border pt-4">
