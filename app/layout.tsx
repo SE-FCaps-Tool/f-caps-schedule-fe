@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="vi" className={`${beVietnamPro.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground">

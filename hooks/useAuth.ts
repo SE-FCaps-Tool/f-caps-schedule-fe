@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { setCookie, deleteCookie } from "cookies-next";
+import { getCookie, setCookie, deleteCookie } from "cookies-next";
 import { fetchAuth, type LoginPayload } from "@/lib/api/services/fetchAuth";
 import { getSecureCookieConfig } from "@/utils/cookieConfig";
 import { broadcastLogout } from "@/lib/utils/authChannel";
@@ -35,7 +36,12 @@ export function useMe(options?: { enabled?: boolean }) {
 export function useAuth() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const meQuery = useMe();
+  const [shouldFetchMe, setShouldFetchMe] = useState(false);
+  const meQuery = useMe({ enabled: shouldFetchMe });
+
+  useEffect(() => {
+    setShouldFetchMe(Boolean(getCookie(SESSION_ROLE_COOKIE)));
+  }, []);
 
   const loginMutation = useMutation({
     mutationFn: (credentials: LoginPayload) => fetchAuth.login(credentials),
@@ -45,6 +51,7 @@ export function useAuth() {
         data.role,
         getSecureCookieConfig({ maxAge: maxAgeFromExpiresAt(data.expiresAt) })
       );
+      setShouldFetchMe(true);
       await queryClient.invalidateQueries({ queryKey: authKeys.me });
       toast.success("Đăng nhập thành công");
       router.push(ROLE_HOME[data.role] ?? "/login");
@@ -57,12 +64,13 @@ export function useAuth() {
   const logoutMutation = useMutation({
     mutationFn: fetchAuth.logout,
     onSuccess: async () => {
-      deleteCookie(SESSION_ROLE_COOKIE, { path: "/" });
+      setShouldFetchMe(false);
+      deleteCookie(SESSION_ROLE_COOKIE, getSecureCookieConfig());
       // docs/auth.md: "FE nên reset toàn bộ cached user/query sau khi gọi" logout
       queryClient.clear();
       broadcastLogout();
       toast.success("Đăng xuất thành công");
-      router.push("/login");
+      router.replace("/login");
     },
     onError: (error: ApiError) => {
       toast.error(error.message || "Có lỗi xảy ra khi đăng xuất");
