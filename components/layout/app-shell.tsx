@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useLecturerInvitations } from "@/hooks/lecturer/useLecturerPortal";
-import { ROLE_LABEL_VI } from "@/lib/utils/roleLabels";
+import { ROLE_LABEL_EN } from "@/lib/utils/roleLabels";
 import { ROLE_ADMIN, ROLE_MANAGER, ROLE_LECTURER, ROLE_STUDENT, type UserRole } from "@/lib/types/roles";
 
 interface NavItem {
@@ -354,7 +354,7 @@ export function AppShell({ children, area, headerExtra, disabledHrefs, onDisable
 
   const activeItem = navItems.find((item) => isNavItemActive(item, pathname));
   const displayName = user?.displayName ?? "";
-  const roleLabel = user ? ROLE_LABEL_VI[user.role as UserRole] : "";
+  const roleLabel = user ? ROLE_LABEL_EN[user.role as UserRole] : "";
   const email = user?.email ?? "";
 
   return (

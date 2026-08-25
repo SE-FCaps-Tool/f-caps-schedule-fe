@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
-import { ROLE_LABEL_VI } from "@/lib/utils/roleLabels";
+import { ROLE_LABEL_EN } from "@/lib/utils/roleLabels";
 import type { UserRole } from "@/lib/types/roles";
 
 const NAV_ITEMS = [
@@ -29,7 +29,7 @@ export function StudentHeader() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const displayName = user?.displayName ?? "";
-  const roleLabel = user ? ROLE_LABEL_VI[user.role as UserRole] : "";
+  const roleLabel = user ? ROLE_LABEL_EN[user.role as UserRole] : "";
   const email = user?.email ?? "";
   const initial = (displayName || roleLabel || "?").trim().slice(0, 1).toUpperCase();
 

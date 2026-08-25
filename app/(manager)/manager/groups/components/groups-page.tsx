@@ -477,11 +477,12 @@ export function GroupsPage() {
           </div>
         )}
         {groupsResult && (
-          <div className="overflow-hidden rounded-lg border border-border">
-            <Table>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <Table className="min-w-[920px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="pl-4">Nhóm</TableHead>
+                  <TableHead>Mã đề tài</TableHead>
                   <TableHead>Đề tài</TableHead>
                   <TableHead>TV / Leader</TableHead>
                   <TableHead>Cảnh báo</TableHead>
@@ -524,16 +525,18 @@ export function GroupsPage() {
                           {group.code}
                         </Link>
                       </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {group.project?.code ?? "—"}
+                      </TableCell>
                       <TableCell className="max-w-[28rem] text-xs">
                         {group.project ? (
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="shrink-0 font-mono text-muted-foreground">{group.project.code}</span>
+                              <p className="truncate font-medium text-foreground" title={group.project.name}>
+                                {group.project.name}
+                              </p>
                               {projectStateMeta && <StatusDot tone={projectStateMeta.tone} label={projectStateMeta.label} />}
                             </div>
-                            <p className="mt-1 truncate font-medium text-foreground" title={group.project.name}>
-                              {group.project.name}
-                            </p>
                           </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>
@@ -541,15 +544,15 @@ export function GroupsPage() {
                       </TableCell>
                       <TableCell className="max-w-[280px]">
                         <div className="flex min-w-0 items-center gap-2">
-                          <span className={`shrink-0 tabular-nums ${group.memberCount < 4 ? "font-medium text-amber-600 dark:text-amber-400" : ""}`}>
-                            {group.memberCount} TV
-                          </span>
-                          <span className="text-muted-foreground/50" aria-hidden="true">·</span>
                           {group.leader ? (
-                            <span className="truncate text-muted-foreground" title={group.leader.fullName}>{group.leader.fullName}</span>
+                            <span className="truncate font-medium text-foreground" title={group.leader.fullName}>{group.leader.fullName}</span>
                           ) : (
                             <span className="text-amber-600 dark:text-amber-400">Chưa có leader</span>
                           )}
+                          <span className="text-muted-foreground/50" aria-hidden="true">·</span>
+                          <span className={`shrink-0 tabular-nums ${group.memberCount < 4 ? "font-medium text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+                            {group.memberCount} TV
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell>

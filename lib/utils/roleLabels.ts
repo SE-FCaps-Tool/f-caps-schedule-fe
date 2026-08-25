@@ -6,3 +6,10 @@ export const ROLE_LABEL_VI: Record<UserRole, string> = {
   [ROLE_LECTURER]: "Giảng viên",
   [ROLE_STUDENT]: "Sinh viên",
 };
+
+export const ROLE_LABEL_EN: Record<UserRole, string> = {
+  [ROLE_ADMIN]: "Admin",
+  [ROLE_MANAGER]: "Manager",
+  [ROLE_LECTURER]: "Lecturer",
+  [ROLE_STUDENT]: "Student",
+};
