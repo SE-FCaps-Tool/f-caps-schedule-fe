@@ -6,7 +6,10 @@ import { ChevronLeft, Download, Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusDot } from "@/app/(manager)/manager/_shared/status-dot";
-import { ROUND_STATUS_META, ROUND_TYPE_LABEL } from "@/app/(manager)/manager/_shared/labels";
+import {
+  ROUND_STATUS_META,
+  ROUND_TYPE_LABEL,
+} from "@/app/(manager)/manager/_shared/labels";
 import { useSemesterContext } from "@/app/(manager)/manager/_shared/semester-context";
 import { useRoundDetail } from "@/hooks/manager/useRounds";
 import { useExportCouncil } from "@/hooks/manager/useReports";
@@ -69,10 +72,13 @@ export function RoundManualSchedulePage({ roundId }: { roundId: string }) {
   }
 
   const statusMeta = ROUND_STATUS_META[round.status];
-  const name = round.name || `${ROUND_TYPE_LABEL[round.type]} - ${currentSemesterId}`;
+  const name =
+    round.name || `${ROUND_TYPE_LABEL[round.type]} - ${currentSemesterId}`;
   const editingVersionedDraft = !NORMAL_MANUAL_EDIT_STATUSES.has(round.status);
   const cannotPublish = NON_PUBLISHABLE_ROUND_STATUSES.has(round.status);
-  const canExportCouncil = !COUNCIL_EXPORT_UNAVAILABLE_STATUSES.has(round.status);
+  const canExportCouncil = !COUNCIL_EXPORT_UNAVAILABLE_STATUSES.has(
+    round.status,
+  );
 
   return (
     <motion.div
@@ -93,10 +99,18 @@ export function RoundManualSchedulePage({ roundId }: { roundId: string }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2.5">
-            <h1 className="truncate text-base font-semibold tracking-tight">Xếp lịch</h1>
-            <StatusDot tone={statusMeta.tone} label={statusMeta.label} className="shrink-0" />
+            <h1 className="truncate text-base font-semibold tracking-tight">
+              Xếp lịch
+            </h1>
+            <StatusDot
+              tone={statusMeta.tone}
+              label={statusMeta.label}
+              className="shrink-0"
+            />
           </div>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">{name}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {name}
+          </p>
         </div>
 
         {canExportCouncil && (
@@ -106,11 +120,20 @@ export function RoundManualSchedulePage({ roundId }: { roundId: string }) {
             disabled={exportCouncil.isPending}
             onClick={() => exportCouncil.mutate(Number(roundId))}
           >
-            {exportCouncil.isPending ? <Loader2 className="animate-spin" /> : <Download />}
-            Xuất hội đồng
+            {exportCouncil.isPending ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Download />
+            )}
+            Tải xuống
           </Button>
         )}
-        <Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/manager/rounds/${roundId}`} />}>
+        <Button
+          size="sm"
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={`/manager/rounds/${roundId}`} />}
+        >
           Xem đăng ký lịch
         </Button>
       </header>
@@ -123,7 +146,8 @@ export function RoundManualSchedulePage({ roundId }: { roundId: string }) {
           >
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
-              Bạn đang chỉnh bản nháp trong workspace này. Lịch đã công bố không thay đổi.
+              Bạn đang chỉnh bản nháp trong workspace này. Lịch đã công bố không
+              thay đổi.
               {cannotPublish
                 ? " Trạng thái round hiện tại chưa cho phép công bố bản nháp."
                 : " Chạy thuật toán sẽ tạo version nháp; chỉ khi bấm “Công bố lịch” lịch công khai mới thay đổi."}
