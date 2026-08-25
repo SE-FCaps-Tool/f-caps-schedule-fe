@@ -98,3 +98,12 @@ export function useExportResults() {
     onError: (error: ApiError) => toast.error(friendlyErrorMessage(error, "Không xuất được kết quả")),
   });
 }
+
+/** GET /exports/round/{round_id}/council.xlsx — tải file trực tiếp, không có body phản hồi để cache */
+export function useExportCouncil() {
+  return useMutation({
+    mutationFn: (roundId: number) => fetchReports.exportCouncil(roundId),
+    onSuccess: () => toast.success("Đã tải xuống bảng hội đồng"),
+    onError: (error: ApiError) => toast.error(friendlyErrorMessage(error, "Không xuất được bảng hội đồng")),
+  });
+}

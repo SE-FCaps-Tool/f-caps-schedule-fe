@@ -3712,7 +3712,17 @@ export interface components {
             code: string;
             /** Id */
             id: number;
+            /**
+             * Nameen
+             * @default null
+             */
+            nameEn: string | null;
             mainSupervisor?: components["schemas"]["GroupOverviewSupervisorResponse"] | null;
+            /**
+             * Namevi
+             * @default null
+             */
+            nameVi: string | null;
             /** Name */
             name: string;
             /** Status */

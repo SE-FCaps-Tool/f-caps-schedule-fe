@@ -19,7 +19,10 @@ export function useManualScheduleBoard(roundId: string | null) {
     queryKey: manualScheduleKey(roundId ?? ""),
     queryFn: () => fetchManualScheduling.get(roundId as string),
     enabled: roundId !== null,
-    staleTime: Infinity,
+    // The manual board is persisted server-side; do not keep an old board
+    // forever when switching back from another schedule version.
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 }
 
@@ -102,7 +105,7 @@ export function useBulkUpsertManualSchedule() {
       fetchManualScheduling.bulkUpsert(roundId, payload),
     onSuccess: async (_data, variables) => {
       await invalidate(variables.roundId);
-      toast.success("Đã lưu lịch thủ công");
+      toast.success("Đã chép phương án vào lịch xếp tay");
     },
     onError: (error: ApiError) => toast.error(friendlyErrorMessage(error, "Không lưu được lịch thủ công")),
   });
@@ -132,7 +135,7 @@ export function usePublishManualSchedule() {
       fetchManualScheduling.publish(roundId, payload),
     onSuccess: async (_data, variables) => {
       await invalidate(variables.roundId);
-      toast.success("Đã công bố lịch thủ công");
+      toast.success("Đã công bố lịch");
     },
     onError: (error: ApiError) => {
       // PUBLISH_BLOCKED is rendered in the board's validation drawer so the manager

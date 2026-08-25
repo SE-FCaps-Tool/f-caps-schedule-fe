@@ -42,10 +42,10 @@ export function CalendarPage() {
   const { data: round } = useRoundDetail(selectedRoundId);
   const { data: versions, isLoading: versionsLoading, isError: versionsError } = useRoundScheduleVersions(selectedRoundId);
 
-  // Ưu tiên phương án đã PUBLISHED (lịch chính thức); chưa publish thì xem trước bản ACTIVE.
+  // Calendar chỉ hiển thị lịch cuối cùng đã được công bố.
   const currentVersion = useMemo(() => {
     if (!versions || versions.length === 0) return null;
-    return versions.find((v) => v.status === "PUBLISHED") ?? versions.find((v) => v.status === "ACTIVE") ?? null;
+    return versions.find((v) => v.status === "PUBLISHED") ?? null;
   }, [versions]);
 
   const { data: availableRooms } = useAvailableRooms(
@@ -82,15 +82,6 @@ export function CalendarPage() {
 
   const dates = useMemo(() => round?.days.map((d) => d.date) ?? [], [round]);
 
-  const timeslotRowsByDate = useMemo(() => {
-    const rows = new Map<string, { start: string; end: string }[]>();
-    for (const day of round?.days ?? []) {
-      const seen = new Map<string, { start: string; end: string }>();
-      for (const slot of day.slots) seen.set(slot.startTime, { start: slot.startTime, end: slot.endTime });
-      rows.set(day.date, Array.from(seen.values()).sort((a, b) => a.start.localeCompare(b.start)));
-    }
-    return rows;
-  }, [round]);
   const roomColumns = rooms ?? [];
 
   const [view, setView] = useState<ViewMode>("calendar");
@@ -183,7 +174,7 @@ export function CalendarPage() {
       )}
       {versions && versions.length > 0 && !currentVersion && (
         <p className="mt-6 py-10 text-center text-sm text-muted-foreground">
-          Chưa có phương án nào được kích hoạt — vào trang đợt đánh giá để kích hoạt.
+          Chưa có lịch nào được công bố — lịch đánh giá sẽ hiển thị sau khi Manager công bố phương án.
         </p>
       )}
 

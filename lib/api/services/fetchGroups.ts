@@ -110,6 +110,8 @@ export interface GroupOverview {
     id: number;
     code: string;
     name: string;
+    nameVi: string | null;
+    nameEn: string | null;
     status: string;
     mainSupervisor: { id: number; code: string; fullName: string | null } | null;
     coSupervisor: { id: number; code: string; fullName: string | null } | null;

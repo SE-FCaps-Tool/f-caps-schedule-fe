@@ -2,10 +2,24 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, ChevronLeft, Send, UserPlus, UsersRound } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronLeft,
+  Download,
+  Loader2,
+  Send,
+  UserPlus,
+  UsersRound,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +29,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { StatusDot } from "@/app/(manager)/manager/_shared/status-dot";
-import { ROUND_STATUS_META, ROUND_TYPE_LABEL } from "@/app/(manager)/manager/_shared/labels";
+import {
+  ROUND_STATUS_META,
+  ROUND_TYPE_LABEL,
+} from "@/app/(manager)/manager/_shared/labels";
 import { useSemesterContext } from "@/app/(manager)/manager/_shared/semester-context";
 import {
   useOpenRoundRegistration,
@@ -23,13 +40,33 @@ import {
   useEligibleProjects,
   useRoundGroups,
 } from "@/hooks/manager/useRounds";
-import { usePublishReadiness, usePublishRound } from "@/hooks/manager/useScheduling";
-import type { RegistrationSummary, RoundDetail } from "@/lib/api/services/fetchRounds";
+import {
+  usePublishReadiness,
+  usePublishRound,
+} from "@/hooks/manager/useScheduling";
+import { useExportCouncil } from "@/hooks/manager/useReports";
+import type {
+  RegistrationSummary,
+  RoundDetail,
+  RoundStatus,
+} from "@/lib/api/services/fetchRounds";
 import { FUTURE_PHASE_LABEL, notImplemented } from "./round-detail-shared";
 import { RoundLecturersPanel } from "./round-lecturers-panel";
 import { RoundGroupsPanel } from "./round-groups-panel";
 
 type PeoplePanel = "lecturers" | "groups";
+
+/**
+ * Trạng thái chưa từng có phương án activate — export hội đồng chắc chắn rỗng.
+ * BE cho xuất ngay khi version ACTIVE (chưa cần đợi PUBLISHED, manager-api.md §10.8).
+ */
+const COUNCIL_EXPORT_UNAVAILABLE_STATUSES = new Set<RoundStatus>([
+  "DRAFT",
+  "OPEN_REGISTRATION",
+  "REGISTRATION_CLOSED",
+  "SCHEDULING",
+  "CANCELLED",
+]);
 
 function PublishDialog({
   open,
@@ -40,12 +77,17 @@ function PublishDialog({
   onOpenChange: (open: boolean) => void;
   roundId: string;
 }) {
-  const { data: readiness, isLoading } = usePublishReadiness(open ? roundId : null);
+  const { data: readiness, isLoading } = usePublishReadiness(
+    open ? roundId : null,
+  );
   const publishRound = usePublishRound();
 
   function handlePublish() {
     if (readiness?.versionId == null) return;
-    publishRound.mutate({ roundId, versionId: readiness.versionId }, { onSuccess: () => onOpenChange(false) });
+    publishRound.mutate(
+      { roundId, versionId: readiness.versionId },
+      { onSuccess: () => onOpenChange(false) },
+    );
   }
 
   return (
@@ -54,8 +96,9 @@ function PublishDialog({
         <DialogHeader icon={Send} iconTone="primary">
           <DialogTitle>Công bố lịch</DialogTitle>
           <DialogDescription>
-            Sau khi công bố, lịch sẽ hiển thị cho giảng viên và sinh viên; mọi thay đổi sau đó phải qua các thao tác
-            post-publish (đổi phòng, thay reviewer, hoãn buổi).
+            Sau khi công bố, lịch sẽ hiển thị cho giảng viên và sinh viên; mọi
+            thay đổi sau đó phải qua các thao tác post-publish (đổi phòng, thay
+            reviewer, hoãn buổi).
           </DialogDescription>
         </DialogHeader>
 
@@ -70,7 +113,10 @@ function PublishDialog({
           {readiness && !readiness.ready && (
             <ul className="space-y-1.5 text-sm">
               {readiness.blockers.map((blocker) => (
-                <li key={blocker.code} className="flex items-center justify-between gap-3">
+                <li
+                  key={blocker.code}
+                  className="flex items-center justify-between gap-3"
+                >
                   <span className="text-destructive">{blocker.message}</span>
                   <StatusDot tone="red" label={blocker.code} />
                 </li>
@@ -82,7 +128,11 @@ function PublishDialog({
         <DialogFooter>
           <Button
             type="button"
-            disabled={!readiness?.ready || readiness.versionId == null || publishRound.isPending}
+            disabled={
+              !readiness?.ready ||
+              readiness.versionId == null ||
+              publishRound.isPending
+            }
             onClick={handlePublish}
           >
             {publishRound.isPending ? "Đang công bố..." : "Xác nhận công bố"}
@@ -111,11 +161,17 @@ function PeopleSheet({
       <SheetContent className="w-[min(92vw,34rem)] gap-0 p-0 sm:max-w-none">
         <SheetHeader className="sr-only">
           <SheetTitle>{title}</SheetTitle>
-          <SheetDescription>Danh sách {title.toLowerCase()} của đợt đánh giá.</SheetDescription>
+          <SheetDescription>
+            Danh sách {title.toLowerCase()} của đợt đánh giá.
+          </SheetDescription>
         </SheetHeader>
         <div className="flex h-full min-h-0 flex-col p-4 pt-5">
-          {activePanel === "lecturers" && <RoundLecturersPanel roundId={roundId} />}
-          {activePanel === "groups" && <RoundGroupsPanel roundId={roundId} round={round} />}
+          {activePanel === "lecturers" && (
+            <RoundLecturersPanel roundId={roundId} />
+          )}
+          {activePanel === "groups" && (
+            <RoundGroupsPanel roundId={roundId} round={round} />
+          )}
         </div>
       </SheetContent>
     </Sheet>
@@ -133,17 +189,25 @@ export function RoundDetailHeader({
   registrationSummary?: RegistrationSummary;
 }) {
   const [publishOpen, setPublishOpen] = useState(false);
-  const [activePeoplePanel, setActivePeoplePanel] = useState<PeoplePanel | null>(null);
+  const [activePeoplePanel, setActivePeoplePanel] =
+    useState<PeoplePanel | null>(null);
   const { currentSemesterId } = useSemesterContext();
   const openRegistration = useOpenRoundRegistration();
   const closeRegistration = useCloseRoundRegistration();
+  const exportCouncil = useExportCouncil();
   const { data: eligibleProjects } = useEligibleProjects(roundId);
   const { data: attachedGroups } = useRoundGroups(roundId);
 
   const statusMeta = ROUND_STATUS_META[round.status];
-  const name = round.name || `${ROUND_TYPE_LABEL[round.type]} — ${currentSemesterId}`;
+  const name =
+    round.name || `${ROUND_TYPE_LABEL[round.type]} — ${currentSemesterId}`;
   const futurePhaseLabel = FUTURE_PHASE_LABEL[round.status];
-  const backHref = currentSemesterId ? `/manager/rounds?semester=${currentSemesterId}` : "/manager/rounds";
+  const backHref = currentSemesterId
+    ? `/manager/rounds?semester=${currentSemesterId}`
+    : "/manager/rounds";
+  const canExportCouncil = !COUNCIL_EXPORT_UNAVAILABLE_STATUSES.has(
+    round.status,
+  );
   const lecturerCount = registrationSummary?.lecturers.invited;
   const groupCount = useMemo(() => {
     if (!eligibleProjects && !attachedGroups) {
@@ -151,9 +215,11 @@ export function RoundDetailHeader({
       return fallback && fallback > 0 ? fallback : undefined;
     }
 
-    const attachedIds = new Set((attachedGroups ?? []).map((group) => group.groupId));
+    const attachedIds = new Set(
+      (attachedGroups ?? []).map((group) => group.groupId),
+    );
     const eligibleUnattachedCount = (eligibleProjects ?? []).filter(
-      (row) => row.eligible && row.groupId && !attachedIds.has(row.groupId)
+      (row) => row.eligible && row.groupId && !attachedIds.has(row.groupId),
     ).length;
 
     return (attachedGroups?.length ?? 0) + eligibleUnattachedCount;
@@ -171,8 +237,14 @@ export function RoundDetailHeader({
       </Link>
 
       <div className="min-w-0 flex-1 flex items-center gap-2.5">
-        <h1 className="truncate text-base font-semibold tracking-tight">{name}</h1>
-        <StatusDot tone={statusMeta.tone} label={statusMeta.label} className="shrink-0" />
+        <h1 className="truncate text-base font-semibold tracking-tight">
+          {name}
+        </h1>
+        <StatusDot
+          tone={statusMeta.tone}
+          label={statusMeta.label}
+          className="shrink-0"
+        />
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
@@ -185,7 +257,9 @@ export function RoundDetailHeader({
           onClick={() => setActivePeoplePanel("lecturers")}
         >
           <UserPlus />
-          <span className="hidden sm:inline">Giảng viên{lecturerCount !== undefined ? ` ${lecturerCount}` : ""}</span>
+          <span className="hidden sm:inline">
+            Giảng viên{lecturerCount !== undefined ? ` ${lecturerCount}` : ""}
+          </span>
         </Button>
         <Button
           size="sm"
@@ -196,16 +270,42 @@ export function RoundDetailHeader({
           onClick={() => setActivePeoplePanel("groups")}
         >
           <UsersRound />
-          <span className="hidden sm:inline">Nhóm{groupCount !== undefined ? ` ${groupCount}` : ""}</span>
+          <span className="hidden sm:inline">
+            Nhóm{groupCount !== undefined ? ` ${groupCount}` : ""}
+          </span>
         </Button>
         {round.status === "DRAFT" && (
-          <Button size="sm" disabled={openRegistration.isPending} onClick={() => openRegistration.mutate(roundId)}>
+          <Button
+            size="sm"
+            disabled={openRegistration.isPending}
+            onClick={() => openRegistration.mutate(roundId)}
+          >
             Mở đăng ký
           </Button>
         )}
         {round.status === "OPEN_REGISTRATION" && (
-          <Button size="sm" disabled={closeRegistration.isPending} onClick={() => closeRegistration.mutate(roundId)}>
+          <Button
+            size="sm"
+            disabled={closeRegistration.isPending}
+            onClick={() => closeRegistration.mutate(roundId)}
+          >
             Đóng đăng ký
+          </Button>
+        )}
+        {canExportCouncil && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="px-2 sm:px-3"
+            disabled={exportCouncil.isPending}
+            onClick={() => exportCouncil.mutate(Number(roundId))}
+          >
+            {exportCouncil.isPending ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Download />
+            )}
+            <span className="hidden sm:inline">Tải xuống </span>
           </Button>
         )}
         {round.status === "SCHEDULED" && (
@@ -214,13 +314,21 @@ export function RoundDetailHeader({
           </Button>
         )}
         {futurePhaseLabel && (
-          <Button size="sm" variant="outline" onClick={() => notImplemented(futurePhaseLabel)}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => notImplemented(futurePhaseLabel)}
+          >
             {futurePhaseLabel}
           </Button>
         )}
       </div>
 
-      <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} roundId={roundId} />
+      <PublishDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        roundId={roundId}
+      />
       <PeopleSheet
         activePanel={activePeoplePanel}
         onOpenChange={(open) => {

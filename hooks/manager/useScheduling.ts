@@ -29,6 +29,12 @@ function useInvalidateAfterScheduleChange() {
   return async (roundId?: number) => {
     if (roundId) {
       await queryClient.invalidateQueries({ queryKey: managerKeys.scheduleVersions(roundId) });
+      await queryClient.invalidateQueries({ queryKey: managerKeys.round(roundId) });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "round", String(roundId)] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId, "schedules"] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId, "publish-readiness"] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "round", String(roundId), "schedules"] });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "round", String(roundId), "publish-readiness"] });
       await queryClient.invalidateQueries({ queryKey: managerKeys.dashboard(roundId) });
     }
     await queryClient.invalidateQueries({ queryKey: ["manager", "version"] });
@@ -62,7 +68,7 @@ export function useRunSchedule() {
     },
     onError: (error: ApiError) => {
       if (error.code === 422) {
-        toast.error(detailMessage(error) || "Thiếu input để chạy xếp lịch (nhóm/timeslot/phòng/lịch rảnh giảng viên)");
+        toast.error(detailMessage(error) || "Thiếu input để chạy xếp lịch (nhóm/khung giờ/lịch rảnh giảng viên)");
         return;
       }
       if (error.code === 409) {
@@ -105,7 +111,39 @@ export function useActivateVersion() {
       toast.success("Đã kích hoạt phương án lịch");
     },
     onError: (error: ApiError) => {
-      toast.error(friendlyErrorMessage(error, "Chỉ phương án VALID mới kích hoạt được"));
+      toast.error(friendlyErrorMessage(error, "Không kích hoạt được phương án lịch"));
+    },
+  });
+}
+
+export function useDeleteScheduleVersion() {
+  const invalidate = useInvalidateAfterScheduleChange();
+
+  return useMutation({
+    mutationFn: ({ versionId, semesterId }: { versionId: number; roundId: number; semesterId?: number | null }) =>
+      fetchScheduling.deleteVersion(versionId, semesterId),
+    onSuccess: async (_data, variables) => {
+      await invalidate(variables.roundId);
+      toast.success("Đã xóa phương án nháp");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không xóa được phương án nháp"));
+    },
+  });
+}
+
+export function usePublishScheduleVersion() {
+  const invalidate = useInvalidateAfterScheduleChange();
+
+  return useMutation({
+    mutationFn: ({ roundId, versionId, semesterId }: { roundId: number; versionId: number; semesterId?: number | null }) =>
+      fetchScheduling.publish(roundId, versionId, semesterId),
+    onSuccess: async (_data, variables) => {
+      await invalidate(variables.roundId);
+      toast.success("Đã công bố phương án lịch");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không công bố được phương án lịch"));
     },
   });
 }
@@ -136,6 +174,8 @@ function useInvalidateRoundSchedules() {
   const queryClient = useQueryClient();
   return async (roundId: string) => {
     await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId, "schedules"] });
+    await queryClient.invalidateQueries({ queryKey: managerKeys.scheduleVersions(Number(roundId)) });
+    await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId, "publish-readiness"] });
     await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId] });
   };
 }
@@ -212,6 +252,9 @@ export function usePublishRound() {
     mutationFn: ({ roundId, versionId }: { roundId: string; versionId: number }) =>
       fetchScheduling.publishRound(roundId, versionId),
     onSuccess: async (_data, { roundId }) => {
+      await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId, "schedules"] });
+      await queryClient.invalidateQueries({ queryKey: managerKeys.scheduleVersions(Number(roundId)) });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId, "publish-readiness"] });
       await queryClient.invalidateQueries({ queryKey: ["manager", "round", roundId] });
       await queryClient.invalidateQueries({ queryKey: ["manager", "rounds"] });
       toast.success("Đã công bố lịch cho đợt đánh giá");

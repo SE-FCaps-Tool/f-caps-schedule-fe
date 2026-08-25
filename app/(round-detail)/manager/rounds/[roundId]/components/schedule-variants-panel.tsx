@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Check, Eye, Loader2, Play, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -117,12 +118,12 @@ export function ScheduleVariantsPanel({ roundId, round }: { roundId: string; rou
               Phương án xếp lịch
             </CardTitle>
             <CardDescription className="mt-1 max-w-2xl">
-              Chạy một lần để tạo 3 bản nháp, sau đó xem trước và chọn bản phù hợp nhất.
+              Phương án chỉ xếp nhóm, khung giờ và giảng viên. Sau khi kích hoạt, bạn có thể gán phòng tự động hoặc đổi phòng bằng tay.
             </CardDescription>
           </div>
           <Button size="sm" onClick={handleRun} disabled={runSchedule.isPending}>
             {runSchedule.isPending ? <Loader2 className="animate-spin" /> : <Play />}
-            {runSchedule.isPending ? "Đang chạy…" : "Tạo 3 phương án"}
+            {runSchedule.isPending ? "Đang chạy…" : "Chạy thuật toán"}
           </Button>
         </div>
       </CardHeader>
@@ -136,7 +137,7 @@ export function ScheduleVariantsPanel({ roundId, round }: { roundId: string; rou
           </div>
         ) : (
           <>
-            <div className="grid gap-3 md:grid-cols-3">
+            <div role="tablist" aria-label="Các phương án xếp lịch" className="flex flex-wrap gap-2">
               {variants.map((variant) => {
                 const meta = PROFILE_META[variant.objectiveProfile];
                 const isSelected = variant.versionId === selected?.versionId;
@@ -148,24 +149,19 @@ export function ScheduleVariantsPanel({ roundId, round }: { roundId: string; rou
                     key={variant.versionId}
                     type="button"
                     onClick={() => setSelectedVersionId(variant.versionId)}
+                    role="tab"
+                    aria-selected={isSelected}
                     className={cn(
-                      "rounded-xl border p-3 text-left transition-colors hover:border-primary/50",
+                      "min-w-44 rounded-lg border px-3 py-2.5 text-left transition-colors hover:border-primary/50",
                       isSelected ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-background",
                     )}
-                    aria-pressed={isSelected}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="text-sm font-semibold">{variant.objectiveLabel || meta.title}</div>
-                        <div className="mt-1 text-xs text-muted-foreground">V{variant.versionNo} · {meta.description}</div>
-                      </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold">V{variant.versionNo} · {variant.objectiveLabel || meta.title}</div>
                       {isSelected && <Check className="size-4 shrink-0 text-primary" />}
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                      <Metric label="Đã xếp" value={formatMetric(scheduledCount)} />
-                      <Metric label="Chưa xếp" value={formatMetric(unscheduledCount)} />
-                      <Metric label="Block GV" value={formatMetric(metrics?.reviewerBlockCount ?? 0)} />
-                      <Metric label="Chờ GV" value={`${formatMetric(metrics?.reviewerIdleMinutes ?? 0)} phút`} />
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {formatMetric(scheduledCount)} nhóm đã xếp · {formatMetric(unscheduledCount)} chưa xếp
                     </div>
                   </button>
                 );
@@ -177,22 +173,43 @@ export function ScheduleVariantsPanel({ roundId, round }: { roundId: string; rou
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <Eye className="size-4 text-muted-foreground" />
-                    Xem trước: {selected.objectiveLabel || PROFILE_META[selected.objectiveProfile].title}
+                    Calendar: V{selected.versionNo} · {selected.objectiveLabel || PROFILE_META[selected.objectiveProfile].title}
                     {selected.metrics?.latestEndAt && (
                       <span className="text-xs font-normal text-muted-foreground">
                         · kết thúc {formatInVietnamTime(selected.metrics.latestEndAt, "HH:mm")}
                       </span>
                     )}
+                    {selectedDetail && selected.status === "DRAFT" && (
+                      <span className="text-xs font-normal text-muted-foreground">
+                        · phòng gán sau khi kích hoạt
+                      </span>
+                    )}
+                    {selectedDetail && selected.status !== "DRAFT" && (
+                      <span className="text-xs font-normal text-muted-foreground">
+                        · {selectedDetail.assignments.filter((assignment) => assignment.roomId != null).length}/
+                        {selectedDetail.assignments.length} phòng đã gán
+                      </span>
+                    )}
                   </div>
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={handleActivate}
-                    disabled={activateVersion.isPending || selected.status !== "DRAFT"}
-                  >
-                    {activateVersion.isPending ? <Loader2 className="animate-spin" /> : <Check />}
-                    Chọn phương án này
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selected.status === "ACTIVE" && (
+                      <Link
+                        href={`/manager/rounds/${roundId}/room-assignment`}
+                        className="inline-flex h-9 items-center justify-center rounded-[min(var(--radius-md),12px)] border border-border bg-background px-3 text-sm font-medium transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        Gán phòng
+                      </Link>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={handleActivate}
+                      disabled={activateVersion.isPending || selected.status !== "DRAFT"}
+                    >
+                      {activateVersion.isPending ? <Loader2 className="animate-spin" /> : <Check />}
+                      Kích hoạt phương án
+                    </Button>
+                  </div>
                 </div>
                 {detailLoading ? (
                   <p className="py-6 text-center text-sm text-muted-foreground">Đang tải bản xem trước…</p>
@@ -207,14 +224,5 @@ export function ScheduleVariantsPanel({ roundId, round }: { roundId: string; rou
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md bg-muted/60 px-2 py-1.5">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="mt-0.5 font-medium tabular-nums">{value}</div>
-    </div>
   );
 }
