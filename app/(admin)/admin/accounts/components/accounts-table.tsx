@@ -22,17 +22,19 @@ import { ROLE_ADMIN, ROLE_MANAGER, ROLE_LECTURER, ROLE_STUDENT, type UserRole } 
 import { ROLE_LABEL_VI } from "@/lib/utils/roleLabels";
 import { ReasonDialog } from "@/components/shared/reason-dialog";
 import type { AccountApiItem } from "@/lib/api/services/fetchAccounts";
+import { RoleAssignmentDialog } from "./role-assignment-dialog";
 
 const ALL_ROLES: UserRole[] = [ROLE_ADMIN, ROLE_MANAGER, ROLE_LECTURER, ROLE_STUDENT];
 
 interface PendingAction {
   account: AccountApiItem;
-  kind: "toggle-status" | "remove-role" | "assign-role";
+  kind: "toggle-status" | "remove-role";
   role?: UserRole;
 }
 
 export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
   const [pending, setPending] = useState<PendingAction | null>(null);
+  const [pendingRole, setPendingRole] = useState<{ account: AccountApiItem; role: UserRole } | null>(null);
   const updateStatus = useUpdateAccountStatus();
   const assignRoleMutation = useAssignRole();
   const removeRoleMutation = useRemoveRole();
@@ -52,8 +54,6 @@ export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
       });
     } else if (kind === "remove-role" && role) {
       removeRoleMutation.mutate({ accountId: account.id, role, reason });
-    } else if (kind === "assign-role" && role) {
-      assignRoleMutation.mutate({ accountId: account.id, payload: { role, reason } });
     }
     closeDialog();
   }
@@ -80,7 +80,13 @@ export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
                 <TableCell className="pl-4 font-mono text-xs">{account.email}</TableCell>
                 <TableCell className="font-medium">{account.displayName}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{ROLE_LABEL_VI[account.role]}</Badge>
+                  <div className="flex flex-wrap gap-1">
+                    {account.roles.map((role) => (
+                      <Badge key={role} variant="secondary">
+                        {ROLE_LABEL_VI[role]}
+                      </Badge>
+                    ))}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <span className="inline-flex items-center gap-1.5 text-sm">
@@ -109,22 +115,25 @@ export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
                     <DropdownMenuContent align="end" className="w-56">
                       <DropdownMenuGroup>
                         <DropdownMenuLabel>Vai trò</DropdownMenuLabel>
-                        {ALL_ROLES.filter((r) => r !== account.role).map((role) => (
+                        {ALL_ROLES.filter((role) => !account.roles.includes(role)).map((role) => (
                           <DropdownMenuItem
                             key={role}
-                            onClick={() => setPending({ account, kind: "assign-role", role })}
+                            onClick={() => setPendingRole({ account, role })}
                           >
                             <ShieldPlus />
                             Gán {ROLE_LABEL_VI[role]}
                           </DropdownMenuItem>
                         ))}
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => setPending({ account, kind: "remove-role", role: account.role })}
-                        >
-                          <ShieldMinus />
-                          Gỡ {ROLE_LABEL_VI[account.role]}
-                        </DropdownMenuItem>
+                        {account.roles.map((role) => (
+                          <DropdownMenuItem
+                            key={`remove-${role}`}
+                            variant="destructive"
+                            onClick={() => setPending({ account, kind: "remove-role", role })}
+                          >
+                            <ShieldMinus />
+                            Gỡ {ROLE_LABEL_VI[role]}
+                          </DropdownMenuItem>
+                        ))}
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -153,12 +162,24 @@ export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
               : "Mở khóa tài khoản"
             : pending?.kind === "remove-role"
               ? `Gỡ vai trò ${pending.role ? ROLE_LABEL_VI[pending.role] : ""}`
-              : `Gán vai trò ${pending?.role ? ROLE_LABEL_VI[pending.role] : ""}`
+              : ""
         }
         description={`Áp dụng cho ${pending?.account.displayName ?? ""} (${pending?.account.email ?? ""}). Lý do sẽ được ghi vào audit log.`}
         destructive={pending?.kind === "remove-role" || (pending?.kind === "toggle-status" && pending.account.status === "ACTIVE")}
-        confirmLabel={pending?.kind === "assign-role" ? "Gán vai trò" : "Xác nhận"}
+        confirmLabel="Xác nhận"
         onConfirm={handleConfirm}
+      />
+      <RoleAssignmentDialog
+        key={pendingRole ? `${pendingRole.account.id}-${pendingRole.role}` : "closed"}
+        account={pendingRole?.account ?? null}
+        role={pendingRole?.role ?? null}
+        open={pendingRole !== null}
+        onOpenChange={(open) => !open && setPendingRole(null)}
+        onConfirm={(payload) => {
+          if (!pendingRole) return;
+          assignRoleMutation.mutate({ accountId: pendingRole.account.id, payload });
+          setPendingRole(null);
+        }}
       />
     </>
   );
