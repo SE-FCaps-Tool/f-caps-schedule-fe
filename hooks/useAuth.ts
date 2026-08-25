@@ -10,6 +10,7 @@ import { getSecureCookieConfig } from "@/utils/cookieConfig";
 import { broadcastLogout } from "@/lib/utils/authChannel";
 import { ROLE_ADMIN, ROLE_MANAGER, ROLE_LECTURER, ROLE_STUDENT, ROLE_HOME } from "@/lib/types/roles";
 import { SESSION_ROLE_COOKIE } from "@/lib/constants/auth";
+import { clearStoredAuthProfile, readStoredAuthProfile, rememberAuthProfile } from "@/lib/utils/authProfile";
 import type { ApiError } from "@/types/api";
 
 export const authKeys = {
@@ -40,11 +41,18 @@ export function useAuth() {
   const [shouldFetchMe, setShouldFetchMe] = useState(() =>
     typeof window !== "undefined" && Boolean(getCookie(SESSION_ROLE_COOKIE))
   );
+  const [storedProfile, setStoredProfile] = useState(readStoredAuthProfile);
   const meQuery = useMe({ enabled: shouldFetchMe });
 
   const loginMutation = useMutation({
     mutationFn: (credentials: LoginPayload) => fetchAuth.login(credentials),
-    onSuccess: async (data) => {
+    onSuccess: async (data, credentials) => {
+      rememberAuthProfile({
+        email: data.email ?? credentials.email,
+        displayName: data.displayName ?? null,
+      });
+      setStoredProfile(readStoredAuthProfile());
+
       if (data.requiresRoleSelection) {
         toast.success("Vui lòng chọn vai trò để tiếp tục");
         const roles = encodeURIComponent(data.availableRoles.join(","));
@@ -75,6 +83,8 @@ export function useAuth() {
     onSuccess: async () => {
       setShouldFetchMe(false);
       deleteCookie(SESSION_ROLE_COOKIE, getSecureCookieConfig());
+      clearStoredAuthProfile();
+      setStoredProfile(null);
       // docs/auth.md: "FE nên reset toàn bộ cached user/query sau khi gọi" logout
       queryClient.clear();
       broadcastLogout();
@@ -86,7 +96,13 @@ export function useAuth() {
     },
   });
 
-  const user = meQuery.data;
+  const user = meQuery.data
+    ? {
+        ...meQuery.data,
+        email: meQuery.data.email ?? storedProfile?.email ?? null,
+        displayName: meQuery.data.displayName ?? storedProfile?.displayName ?? null,
+      }
+    : undefined;
 
   return {
     user,

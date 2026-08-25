@@ -263,19 +263,21 @@ function NavigationGroups({
 }
 
 function UserMenu({
+  displayName,
   roleLabel,
-  accountLabel,
+  email,
   onLogout,
   side,
   compact = false,
 }: {
+  displayName: string;
   roleLabel: string;
-  accountLabel: string;
+  email: string;
   onLogout: () => void;
   side: "top" | "bottom";
   compact?: boolean;
 }) {
-  const initial = (roleLabel || "?").slice(0, 1).toUpperCase();
+  const initial = (displayName || roleLabel || "?").trim().slice(0, 1).toUpperCase();
 
   return (
     <DropdownMenu>
@@ -292,18 +294,31 @@ function UserMenu({
         {!compact && (
           <>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-sidebar-foreground">{roleLabel || "—"}</span>
-              <span className="block truncate text-xs text-muted-foreground">{accountLabel}</span>
+              <span className="block truncate text-sm font-medium text-sidebar-foreground">{displayName || "Chưa cập nhật tên"}</span>
+              <span className="block truncate text-xs text-muted-foreground">{roleLabel || "Chưa cập nhật vai trò"}</span>
+              <span className="block truncate text-[11px] text-muted-foreground/80">{email || "Chưa cập nhật email"}</span>
             </span>
             <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
           </>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={compact ? "end" : "start"} side={side} className="w-56">
+      <DropdownMenuContent align={compact ? "end" : "start"} side={side} className="w-72 max-w-[calc(100vw-1rem)]">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="font-normal">
-            <p className="truncate text-sm font-medium text-foreground">{roleLabel || "—"}</p>
-            <p className="truncate text-xs text-muted-foreground">{accountLabel}</p>
+            <dl className="space-y-1.5">
+              <div>
+                <dt className="text-[11px] text-muted-foreground">Tên người dùng</dt>
+                <dd className="truncate text-sm font-medium text-foreground">{displayName || "Chưa cập nhật"}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-muted-foreground">Vai trò</dt>
+                <dd className="truncate text-sm text-foreground">{roleLabel || "Chưa cập nhật"}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-muted-foreground">Email</dt>
+                <dd className="break-all text-sm text-foreground">{email || "Chưa cập nhật"}</dd>
+              </div>
+            </dl>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
@@ -338,6 +353,9 @@ export function AppShell({ children, area, headerExtra, disabledHrefs, onDisable
   const pendingInvitationCount = lecturerInvitations?.filter((invitation) => invitation.status === "PENDING").length ?? 0;
 
   const activeItem = navItems.find((item) => isNavItemActive(item, pathname));
+  const displayName = user?.displayName ?? "";
+  const roleLabel = user ? ROLE_LABEL_VI[user.role as UserRole] : "";
+  const email = user?.email ?? "";
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
@@ -363,8 +381,9 @@ export function AppShell({ children, area, headerExtra, disabledHrefs, onDisable
         </nav>
         <div className="shrink-0 border-t border-sidebar-border p-2">
           <UserMenu
-            roleLabel={user ? ROLE_LABEL_VI[user.role as UserRole] : ""}
-            accountLabel={user ? `Tài khoản #${user.accountId}` : ""}
+            displayName={displayName}
+            roleLabel={roleLabel}
+            email={email}
             onLogout={logout}
             side="top"
           />
@@ -424,8 +443,9 @@ export function AppShell({ children, area, headerExtra, disabledHrefs, onDisable
           <div className="ml-auto flex items-center gap-2 md:hidden">
             {headerExtra}
             <UserMenu
-              roleLabel={user ? ROLE_LABEL_VI[user.role as UserRole] : ""}
-              accountLabel={user ? `Tài khoản #${user.accountId}` : ""}
+              displayName={displayName}
+              roleLabel={roleLabel}
+              email={email}
               onLogout={logout}
               side="bottom"
               compact

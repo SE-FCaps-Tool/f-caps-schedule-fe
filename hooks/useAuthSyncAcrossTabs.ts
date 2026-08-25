@@ -7,6 +7,7 @@ import { deleteCookie } from "cookies-next";
 import { subscribeToLogout } from "@/lib/utils/authChannel";
 import { SESSION_ROLE_COOKIE } from "@/lib/constants/auth";
 import { getSecureCookieConfig } from "@/utils/cookieConfig";
+import { clearStoredAuthProfile } from "@/lib/utils/authProfile";
 
 /**
  * Đăng xuất khi: tab khác vừa logout (BroadcastChannel), hoặc bất kỳ API nào trả 401
@@ -20,6 +21,7 @@ export function useAuthSyncAcrossTabs() {
   useEffect(() => {
     const signOut = () => {
       deleteCookie(SESSION_ROLE_COOKIE, getSecureCookieConfig());
+      clearStoredAuthProfile();
       queryClient.clear();
       // Đã ở trang auth rồi thì thôi, tránh redirect lặp lại mỗi lần 401.
       if (pathname !== "/login" && pathname !== "/auth/callback" && pathname !== "/auth/select-role") router.replace("/login");

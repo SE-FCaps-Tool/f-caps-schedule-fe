@@ -28,8 +28,10 @@ const NAV_ITEMS = [
 export function StudentHeader() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const displayName = user?.displayName ?? "";
   const roleLabel = user ? ROLE_LABEL_VI[user.role as UserRole] : "";
-  const initial = (roleLabel || "?").trim().slice(0, 1).toUpperCase();
+  const email = user?.email ?? "";
+  const initial = (displayName || roleLabel || "?").trim().slice(0, 1).toUpperCase();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -69,13 +71,23 @@ export function StudentHeader() {
               </AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-72 max-w-[calc(100vw-1rem)]">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="font-normal">
-                <p className="truncate text-sm font-medium text-foreground">{roleLabel || "—"}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {user ? `Tài khoản #${user.accountId}` : ""}
-                </p>
+                <dl className="space-y-1.5">
+                  <div>
+                    <dt className="text-[11px] text-muted-foreground">Tên người dùng</dt>
+                    <dd className="truncate text-sm font-medium text-foreground">{displayName || "Chưa cập nhật"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] text-muted-foreground">Vai trò</dt>
+                    <dd className="truncate text-sm text-foreground">{roleLabel || "Chưa cập nhật"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] text-muted-foreground">Email</dt>
+                    <dd className="break-all text-sm text-foreground">{email || "Chưa cập nhật"}</dd>
+                  </div>
+                </dl>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

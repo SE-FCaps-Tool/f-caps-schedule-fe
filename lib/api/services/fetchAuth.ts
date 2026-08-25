@@ -12,6 +12,9 @@ export interface LoginResponse {
   expiresAt: string | null;
   requiresRoleSelection: boolean;
   availableRoles: UserRole[];
+  /** Optional identity fields returned by newer backend versions. */
+  email?: string | null;
+  displayName?: string | null;
 }
 
 export interface LogoutResponse {
@@ -22,6 +25,9 @@ export interface MeResponse {
   role: UserRole;
   status: string;
   accountId: number;
+  /** Optional identity fields returned by newer backend versions. */
+  email?: string | null;
+  displayName?: string | null;
 }
 
 export const fetchAuth = {
