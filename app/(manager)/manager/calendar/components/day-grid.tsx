@@ -28,10 +28,9 @@ export function toDisplaySession(session: RoundSession, rooms: AssignableRoom[])
 }
 
 /**
- * Solver assignment thô (1 version bất kỳ, kể cả DRAFT chưa activate) → DisplaySession — dùng cho
- * xem trước phương án nháp. Khác `toDisplaySession`: chưa có phòng thật (`room_id` luôn null ở
- * bước này), nên chỉ dùng được cho view "Danh sách", không đưa vào DayGrid (lưới CHIA CỘT theo
- * phòng — không có gì để plot khi chưa gán phòng).
+ * Solver assignment (1 version bất kỳ, kể cả DRAFT chưa activate) → DisplaySession — dùng cho
+ * xem trước phương án trên cùng calendar. Room được gán sau khi version được activate; bản nháp
+ * giữ null để UI báo rõ cần gán phòng ở bước tiếp theo.
  */
 export function assignmentToDisplaySession(assignment: ScheduleVersionAssignment): DisplaySession {
   return {
@@ -44,7 +43,7 @@ export function assignmentToDisplaySession(assignment: ScheduleVersionAssignment
     end: formatInVietnamTime(assignment.endAt, "HH:mm"),
     timeslotId: String(assignment.timeslotId),
     roomId: assignment.roomId != null ? String(assignment.roomId) : null,
-    roomCode: assignment.roomId != null ? `#${assignment.roomId}` : "Chưa gán",
+    roomCode: assignment.roomCode ?? (assignment.roomId != null ? `#${assignment.roomId}` : "Chưa gán"),
     reviewers: assignment.reviewerIds.map((id) => ({ id: String(id), name: assignment.reviewerNames[String(id)] ?? `#${id}` })),
     status: assignment.status,
   };

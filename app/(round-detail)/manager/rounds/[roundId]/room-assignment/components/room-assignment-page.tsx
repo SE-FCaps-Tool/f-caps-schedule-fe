@@ -59,7 +59,7 @@ function AssignRoomDialog({
       <DialogContent className="sm:max-w-sm">
         <form onSubmit={handleSubmit}>
           <DialogHeader icon={DoorOpen} iconTone="sky">
-            <DialogTitle>Gán phòng</DialogTitle>
+            <DialogTitle>{session?.roomId ? "Đổi phòng" : "Gán phòng"}</DialogTitle>
             <DialogDescription>
               {session?.group.code} · {session ? formatDate(session.date, "DD/MM") : ""} · {session?.startTime}–{session?.endTime}
             </DialogDescription>
@@ -87,7 +87,7 @@ function AssignRoomDialog({
 
           <DialogFooter>
             <Button type="submit" disabled={assignRoom.isPending || !roomId}>
-              {assignRoom.isPending ? "Đang lưu..." : "Gán phòng"}
+              {assignRoom.isPending ? "Đang lưu..." : session?.roomId ? "Đổi phòng" : "Gán phòng"}
             </Button>
           </DialogFooter>
         </form>
@@ -256,9 +256,14 @@ export function RoomAssignmentPage({ roundId }: { roundId: string }) {
                     return (
                       <td key={slot.id} className="border-b border-border p-2">
                         {session ? (
-                          <span className="inline-flex items-center rounded-md border border-border px-2 py-1 font-mono text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setAssignTarget(session)}
+                            className="inline-flex items-center rounded-md border border-border px-2 py-1 text-left font-mono text-xs transition-colors hover:border-primary/50 hover:bg-muted"
+                            title="Đổi phòng"
+                          >
                             {session.group.code}
-                          </span>
+                          </button>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}

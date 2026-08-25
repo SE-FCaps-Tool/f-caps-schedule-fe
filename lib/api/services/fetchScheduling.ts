@@ -112,6 +112,8 @@ export interface ScheduleVariantMetrics {
   reviewerMinuteSpread: number;
   latestEndAt: string | null;
   scheduledGroups: number;
+  roomAssignedCount?: number;
+  roomUnassignedCount?: number;
 }
 
 /** Khớp dataclass `UnscheduledReason` (BE models.py) — KHÔNG có group_id/group_code/reason. */
@@ -175,7 +177,8 @@ export interface ScheduleSession {
   groupCode: string;
   projectId: number;
   timeslotId: number;
-  roomId: number;
+  roomId: number | null;
+  roomCode?: string | null;
   startAt: string;
   endAt: string;
   status: SessionStatus;
@@ -186,8 +189,8 @@ export interface ScheduleSession {
 
 /**
  * Solver assignment thô cho 1 version — tồn tại cho MỌI version (kể cả DRAFT chưa kích hoạt),
- * nhưng CHƯA có phòng (`roomId` luôn null cho tới khi gán phòng ở bước sau kích hoạt).
- * Đây là field BE thực sự trả populated trong `GET /schedule/versions/{id}` — không phải `sessions`.
+ * Có thể đã có phòng ngay từ lần chạy thuật toán; đây là field BE thực sự trả populated
+ * trong `GET /schedule/versions/{id}` — không phải `sessions`.
  */
 export interface ScheduleVersionAssignment {
   assignmentId: number;
@@ -200,6 +203,7 @@ export interface ScheduleVersionAssignment {
   startAt: string;
   endAt: string;
   roomId: number | null;
+  roomCode?: string | null;
   status: string;
   reviewerIds: number[];
   resultOwnerIds: number[];
@@ -207,9 +211,9 @@ export interface ScheduleVersionAssignment {
 }
 
 export interface ScheduleVersionDetail extends ScheduleVersionSummary {
-  /** BE trả rỗng cho version chưa kích hoạt (Session/phòng chỉ tạo lúc activate) — không dùng để xem trước nháp. */
+  /** BE trả rỗng cho version chưa kích hoạt; xem trước dùng `assignments`. */
   sessions: ScheduleSession[];
-  /** Nguồn dữ liệu thật để xem trước 1 version bất kỳ, kể cả DRAFT chưa gán phòng. */
+  /** Nguồn dữ liệu thật để xem trước 1 version bất kỳ, kể cả DRAFT. */
   assignments: ScheduleVersionAssignment[];
 }
 
@@ -305,7 +309,7 @@ export interface RoundOperationResponse {
 }
 
 export interface DeleteVersionResponse {
-  versionId: number;
+  id: number;
   deleted: true;
 }
 

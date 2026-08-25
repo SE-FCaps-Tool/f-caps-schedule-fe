@@ -6,13 +6,14 @@ import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRoundGroups, useRoundInvitations } from "@/hooks/manager/useRounds";
+import { useManualScheduleBoard } from "@/hooks/manager/useManualScheduling";
 import { useRooms } from "@/hooks/useRooms";
 import { formatDate } from "@/lib/utils/formatDate";
 import type { AttachedRoundGroup, RoundDetail, RoundInvitation } from "@/lib/api/services/fetchRounds";
 import type { RoomApiItem } from "@/lib/api/services/fetchRooms";
 import {
+  apiSessionToDraft,
   buildReviewerRoles,
-  useManualScheduleDraftStore,
   type ManualScheduleSession,
 } from "./round-manual-schedule-board";
 
@@ -77,7 +78,11 @@ function PreviewChip({
 export function RoundManualSchedulePreview({ roundId, round }: { roundId: string; round: RoundDetail }) {
   const roles = useMemo(() => buildReviewerRoles(round.reviewerCount), [round.reviewerCount]);
   const roleLabelByKey = useMemo(() => new Map(roles.map((role) => [role.key, role.label])), [roles]);
-  const [sessions] = useManualScheduleDraftStore(roundId, roles);
+  const { data: manualBoard, isLoading: manualScheduleLoading } = useManualScheduleBoard(roundId);
+  const sessions = useMemo(
+    () => manualBoard?.sessions.map((session) => apiSessionToDraft(session, roles)) ?? [],
+    [manualBoard, roles],
+  );
   const { data: attachedGroups, isLoading: groupsLoading } = useRoundGroups(roundId);
   const { data: invitations, isLoading: invitationsLoading } = useRoundInvitations(roundId);
   const { data: rooms, isLoading: roomsLoading } = useRooms();
@@ -133,7 +138,7 @@ export function RoundManualSchedulePreview({ roundId, round }: { roundId: string
     return map;
   }, [rooms]);
 
-  const isLoading = groupsLoading || invitationsLoading || roomsLoading;
+  const isLoading = groupsLoading || invitationsLoading || roomsLoading || manualScheduleLoading;
 
   if (isLoading) return <Skeleton className="h-56 w-full" />;
 

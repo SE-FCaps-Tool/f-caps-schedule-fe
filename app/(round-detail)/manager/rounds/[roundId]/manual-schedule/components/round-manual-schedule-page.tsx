@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
-import { ChevronLeft, Info } from "lucide-react";
+import { ChevronLeft, Download, Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusDot } from "@/app/(manager)/manager/_shared/status-dot";
 import { ROUND_STATUS_META, ROUND_TYPE_LABEL } from "@/app/(manager)/manager/_shared/labels";
 import { useSemesterContext } from "@/app/(manager)/manager/_shared/semester-context";
 import { useRoundDetail } from "@/hooks/manager/useRounds";
+import { useExportCouncil } from "@/hooks/manager/useReports";
 import { ErrorBlock, LoadingBlock } from "../../components/round-detail-shared";
 import { RoundManualScheduleBoard } from "../../components/round-manual-schedule-board";
 
@@ -25,11 +26,23 @@ const NON_PUBLISHABLE_ROUND_STATUSES = new Set([
   "LOCKED",
   "CANCELLED",
 ]);
+/**
+ * Trạng thái chưa từng có phương án activate — export hội đồng chắc chắn rỗng.
+ * BE cho xuất ngay khi version ACTIVE (chưa cần đợi PUBLISHED, manager-api.md §10.8).
+ */
+const COUNCIL_EXPORT_UNAVAILABLE_STATUSES = new Set([
+  "DRAFT",
+  "OPEN_REGISTRATION",
+  "REGISTRATION_CLOSED",
+  "SCHEDULING",
+  "CANCELLED",
+]);
 
 export function RoundManualSchedulePage({ roundId }: { roundId: string }) {
   const reduceMotion = useReducedMotion();
   const { currentSemesterId } = useSemesterContext();
   const { data: round, isLoading, isError } = useRoundDetail(roundId);
+  const exportCouncil = useExportCouncil();
 
   if (isLoading) {
     return (
@@ -59,6 +72,7 @@ export function RoundManualSchedulePage({ roundId }: { roundId: string }) {
   const name = round.name || `${ROUND_TYPE_LABEL[round.type]} - ${currentSemesterId}`;
   const editingVersionedDraft = !NORMAL_MANUAL_EDIT_STATUSES.has(round.status);
   const cannotPublish = NON_PUBLISHABLE_ROUND_STATUSES.has(round.status);
+  const canExportCouncil = !COUNCIL_EXPORT_UNAVAILABLE_STATUSES.has(round.status);
 
   return (
     <motion.div
@@ -85,12 +99,23 @@ export function RoundManualSchedulePage({ roundId }: { roundId: string }) {
           <p className="mt-0.5 truncate text-xs text-muted-foreground">{name}</p>
         </div>
 
+        {canExportCouncil && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={exportCouncil.isPending}
+            onClick={() => exportCouncil.mutate(Number(roundId))}
+          >
+            {exportCouncil.isPending ? <Loader2 className="animate-spin" /> : <Download />}
+            Xuất hội đồng
+          </Button>
+        )}
         <Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/manager/rounds/${roundId}`} />}>
           Xem đăng ký lịch
         </Button>
       </header>
 
-      <main className="flex min-h-0 flex-1 flex-col p-4 lg:p-5">
+      <main className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-5">
         {editingVersionedDraft && (
           <div
             role="status"
@@ -98,14 +123,15 @@ export function RoundManualSchedulePage({ roundId }: { roundId: string }) {
           >
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
-              Bạn đang chỉnh <strong>bản nháp lịch riêng</strong>. Lịch đang công bố không thay đổi.
+              Bạn đang chỉnh bản nháp trong workspace này. Lịch đã công bố không thay đổi.
               {cannotPublish
                 ? " Trạng thái round hiện tại chưa cho phép công bố bản nháp."
-                : " Chỉ khi bấm “Công bố lịch” thì hệ thống mới tạo version lịch mới."}
+                : " Chạy thuật toán sẽ tạo version nháp; chỉ khi bấm “Công bố lịch” lịch công khai mới thay đổi."}
             </span>
           </div>
         )}
-        <div className="min-h-0 flex-1">
+
+        <div className="min-h-[32rem]">
           <RoundManualScheduleBoard roundId={roundId} round={round} />
         </div>
       </main>

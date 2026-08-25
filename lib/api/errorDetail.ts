@@ -9,8 +9,36 @@ export function detailCode(error: ApiError): string | undefined {
   return (error.data as ErrorDetail | undefined)?.error?.code;
 }
 
+const ENGLISH_MESSAGE_TRANSLATIONS: Record<string, string> = {
+  "A locked round cannot be changed.": "Đợt đánh giá đã khóa nên không thể thay đổi.",
+  "A cancelled round is terminal.": "Đợt đánh giá đã hủy nên không thể tiếp tục chuyển trạng thái.",
+  "Round does not exist.": "Không tìm thấy đợt đánh giá.",
+  "ScheduleVersion does not exist.": "Không tìm thấy phương án lịch.",
+  "Session does not exist.": "Không tìm thấy phiên.",
+  "Session does not exist in this version.": "Không tìm thấy phiên trong phương án này.",
+  "Room does not exist.": "Không tìm thấy phòng.",
+  "Room is not active.": "Phòng hiện không hoạt động.",
+  "Room is not allowed for this round.": "Phòng không được phép dùng cho đợt đánh giá này.",
+  "Room is already occupied during this session.": "Phòng đã được sử dụng trong khoảng thời gian này.",
+  "Timeslot does not belong to this round.": "Khung giờ không thuộc đợt đánh giá này.",
+  "Open request does not exist.": "Không tìm thấy yêu cầu đang mở.",
+  "Active H11 waiver does not exist.": "Không tìm thấy miễn trừ H11 đang hiệu lực.",
+  "Failed notification does not exist.": "Không tìm thấy thông báo lỗi cần gửi lại.",
+};
+
+function translateMessage(message: string | undefined): string | undefined {
+  if (!message) return message;
+  const exact = ENGLISH_MESSAGE_TRANSLATIONS[message];
+  if (exact) return exact;
+  const transition = message.match(/^Cannot transition a round from (.+) to (.+)\.$/);
+  if (transition) return `Không thể chuyển đợt đánh giá từ ${transition[1]} sang ${transition[2]}.`;
+  const invalidGroups = message.match(/^Invalid groups: (.+)\.$/);
+  if (invalidGroups) return `Nhóm không hợp lệ: ${invalidGroups[1]}.`;
+  return message;
+}
+
 export function detailMessage(error: ApiError): string | undefined {
-  return (error.data as ErrorDetail | undefined)?.error?.message;
+  return translateMessage((error.data as ErrorDetail | undefined)?.error?.message);
 }
 
 export function detailViolations(error: ApiError): unknown[] | undefined {
@@ -44,6 +72,10 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   PROJECT_DUPLICATE_OR_INVALID: "Mã đề tài đã tồn tại hoặc dữ liệu không hợp lệ",
   GROUP_INVALID: "Dữ liệu nhóm không hợp lệ — kiểm tra đề tài, sinh viên và đúng một Leader",
   ROUND_STATUS_INVALID: "Đợt đánh giá đang ở trạng thái không cho phép thao tác này",
+  ROUND_NOT_FOUND: "Không tìm thấy đợt đánh giá",
+  ROUND_TRANSITION_NOT_ALLOWED: "Không thể chuyển đợt đánh giá sang trạng thái này",
+  ROUND_LOCKED: "Đợt đánh giá đã khóa nên không thể thay đổi",
+  ROUND_TERMINAL: "Đợt đánh giá đã hủy nên không thể tiếp tục chuyển trạng thái",
   VERSION_DELETE_HAS_DEPENDENCIES: "Không xoá được — phương án lịch này đã có phiên/thay đổi hoặc đã công bố",
   ACTIVE_SEMESTER_EXISTS: "Đã có học kỳ đang hoạt động — chỉ được 1 học kỳ ACTIVE cùng lúc",
   SEMESTER_DURATION_INVALID: "Thời lượng học kỳ phải từ 105 đến 120 ngày",
@@ -70,6 +102,12 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   ROOM_TYPE_NOT_ALLOWED: "Loại phòng này không được phép dùng cho đợt đánh giá",
   ROOM_NOT_ACTIVE: "Phòng hiện không hoạt động",
   ROOM_CONFLICT: "Phòng đã được dùng cho một phiên khác cùng khung giờ",
+  ROOM_NOT_FOUND: "Không tìm thấy phòng",
+  SESSION_NOT_FOUND: "Không tìm thấy phiên",
+  VERSION_NOT_FOUND: "Không tìm thấy phương án lịch",
+  TIMESLOT_NOT_FOUND: "Không tìm thấy khung giờ thuộc đợt đánh giá",
+  GROUP_RESULT_NOT_ALLOWED: "Kết quả không hợp lệ với trạng thái hiện tại của nhóm",
+  PUBLISH_BLOCKED: "Lịch còn lỗi chặn nên chưa thể công bố",
   SESSION_INVALID_STATE: "Phiên đánh giá đang ở trạng thái không cho phép thao tác này",
   REVIEWER_NOT_AVAILABLE: "Giảng viên không có lịch rảnh vào khung giờ này",
   REVIEWER_IS_SUPERVISOR: "Không thể chọn GVHD làm reviewer cho chính đề tài đó",
@@ -97,5 +135,5 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
 export function friendlyErrorMessage(error: ApiError, fallback?: string): string {
   const code = detailCode(error);
   if (code && ERROR_CODE_MESSAGES[code]) return ERROR_CODE_MESSAGES[code];
-  return detailMessage(error) || error.message || fallback || "Có lỗi xảy ra";
+  return detailMessage(error) || translateMessage(error.message) || fallback || "Có lỗi xảy ra";
 }

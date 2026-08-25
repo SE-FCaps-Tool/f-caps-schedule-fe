@@ -196,6 +196,17 @@ export const fetchReports = {
     const response = await apiService.download(`api/v1/exports/semester/${semesterId}/results.xlsx`);
     downloadBlob(response, `semester-${semesterId}-results.xlsx`);
   },
+
+  /**
+   * GET /exports/round/{round_id}/council.xlsx — ADMIN, MANAGER. manager-api.md §3.
+   * Số cột ghế hội đồng theo đúng reviewerCount của round đó (không cố định 5):
+   * >3 ghế → Chủ tịch/Thư ký/Thành viên, <=3 ghế → toàn bộ Thành viên hội đồng.
+   * Xuất được ngay khi version đã activate (ACTIVE), không cần đợi công bố (PUBLISHED).
+   */
+  exportCouncil: async (roundId: number): Promise<void> => {
+    const response = await apiService.download(`api/v1/exports/round/${roundId}/council.xlsx`);
+    downloadBlob(response, `round-${roundId}-council.xlsx`);
+  },
 };
 
 function downloadBlob(response: AxiosResponse<Blob>, fallbackFilename: string) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   Check,
@@ -8,9 +8,12 @@ import {
   ChevronDown,
   DoorOpen,
   Info,
+  Loader2,
   Pencil,
   Plus,
   Search,
+  Sparkles,
+  Trash2,
   UserRoundPlus,
   UsersRound,
   X,
@@ -34,12 +37,18 @@ import { useRoundGroups, useRoundInvitations, useRoundMyAvailability } from "@/h
 import {
   useCreateManualScheduleSession,
   useDeleteManualScheduleSession,
+  useBulkUpsertManualSchedule,
   useManualScheduleBoard,
   useManualScheduleOptions,
   usePublishManualSchedule,
   useUpdateManualScheduleSession,
   useValidateManualSchedule,
 } from "@/hooks/manager/useManualScheduling";
+import {
+  useDeleteScheduleVersion,
+  useRunSchedule,
+  useScheduleVersions,
+} from "@/hooks/manager/useScheduling";
 import { useRooms } from "@/hooks/useRooms";
 import { cn } from "@/lib/utils";
 import { formatDate, formatInVietnamTime } from "@/lib/utils/formatDate";
@@ -52,10 +61,12 @@ import type {
 import type { RoomApiItem } from "@/lib/api/services/fetchRooms";
 import type {
   ManualBlocker,
+  ManualScheduleBulkUpsertPayload,
   ManualScheduleOptionsParams,
   ManualScheduleReviewerInput,
   ManualScheduleSession as ApiManualScheduleSession,
 } from "@/lib/api/services/fetchManualScheduling";
+import { fetchScheduling } from "@/lib/api/services/fetchScheduling";
 import { detailCode, detailDetails } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
 
@@ -75,7 +86,11 @@ export type ManualScheduleSession = {
   reviewerIds: Record<string, string | null>;
 };
 
-function apiSessionToDraft(session: ApiManualScheduleSession, roles: ReviewerRole[]): ManualScheduleSession {
+function canonicalGroupId(groupId: string | number) {
+  return String(groupId).replace(/^grp_/, "");
+}
+
+export function apiSessionToDraft(session: ApiManualScheduleSession, roles: ReviewerRole[]): ManualScheduleSession {
   const reviewerIds = emptyReviewerIds(roles);
   for (const reviewer of session.reviewers) reviewerIds[reviewer.role] = String(reviewer.lecturerId);
 
@@ -85,7 +100,7 @@ function apiSessionToDraft(session: ApiManualScheduleSession, roles: ReviewerRol
     slotId: session.roundTimeslotId,
     startTime: session.startTime,
     endTime: session.endTime,
-    groupIds: session.groups.map((group) => String(group.groupId)),
+    groupIds: session.groups.map((group) => canonicalGroupId(group.groupId)),
     roomId: session.room ? String(session.room.roomId) : null,
     reviewerIds,
   };
@@ -130,16 +145,6 @@ type SupervisorAwareGroup = AttachedRoundGroup & {
   } | null;
 };
 
-const STORAGE_VERSION = 1;
-
-export function manualScheduleStorageKey(roundId: string) {
-  return `f-caps:round:${roundId}:manual-schedule-draft`;
-}
-
-function manualScheduleStorageEvent(roundId: string) {
-  return `${manualScheduleStorageKey(roundId)}:changed`;
-}
-
 function normalizedId(value: unknown) {
   if (value === null || value === undefined || value === "") return null;
   if (typeof value !== "string" && typeof value !== "number") return null;
@@ -180,128 +185,6 @@ function withRoleDefaults(session: ManualScheduleSession, roles: ReviewerRole[])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function parseReviewerIds(value: unknown) {
-  if (!isRecord(value)) return {};
-  return Object.fromEntries(
-    Object.entries(value).map(([key, reviewerId]) => [
-      key,
-      typeof reviewerId === "string" && reviewerId.length > 0 ? reviewerId : null,
-    ])
-  ) as Record<string, string | null>;
-}
-
-function parseGroupIds(row: Record<string, unknown>) {
-  if (Array.isArray(row.groupIds)) {
-    return row.groupIds.map(normalizedId).filter((id): id is string => id !== null);
-  }
-  if (Array.isArray(row.group_ids)) {
-    return row.group_ids.map(normalizedId).filter((id): id is string => id !== null);
-  }
-  const singleGroupId = normalizedId(row.groupId ?? row.group_id);
-  return singleGroupId ? [singleGroupId] : [];
-}
-
-export function parseManualScheduleDraft(value: unknown, roles: ReviewerRole[]) {
-  const payload = typeof value === "string" ? JSON.parse(value) : value;
-  const rows = Array.isArray(payload)
-    ? payload
-    : isRecord(payload) && Array.isArray(payload.sessions)
-      ? payload.sessions
-      : [];
-
-  return rows
-    .map((row): ManualScheduleSession | null => {
-      if (!isRecord(row)) return null;
-      const id = normalizedId(row.id);
-      const date = normalizedId(row.date);
-      const slotId = normalizedId(row.slotId);
-      const startTime = normalizedId(row.startTime);
-      const endTime = normalizedId(row.endTime);
-      if (!id || !date || !slotId || !startTime || !endTime) return null;
-
-      return withRoleDefaults(
-        {
-          id,
-          date,
-          slotId,
-          startTime,
-          endTime,
-          groupIds: parseGroupIds(row),
-          roomId: normalizedId(row.roomId),
-          reviewerIds: parseReviewerIds(row.reviewerIds),
-        },
-        roles
-      );
-    })
-    .filter((row): row is ManualScheduleSession => row !== null);
-}
-
-export function readManualScheduleDraft(roundId: string, roles: ReviewerRole[]) {
-  if (typeof window === "undefined") return [];
-  try {
-    const stored = window.localStorage.getItem(manualScheduleStorageKey(roundId));
-    return stored ? parseManualScheduleDraft(stored, roles) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeManualScheduleDraft(roundId: string, sessions: ManualScheduleSession[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(
-    manualScheduleStorageKey(roundId),
-    JSON.stringify({ version: STORAGE_VERSION, sessions })
-  );
-  window.dispatchEvent(new Event(manualScheduleStorageEvent(roundId)));
-}
-
-function readManualScheduleRawSnapshot(roundId: string) {
-  if (typeof window === "undefined") return "";
-  return window.localStorage.getItem(manualScheduleStorageKey(roundId)) ?? "";
-}
-
-type ManualScheduleSessionUpdater =
-  | ManualScheduleSession[]
-  | ((current: ManualScheduleSession[]) => ManualScheduleSession[]);
-
-export function useManualScheduleDraftStore(roundId: string, roles: ReviewerRole[]) {
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      if (typeof window === "undefined") return () => undefined;
-      const eventName = manualScheduleStorageEvent(roundId);
-      window.addEventListener(eventName, onStoreChange);
-      window.addEventListener("storage", onStoreChange);
-      return () => {
-        window.removeEventListener(eventName, onStoreChange);
-        window.removeEventListener("storage", onStoreChange);
-      };
-    },
-    [roundId]
-  );
-
-  const getSnapshot = useCallback(() => readManualScheduleRawSnapshot(roundId), [roundId]);
-  const rawSnapshot = useSyncExternalStore(subscribe, getSnapshot, () => "");
-  const sessions = useMemo(() => {
-    if (!rawSnapshot) return [];
-    try {
-      return parseManualScheduleDraft(rawSnapshot, roles);
-    } catch {
-      return [];
-    }
-  }, [rawSnapshot, roles]);
-
-  const setSessions = useCallback(
-    (updater: ManualScheduleSessionUpdater) => {
-      const current = readManualScheduleDraft(roundId, roles);
-      const next = typeof updater === "function" ? updater(current) : updater;
-      writeManualScheduleDraft(roundId, next);
-    },
-    [roundId, roles]
-  );
-
-  return [sessions, setSessions] as const;
 }
 
 function cellKey(date: string, slotId: string) {
@@ -379,6 +262,7 @@ function ManualSessionChip({
   roomById,
   lecturerById,
   onEdit,
+  disabled = false,
 }: {
   session: ManualScheduleSession;
   roles: ReviewerRole[];
@@ -386,6 +270,7 @@ function ManualSessionChip({
   roomById: Map<string, RoomApiItem>;
   lecturerById: Map<string, RoundInvitation>;
   onEdit: () => void;
+  disabled?: boolean;
 }) {
   const groupCodes = getGroupCodes(session.groupIds, groupById);
   const room = session.roomId ? roomById.get(session.roomId) : undefined;
@@ -395,8 +280,9 @@ function ManualSessionChip({
     <button
       type="button"
       onClick={onEdit}
+      disabled={disabled}
       title="Chỉnh hội đồng"
-      className="group relative w-full rounded-md border border-primary/25 bg-primary/10 px-2.5 py-2.5 text-left text-xs transition-colors hover:border-primary/50 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group relative w-full rounded-md border border-primary/25 bg-primary/10 px-2.5 py-2.5 text-left text-xs transition-colors hover:border-primary/50 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
       aria-label={`Chỉnh hội đồng ${groupCodes.length > 0 ? groupCodes.join(", ") : "chưa chọn nhóm"}`}
     >
       <span className="flex min-w-0 items-center justify-between gap-2">
@@ -574,9 +460,13 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
     "LOCKED",
     "CANCELLED",
   ].includes(round.status);
-  const [sessions, setSessions] = useManualScheduleDraftStore(roundId, roles);
+  const canRunAlgorithm = ["REGISTRATION_CLOSED", "SCHEDULING", "SCHEDULED", "POSTPONED"].includes(round.status);
+  // The server-side manual schedule is the source of truth. This state only
+  // mirrors the latest API response while the board is mounted; it is never
+  // persisted in browser storage.
+  const [sessions, setSessions] = useState<ManualScheduleSession[]>([]);
   const draftIdRef = useRef(sessions.length);
-  const hydratedFromApiRef = useRef(false);
+  const hydratedApiSnapshotRef = useRef<string | null>(null);
   const [revision, setRevision] = useState<number | null>(null);
   const [validationBlockers, setValidationBlockers] = useState<ManualBlocker[]>([]);
   const [validationWarnings, setValidationWarnings] = useState<ManualBlocker[]>([]);
@@ -588,18 +478,42 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
   const [reviewerSearchByRole, setReviewerSearchByRole] = useState<Record<string, string>>({});
 
   const manualBoardQuery = useManualScheduleBoard(roundId);
+  const manualBoard = manualBoardQuery.data;
+  const refetchManualBoard = manualBoardQuery.refetch;
   const createSessionMutation = useCreateManualScheduleSession();
   const updateSessionMutation = useUpdateManualScheduleSession();
   const deleteSessionMutation = useDeleteManualScheduleSession();
+  const bulkUpsertMutation = useBulkUpsertManualSchedule();
   const validateMutation = useValidateManualSchedule();
   const publishMutation = usePublishManualSchedule();
+  const deleteVersionMutation = useDeleteScheduleVersion();
+  const runScheduleMutation = useRunSchedule();
+  const numericRoundId = Number(roundId);
+  const semesterId = Number(round.semesterId || 0) || null;
+  const { data: storedVersions = [], isLoading: versionsLoading } = useScheduleVersions(
+    Number.isFinite(numericRoundId) ? numericRoundId : null,
+    semesterId,
+  );
+  const visibleVersions = useMemo(
+    () => storedVersions.filter((version) => !["DISCARDED", "SUPERSEDED"].includes(version.status)),
+    [storedVersions],
+  );
+  const [copyingVersionId, setCopyingVersionId] = useState<number | null>(null);
+  const publishPending = publishMutation.isPending;
+  const scheduleInteractionLocked =
+    manualBoardQuery.isLoading || copyingVersionId !== null || bulkUpsertMutation.isPending;
 
   useEffect(() => {
-    if (!manualBoardQuery.data || hydratedFromApiRef.current) return;
-    hydratedFromApiRef.current = true;
+    if (!manualBoardQuery.data) return;
+    const snapshot = JSON.stringify({
+      revision: manualBoardQuery.data.revision,
+      sessions: manualBoardQuery.data.sessions,
+    });
+    if (snapshot === hydratedApiSnapshotRef.current) return;
+    hydratedApiSnapshotRef.current = snapshot;
     setRevision(manualBoardQuery.data.revision);
     setSessions(manualBoardQuery.data.sessions.map((session) => apiSessionToDraft(session, roles)));
-  }, [manualBoardQuery.data, roles, setSessions]);
+  }, [manualBoardQuery.data, roles]);
 
   const legacyRoundId = Number(roundId);
   const { data: availability, isLoading: availabilityLoading } = useRoundMyAvailability(
@@ -691,25 +605,26 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
     return map;
   }, [rooms]);
 
+  const persistedSessions = sessions;
   const sessionsByCell = useMemo(() => {
     const map = new Map<string, ManualScheduleSession[]>();
-    for (const session of sessions) {
+    for (const session of persistedSessions) {
       const key = cellKey(session.date, session.slotId);
       const bucket = map.get(key) ?? [];
       bucket.push(session);
       map.set(key, bucket);
     }
     return map;
-  }, [sessions]);
+  }, [persistedSessions]);
 
   const scheduledGroupIds = useMemo(() => {
     const ids = new Set<string>();
-    for (const session of sessions) {
+    for (const session of persistedSessions) {
       if (session.id === draft?.id) continue;
       for (const groupId of session.groupIds) ids.add(groupId);
     }
     return ids;
-  }, [draft?.id, sessions]);
+  }, [draft?.id, persistedSessions]);
 
   const activeAvailabilityTimeslotId = activeEditor
     ? availabilityTimeslotByCell.get(dayStartKey(activeEditor.date, activeEditor.slot.startTime))
@@ -1026,6 +941,83 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
     }
   }
 
+  async function runAlgorithm() {
+    if (!canRunAlgorithm) return;
+    try {
+      await runScheduleMutation.mutateAsync({
+        roundId: numericRoundId,
+        semesterId,
+      });
+    } catch {
+      // Mutation hook surfaces the server error.
+    }
+  }
+
+  async function selectVersion(versionId: number, versionNo: number) {
+    if (!canPublishManualSchedule || copyingVersionId !== null) return;
+    if (!window.confirm(`Thay thế lịch tay hiện tại bằng V${versionNo}? Lịch tay hiện tại sẽ bị ghi đè.`)) return;
+
+    closeEditor();
+    setCopyingVersionId(versionId);
+    try {
+      const selectedVersionDetail = await fetchScheduling.versionDetail(versionId, semesterId);
+      const latestManualBoard = (await refetchManualBoard()).data ?? manualBoard;
+      if (!latestManualBoard) {
+        toast.error("Không tải được lịch xếp tay hiện tại để thay thế.");
+        return;
+      }
+
+      const payload: ManualScheduleBulkUpsertPayload = {
+        clientRevision: latestManualBoard.revision,
+        allowDraftIncomplete: true,
+        deletedSessionIds: latestManualBoard.sessions.map((session) => session.id),
+        sessions: selectedVersionDetail.assignments.map((assignment) => {
+          const reviewerIds = [
+            ...assignment.resultOwnerIds,
+            ...assignment.reviewerIds.filter((lecturerId) => !assignment.resultOwnerIds.includes(lecturerId)),
+          ];
+          return {
+            date: formatInVietnamTime(assignment.startAt, "YYYY-MM-DD"),
+            roundTimeslotId: String(assignment.timeslotId),
+            groupIds: [
+              canonicalGroupId(groupById.get(String(assignment.groupId))?.groupId ?? assignment.groupId),
+            ],
+            roomId: assignment.roomId === null ? null : String(assignment.roomId),
+            reviewers: reviewerIds.slice(0, roles.length).map((lecturerId, index) => ({
+              lecturerId: String(lecturerId),
+              role: roles[index].key as ManualScheduleReviewerInput["role"],
+              order: index + 1,
+            })),
+          };
+        }),
+      };
+      const board = await bulkUpsertMutation.mutateAsync({ roundId, payload });
+      hydratedApiSnapshotRef.current = JSON.stringify({ revision: board.revision, sessions: board.sessions });
+      setRevision(board.revision);
+      setSessions(board.sessions.map((session) => apiSessionToDraft(session, roles)));
+      setValidationBlockers([]);
+      setValidationWarnings([]);
+    } catch {
+      // Mutation and detail-fetch hooks surface the server error where available.
+      toast.error("Không tải hoặc lưu được phương án vào lịch xếp tay.");
+    } finally {
+      setCopyingVersionId(null);
+    }
+  }
+
+  async function deleteVersion(versionId: number, versionNo: number) {
+    if (!window.confirm(`Xóa V${versionNo}? Phương án nháp này sẽ không thể khôi phục.`)) return;
+    try {
+      await deleteVersionMutation.mutateAsync({
+        versionId,
+        roundId: numericRoundId,
+        semesterId,
+      });
+    } catch {
+      // Mutation hook surfaces the server error.
+    }
+  }
+
   function updateRoom(roomId: string | null) {
     setDraft((current) => (current ? { ...current, roomId } : current));
   }
@@ -1033,10 +1025,15 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
   function toggleGroup(groupId: string) {
     setDraft((current) => {
       if (!current) return current;
-      if (current.groupIds.includes(groupId)) {
-        return { ...current, groupIds: current.groupIds.filter((id) => id !== groupId) };
+      const normalizedGroupId = canonicalGroupId(groupId);
+      const normalizedGroupIds = current.groupIds.map(canonicalGroupId);
+      if (normalizedGroupIds.includes(normalizedGroupId)) {
+        return {
+          ...current,
+          groupIds: normalizedGroupIds.filter((id) => id !== normalizedGroupId),
+        };
       }
-      return { ...current, groupIds: [...current.groupIds, groupId] };
+      return { ...current, groupIds: [...normalizedGroupIds, normalizedGroupId] };
     });
   }
 
@@ -1091,7 +1088,22 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
             type="button"
             variant="outline"
             size="sm"
-            disabled={revision === null || validateMutation.isPending}
+            disabled={scheduleInteractionLocked || runScheduleMutation.isPending || !canRunAlgorithm}
+            title={canRunAlgorithm ? undefined : "Sau khi công bố, hãy sửa tay hoặc tạo thay đổi có kiểm soát thay vì chạy lại toàn bộ thuật toán."}
+            onClick={runAlgorithm}
+          >
+            {runScheduleMutation.isPending ? <Loader2 className="animate-spin" /> : <Sparkles />}
+            {runScheduleMutation.isPending
+              ? "Đang chạy…"
+              : visibleVersions.length > 0
+                ? "Chạy lại thuật toán"
+                : "Chạy thuật toán"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={scheduleInteractionLocked || revision === null || validateMutation.isPending}
             onClick={validateDraft}
           >
             <CheckCircle2 />
@@ -1100,14 +1112,70 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
           <Button
             type="button"
             size="sm"
-            disabled={revision === null || publishMutation.isPending || !canPublishManualSchedule}
+            disabled={scheduleInteractionLocked || revision === null || publishPending || !canPublishManualSchedule}
             title={canPublishManualSchedule ? undefined : "Round hiện tại không thể công bố bản nháp."}
             onClick={publishDraft}
           >
+            {publishPending && <Loader2 className="animate-spin" />}
             Công bố lịch
           </Button>
         </div>
       </div>
+
+      {versionsLoading && visibleVersions.length === 0 ? (
+        <Skeleton className="h-20 w-full" />
+      ) : visibleVersions.length > 0 ? (
+        <div className="shrink-0 rounded-lg border border-primary/20 bg-primary/[0.03] px-3 py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold">Phương án xếp lịch</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Chọn version để chép vào cùng lịch xếp tay; sau đó bạn vẫn có thể sửa hội đồng trực tiếp.
+              </p>
+              <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">
+                Reviewer được nạp theo thứ tự của phương án; hãy kiểm tra lại vai trò trước khi công bố.
+              </p>
+            </div>
+            <span className="text-xs font-medium text-muted-foreground">
+              {visibleVersions.length} phương án
+            </span>
+          </div>
+          <div aria-label="Các phương án xếp lịch" className="mt-2 flex flex-wrap gap-2">
+            {visibleVersions.map((version) => {
+              const scheduledCount = version.scheduledCount ?? version.metrics?.scheduledGroups ?? 0;
+              const unscheduledCount = version.unscheduledCount ?? 0;
+              return (
+                <div
+                  key={version.id}
+                  className="inline-flex items-stretch overflow-hidden rounded-md border border-border bg-background text-xs transition-colors"
+                >
+                  <button
+                    type="button"
+                    onClick={() => selectVersion(version.id, version.versionNo)}
+                    disabled={copyingVersionId !== null || !canPublishManualSchedule}
+                    className="px-2.5 py-1.5 text-left font-medium hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {copyingVersionId === version.id ? "Đang chép…" : `V${version.versionNo} · ${version.objectiveLabel ?? "Phương án"} · ${scheduledCount} nhóm`}
+                    {unscheduledCount > 0 && ` · ${unscheduledCount} chưa xếp`}
+                  </button>
+                  {version.status === "DRAFT" && (
+                    <button
+                      type="button"
+                      aria-label={`Xóa version V${version.versionNo}`}
+                      title="Xóa phương án nháp"
+                      onClick={() => deleteVersion(version.id, version.versionNo)}
+                      disabled={scheduleInteractionLocked || deleteVersionMutation.isPending}
+                      className="border-l border-border/70 px-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {hasValidationResult && (
         <div
@@ -1152,6 +1220,13 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
       )}
 
       {isLoadingOptions && <Skeleton className="h-8 w-full max-w-sm" />}
+
+      {copyingVersionId !== null && (
+        <div className="flex shrink-0 items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/20 dark:text-sky-100">
+          <Loader2 className="size-4 animate-spin" aria-hidden />
+          Đang tải phương án để chép vào lịch xếp tay...
+        </div>
+      )}
 
       <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-background">
         <table className="w-full min-w-[1040px] table-fixed border-collapse text-sm">
@@ -1202,7 +1277,7 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
                   const key = cellKey(date, slot.id);
                   const cellSessions = sessionsByCell.get(key) ?? [];
                   const cellGroupCount = cellSessions.reduce((sum, session) => sum + session.groupIds.length, 0);
-                  const canAdd = !hasSessionLimit || cellSessions.length < maxSessionsPerCell;
+                  const canAdd = !scheduleInteractionLocked && (!hasSessionLimit || cellSessions.length < maxSessionsPerCell);
                   const cellResources = cellResourceAvailability.get(key);
                   const hasAvailableResources =
                     cellResourcesLoading ||
@@ -1224,8 +1299,8 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-xs font-semibold tabular-nums">
                             {hasSessionLimit
-                              ? `${cellSessions.length}/${maxSessionsPerCell} hội đồng`
-                              : `${cellSessions.length} hội đồng`} · {cellGroupCount} nhóm
+                              ? `${cellSessions.length}/${maxSessionsPerCell} hội đồng · ${cellGroupCount} nhóm`
+                              : `${cellSessions.length} hội đồng · ${cellGroupCount} nhóm`}
                           </span>
                           {showAddAction && (
                             <Button
@@ -1270,6 +1345,7 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
                                 groupById={groupById}
                                 roomById={roomById}
                                 lecturerById={lecturerById}
+                                disabled={scheduleInteractionLocked}
                                 onEdit={() => openEdit(session)}
                               />
                             ))}
@@ -1379,7 +1455,9 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
                           <p className="px-3 py-8 text-center text-xs text-muted-foreground">Không có nhóm phù hợp timeslot này.</p>
                         )}
                         {filteredGroupOptions.map((group) => {
-                          const checked = draft.groupIds.includes(group.groupId);
+                          const checked = draft.groupIds.some(
+                            (groupId) => canonicalGroupId(groupId) === canonicalGroupId(group.groupId),
+                          );
                           return (
                             <label
                               key={group.groupId}
@@ -1482,7 +1560,7 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
                     Object.values(draft.reviewerIds).every((value) => !value)
                   }
                 >
-                  Lưu nháp{draft.groupIds.length > 0 ? ` (${draft.groupIds.length} nhóm)` : ""}
+                  Lưu{draft.groupIds.length > 0 ? ` (${draft.groupIds.length} nhóm)` : ""}
                 </Button>
               </DialogFooter>
             </>
