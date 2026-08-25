@@ -80,10 +80,10 @@
                 "type": "null"
               }
             ],
-            "title": "Created At"
+            "title": "Createdat"
           },
           "displayName": {
-            "title": "Display Name",
+            "title": "Displayname",
             "type": "string"
           },
           "email": {
@@ -270,7 +270,7 @@
                 "type": "null"
               }
             ],
-            "title": "Group Availability"
+            "title": "Groupavailability"
           },
           "groupId": {
             "anyOf": [
@@ -281,7 +281,7 @@
                 "type": "null"
               }
             ],
-            "title": "Group Id"
+            "title": "Groupid"
           },
           "groups": {
             "anyOf": [
@@ -325,7 +325,7 @@
                 "type": "null"
               }
             ],
-            "title": "Invited Count"
+            "title": "Invitedcount"
           },
           "leaderStudentId": {
             "anyOf": [
@@ -336,7 +336,7 @@
                 "type": "null"
               }
             ],
-            "title": "Leader Student Id"
+            "title": "Leaderstudentid"
           },
           "lecturerAvailability": {
             "anyOf": [
@@ -347,7 +347,7 @@
                 "type": "null"
               }
             ],
-            "title": "Lecturer Availability"
+            "title": "Lectureravailability"
           },
           "lecturerId": {
             "anyOf": [
@@ -358,7 +358,7 @@
                 "type": "null"
               }
             ],
-            "title": "Lecturer Id"
+            "title": "Lecturerid"
           },
           "makeupOfSessionId": {
             "anyOf": [
@@ -369,7 +369,7 @@
                 "type": "null"
               }
             ],
-            "title": "Makeup Of Session Id"
+            "title": "Makeupofsessionid"
           },
           "projectId": {
             "anyOf": [
@@ -380,7 +380,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Projectid"
           },
           "resent": {
             "anyOf": [
@@ -424,7 +424,7 @@
                 "type": "null"
               }
             ],
-            "title": "Result Owner Id"
+            "title": "Resultownerid"
           },
           "role": {
             "anyOf": [
@@ -457,7 +457,7 @@
                 "type": "null"
               }
             ],
-            "title": "Round Id"
+            "title": "Roundid"
           },
           "selectedCount": {
             "anyOf": [
@@ -468,7 +468,7 @@
                 "type": "null"
               }
             ],
-            "title": "Selected Count"
+            "title": "Selectedcount"
           },
           "sessionId": {
             "anyOf": [
@@ -479,7 +479,7 @@
                 "type": "null"
               }
             ],
-            "title": "Session Id"
+            "title": "Sessionid"
           },
           "source": {
             "anyOf": [
@@ -501,7 +501,7 @@
                 "type": "null"
               }
             ],
-            "title": "Source Version Id"
+            "title": "Sourceversionid"
           },
           "status": {
             "anyOf": [
@@ -523,7 +523,7 @@
                 "type": "null"
               }
             ],
-            "title": "Student Id"
+            "title": "Studentid"
           },
           "timeslotId": {
             "anyOf": [
@@ -534,7 +534,7 @@
                 "type": "null"
               }
             ],
-            "title": "Timeslot Id"
+            "title": "Timeslotid"
           },
           "timeslots": {
             "anyOf": [
@@ -556,7 +556,7 @@
                 "type": "null"
               }
             ],
-            "title": "Total Slots"
+            "title": "Totalslots"
           },
           "versionId": {
             "anyOf": [
@@ -567,7 +567,7 @@
                 "type": "null"
               }
             ],
-            "title": "Version Id"
+            "title": "Versionid"
           },
           "warning": {
             "anyOf": [
@@ -1639,7 +1639,7 @@
         "additionalProperties": true,
         "properties": {
           "displayName": {
-            "title": "Display Name",
+            "title": "Displayname",
             "type": "string"
           },
           "email": {
@@ -1675,13 +1675,13 @@
                 "type": "null"
               }
             ],
-            "title": "Actor Id"
+            "title": "Actorid"
           },
           "afterJson": {
-            "title": "After Json"
+            "title": "Afterjson"
           },
           "beforeJson": {
-            "title": "Before Json"
+            "title": "Beforejson"
           },
           "entityId": {
             "anyOf": [
@@ -1692,10 +1692,10 @@
                 "type": "null"
               }
             ],
-            "title": "Entity Id"
+            "title": "Entityid"
           },
           "entityType": {
-            "title": "Entity Type",
+            "title": "Entitytype",
             "type": "string"
           },
           "id": {
@@ -1712,7 +1712,7 @@
                 "type": "null"
               }
             ],
-            "title": "Occurred At"
+            "title": "Occurredat"
           },
           "reason": {
             "anyOf": [
@@ -1769,7 +1769,7 @@
                 "type": "null"
               }
             ],
-            "title": "Group Id"
+            "title": "Groupid"
           },
           "lecturerId": {
             "anyOf": [
@@ -1780,14 +1780,14 @@
                 "type": "null"
               }
             ],
-            "title": "Lecturer Id"
+            "title": "Lecturerid"
           },
           "roundId": {
-            "title": "Round Id",
+            "title": "Roundid",
             "type": "integer"
           },
           "selectedCount": {
-            "title": "Selected Count",
+            "title": "Selectedcount",
             "type": "integer"
           },
           "source": {
@@ -1795,7 +1795,7 @@
             "type": "string"
           },
           "totalSlots": {
-            "title": "Total Slots",
+            "title": "Totalslots",
             "type": "integer"
           }
         },
@@ -1839,7 +1839,7 @@
           },
           "roomType": {
             "default": "NORMAL",
-            "title": "Room Type",
+            "title": "Roomtype",
             "type": "string"
           },
           "status": {
@@ -2448,14 +2448,14 @@
               "additionalProperties": true,
               "type": "object"
             },
-            "title": "Changed Sessions",
+            "title": "Changedsessions",
             "type": "array"
           },
           "versionA": {
-            "title": "Version A"
+            "title": "Versiona"
           },
           "versionB": {
-            "title": "Version B"
+            "title": "Versionb"
           }
         },
         "title": "CompareResponse",
@@ -2486,7 +2486,7 @@
         "additionalProperties": true,
         "properties": {
           "projectId": {
-            "title": "Project Id",
+            "title": "Projectid",
             "type": "integer"
           },
           "reason": {
@@ -2515,11 +2515,11 @@
             "type": "integer"
           },
           "lecturerId": {
-            "title": "Lecturer Id",
+            "title": "Lecturerid",
             "type": "integer"
           },
           "projectId": {
-            "title": "Project Id",
+            "title": "Projectid",
             "type": "integer"
           }
         },
@@ -2608,7 +2608,7 @@
                 "type": "null"
               }
             ],
-            "title": "After Council Id"
+            "title": "Aftercouncilid"
           },
           "beforeCouncilId": {
             "anyOf": [
@@ -2619,11 +2619,11 @@
                 "type": "null"
               }
             ],
-            "title": "Before Council Id"
+            "title": "Beforecouncilid"
           },
           "changeKind": {
             "default": "VERSION_REPLACED",
-            "title": "Change Kind",
+            "title": "Changekind",
             "type": "string"
           },
           "replacementVersionId": {
@@ -2635,14 +2635,14 @@
                 "type": "null"
               }
             ],
-            "title": "Replacement Version Id"
+            "title": "Replacementversionid"
           },
           "scheduleVersionId": {
-            "title": "Schedule Version Id",
+            "title": "Scheduleversionid",
             "type": "integer"
           },
           "sessionId": {
-            "title": "Session Id",
+            "title": "Sessionid",
             "type": "integer"
           },
           "sourceVersionId": {
@@ -2654,7 +2654,7 @@
                 "type": "null"
               }
             ],
-            "title": "Source Version Id"
+            "title": "Sourceversionid"
           },
           "status": {
             "title": "Status",
@@ -2669,7 +2669,7 @@
                 "type": "null"
               }
             ],
-            "title": "Version Id"
+            "title": "Versionid"
           }
         },
         "required": [
@@ -2692,19 +2692,19 @@
                 "type": "null"
               }
             ],
-            "title": "Display Name"
+            "title": "Displayname"
           },
           "id": {
             "title": "Id",
             "type": "integer"
           },
           "lecturerCode": {
-            "title": "Lecturer Code",
+            "title": "Lecturercode",
             "type": "string"
           },
           "sessionCount": {
             "default": 0,
-            "title": "Session Count",
+            "title": "Sessioncount",
             "type": "integer"
           }
         },
@@ -2729,7 +2729,7 @@
             "items": {
               "$ref": "#/components/schemas/AttentionGroupResponse"
             },
-            "title": "Attention Groups",
+            "title": "Attentiongroups",
             "type": "array"
           },
           "availability": {
@@ -2765,12 +2765,12 @@
             "items": {
               "$ref": "#/components/schemas/DashboardLecturerLoadResponse"
             },
-            "title": "Lecturer Load",
+            "title": "Lecturerload",
             "type": "array"
           },
           "pendingRescheduleRequests": {
             "default": 0,
-            "title": "Pending Reschedule Requests",
+            "title": "Pendingreschedulerequests",
             "type": "integer"
           },
           "totals": {
@@ -2848,7 +2848,7 @@
         "additionalProperties": true,
         "properties": {
           "groupId": {
-            "title": "Group Id",
+            "title": "Groupid",
             "type": "integer"
           },
           "status": {
@@ -2856,7 +2856,7 @@
             "type": "string"
           },
           "studentId": {
-            "title": "Student Id",
+            "title": "Studentid",
             "type": "integer"
           },
           "warning": {
@@ -2947,7 +2947,7 @@
                 "type": "null"
               }
             ],
-            "title": "Active Member Count"
+            "title": "Activemembercount"
           },
           "code": {
             "title": "Code",
@@ -2966,7 +2966,7 @@
                 "type": "null"
               }
             ],
-            "title": "Leader Count"
+            "title": "Leadercount"
           },
           "leaderName": {
             "anyOf": [
@@ -2977,7 +2977,7 @@
                 "type": "null"
               }
             ],
-            "title": "Leader Name"
+            "title": "Leadername"
           },
           "members": {
             "items": {
@@ -2995,7 +2995,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Code"
+            "title": "Projectcode"
           },
           "projectId": {
             "anyOf": [
@@ -3006,7 +3006,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Projectid"
           },
           "status": {
             "anyOf": [
@@ -3039,7 +3039,7 @@
                 "type": "null"
               }
             ],
-            "title": "Title En"
+            "title": "Titleen"
           },
           "titleVi": {
             "anyOf": [
@@ -3050,7 +3050,7 @@
                 "type": "null"
               }
             ],
-            "title": "Title Vi"
+            "title": "Titlevi"
           },
           "uiStatus": {
             "anyOf": [
@@ -3061,7 +3061,7 @@
                 "type": "null"
               }
             ],
-            "title": "Ui Status"
+            "title": "Uistatus"
           }
         },
         "required": [
@@ -3083,7 +3083,7 @@
                 "type": "null"
               }
             ],
-            "title": "Display Name"
+            "title": "Displayname"
           },
           "email": {
             "anyOf": [
@@ -3119,11 +3119,11 @@
             "title": "Status"
           },
           "studentCode": {
-            "title": "Student Code",
+            "title": "Studentcode",
             "type": "string"
           },
           "studentId": {
-            "title": "Student Id",
+            "title": "Studentid",
             "type": "integer"
           }
         },
@@ -3154,7 +3154,7 @@
                 "type": "null"
               }
             ],
-            "title": "Member Count"
+            "title": "Membercount"
           },
           "members": {
             "items": {
@@ -3172,7 +3172,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Projectid"
           },
           "status": {
             "anyOf": [
@@ -3292,18 +3292,6 @@
             "title": "Id",
             "type": "integer"
           },
-          "nameEn": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Nameen"
-          },
           "mainSupervisor": {
             "anyOf": [
               {
@@ -3314,6 +3302,21 @@
               }
             ]
           },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "nameEn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nameen"
+          },
           "nameVi": {
             "anyOf": [
               {
@@ -3323,12 +3326,7 @@
                 "type": "null"
               }
             ],
-            "default": null,
             "title": "Namevi"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
           },
           "status": {
             "title": "Status",
@@ -3672,7 +3670,7 @@
                 "type": "null"
               }
             ],
-            "title": "Active Member Count"
+            "title": "Activemembercount"
           },
           "code": {
             "title": "Code",
@@ -3691,7 +3689,7 @@
                 "type": "null"
               }
             ],
-            "title": "Leader Count"
+            "title": "Leadercount"
           },
           "leaderName": {
             "anyOf": [
@@ -3702,7 +3700,7 @@
                 "type": "null"
               }
             ],
-            "title": "Leader Name"
+            "title": "Leadername"
           },
           "projectCode": {
             "anyOf": [
@@ -3713,7 +3711,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Code"
+            "title": "Projectcode"
           },
           "projectId": {
             "anyOf": [
@@ -3724,7 +3722,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Id"
+            "title": "Projectid"
           },
           "status": {
             "anyOf": [
@@ -3757,7 +3755,7 @@
                 "type": "null"
               }
             ],
-            "title": "Title En"
+            "title": "Titleen"
           },
           "titleVi": {
             "anyOf": [
@@ -3768,7 +3766,7 @@
                 "type": "null"
               }
             ],
-            "title": "Title Vi"
+            "title": "Titlevi"
           },
           "uiStatus": {
             "anyOf": [
@@ -3779,7 +3777,7 @@
                 "type": "null"
               }
             ],
-            "title": "Ui Status"
+            "title": "Uistatus"
           }
         },
         "required": [
@@ -3892,7 +3890,7 @@
         "additionalProperties": true,
         "properties": {
           "lecturerId": {
-            "title": "Lecturer Id",
+            "title": "Lecturerid",
             "type": "integer"
           },
           "response": {
@@ -3900,7 +3898,7 @@
             "type": "string"
           },
           "roundId": {
-            "title": "Round Id",
+            "title": "Roundid",
             "type": "integer"
           }
         },
@@ -3933,11 +3931,11 @@
         "additionalProperties": true,
         "properties": {
           "invitedCount": {
-            "title": "Invited Count",
+            "title": "Invitedcount",
             "type": "integer"
           },
           "roundId": {
-            "title": "Round Id",
+            "title": "Roundid",
             "type": "integer"
           }
         },
@@ -3960,7 +3958,7 @@
                 "type": "null"
               }
             ],
-            "title": "Available Slot Count"
+            "title": "Availableslotcount"
           },
           "displayName": {
             "anyOf": [
@@ -3971,7 +3969,7 @@
                 "type": "null"
               }
             ],
-            "title": "Display Name"
+            "title": "Displayname"
           },
           "email": {
             "anyOf": [
@@ -3985,11 +3983,11 @@
             "title": "Email"
           },
           "lecturerCode": {
-            "title": "Lecturer Code",
+            "title": "Lecturercode",
             "type": "string"
           },
           "lecturerId": {
-            "title": "Lecturer Id",
+            "title": "Lecturerid",
             "type": "integer"
           },
           "loadPreference": {
@@ -4001,7 +3999,7 @@
                 "type": "null"
               }
             ],
-            "title": "Load Preference"
+            "title": "Loadpreference"
           },
           "respondedAt": {
             "anyOf": [
@@ -4013,7 +4011,7 @@
                 "type": "null"
               }
             ],
-            "title": "Responded At"
+            "title": "Respondedat"
           },
           "responseReason": {
             "anyOf": [
@@ -4024,10 +4022,10 @@
                 "type": "null"
               }
             ],
-            "title": "Response Reason"
+            "title": "Responsereason"
           },
           "roundId": {
-            "title": "Round Id",
+            "title": "Roundid",
             "type": "integer"
           },
           "status": {
@@ -4077,11 +4075,11 @@
         "additionalProperties": true,
         "properties": {
           "groupId": {
-            "title": "Group Id",
+            "title": "Groupid",
             "type": "integer"
           },
           "leaderStudentId": {
-            "title": "Leader Student Id",
+            "title": "Leaderstudentid",
             "type": "integer"
           }
         },
@@ -4196,7 +4194,7 @@
                 "type": "null"
               }
             ],
-            "title": "Round Id"
+            "title": "Roundid"
           },
           "rows": {
             "items": {
@@ -4231,14 +4229,14 @@
                 "type": "null"
               }
             ],
-            "title": "Display Name"
+            "title": "Displayname"
           },
           "lecturerCode": {
-            "title": "Lecturer Code",
+            "title": "Lecturercode",
             "type": "string"
           },
           "lecturerId": {
-            "title": "Lecturer Id",
+            "title": "Lecturerid",
             "type": "integer"
           },
           "quota": {
@@ -4261,11 +4259,11 @@
                 "type": "null"
               }
             ],
-            "title": "Quota Percent"
+            "title": "Quotapercent"
           },
           "sessionCount": {
             "default": 0,
-            "title": "Session Count",
+            "title": "Sessioncount",
             "type": "integer"
           }
         },
@@ -4288,7 +4286,7 @@
                 "type": "null"
               }
             ],
-            "title": "Account Id"
+            "title": "Accountid"
           },
           "accountStatus": {
             "anyOf": [
@@ -4299,7 +4297,7 @@
                 "type": "null"
               }
             ],
-            "title": "Account Status"
+            "title": "Accountstatus"
           },
           "conflicts": {
             "items": {
@@ -4317,7 +4315,7 @@
                 "type": "null"
               }
             ],
-            "title": "Display Name"
+            "title": "Displayname"
           },
           "email": {
             "anyOf": [
@@ -4335,7 +4333,7 @@
             "type": "integer"
           },
           "lecturerCode": {
-            "title": "Lecturer Code",
+            "title": "Lecturercode",
             "type": "string"
           }
         },
@@ -4375,8 +4373,30 @@
             "items": {
               "type": "string"
             },
-            "title": "Available Roles",
+            "title": "Availableroles",
             "type": "array"
+          },
+          "displayName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Displayname"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           },
           "expiresAt": {
             "anyOf": [
@@ -4391,11 +4411,11 @@
                 "type": "null"
               }
             ],
-            "title": "Expires At"
+            "title": "Expiresat"
           },
           "requiresRoleSelection": {
             "default": false,
-            "title": "Requires Role Selection",
+            "title": "Requiresroleselection",
             "type": "boolean"
           },
           "role": {
@@ -4722,7 +4742,29 @@
                 "type": "null"
               }
             ],
-            "title": "Account Id"
+            "title": "Accountid"
+          },
+          "displayName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Displayname"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
           },
           "role": {
             "title": "Role",
@@ -4790,7 +4832,7 @@
                 "type": "null"
               }
             ],
-            "title": "Lecturer Id"
+            "title": "Lecturerid"
           },
           "round": {
             "additionalProperties": true,
@@ -4798,21 +4840,21 @@
             "type": "object"
           },
           "selectedByGroup": {
-            "title": "Selected By Group"
+            "title": "Selectedbygroup"
           },
           "selectedByLecturer": {
             "items": {
               "additionalProperties": true,
               "type": "object"
             },
-            "title": "Selected By Lecturer",
+            "title": "Selectedbylecturer",
             "type": "array"
           },
           "selectedTimeslotIds": {
             "items": {
               "type": "integer"
             },
-            "title": "Selected Timeslot Ids",
+            "title": "Selectedtimeslotids",
             "type": "array"
           },
           "timeslots": {
@@ -4839,7 +4881,7 @@
                 "type": "null"
               }
             ],
-            "title": "Lecturer Code"
+            "title": "Lecturercode"
           },
           "lecturerId": {
             "anyOf": [
@@ -4850,10 +4892,10 @@
                 "type": "null"
               }
             ],
-            "title": "Lecturer Id"
+            "title": "Lecturerid"
           },
           "roundId": {
-            "title": "Round Id",
+            "title": "Roundid",
             "type": "integer"
           },
           "status": {
@@ -4901,7 +4943,7 @@
                 "type": "null"
               }
             ],
-            "title": "Invitation Status"
+            "title": "Invitationstatus"
           },
           "roundId": {
             "anyOf": [
@@ -4912,7 +4954,7 @@
                 "type": "null"
               }
             ],
-            "title": "Round Id"
+            "title": "Roundid"
           },
           "semesterCode": {
             "anyOf": [
@@ -4923,7 +4965,7 @@
                 "type": "null"
               }
             ],
-            "title": "Semester Code"
+            "title": "Semestercode"
           },
           "semesterId": {
             "anyOf": [
@@ -4934,7 +4976,7 @@
                 "type": "null"
               }
             ],
-            "title": "Semester Id"
+            "title": "Semesterid"
           },
           "status": {
             "anyOf": [
@@ -4978,10 +5020,10 @@
                 "type": "null"
               }
             ],
-            "title": "Created At"
+            "title": "Createdat"
           },
           "eventType": {
-            "title": "Event Type",
+            "title": "Eventtype",
             "type": "string"
           },
           "id": {
@@ -5003,7 +5045,7 @@
                 "type": "null"
               }
             ],
-            "title": "Sent At"
+            "title": "Sentat"
           },
           "status": {
             "title": "Status",
@@ -5030,7 +5072,7 @@
                 "type": "null"
               }
             ],
-            "title": "Dedupe Key"
+            "title": "Dedupekey"
           },
           "id": {
             "title": "Id",
@@ -5090,7 +5132,7 @@
                 "type": "null"
               }
             ],
-            "title": "Round Id"
+            "title": "Roundid"
           },
           "rows": {
             "items": {
@@ -5155,7 +5197,7 @@
         "properties": {
           "generatedAt": {
             "format": "date-time",
-            "title": "Generated At",
+            "title": "Generatedat",
             "type": "string"
           },
           "sessions": {
@@ -5307,7 +5349,7 @@
                 "type": "null"
               }
             ],
-            "title": "Major Code"
+            "title": "Majorcode"
           },
           "majorId": {
             "anyOf": [
@@ -5318,7 +5360,7 @@
                 "type": "null"
               }
             ],
-            "title": "Major Id"
+            "title": "Majorid"
           },
           "semesterCode": {
             "anyOf": [
@@ -5329,7 +5371,7 @@
                 "type": "null"
               }
             ],
-            "title": "Semester Code"
+            "title": "Semestercode"
           },
           "semesterId": {
             "anyOf": [
@@ -5340,7 +5382,7 @@
                 "type": "null"
               }
             ],
-            "title": "Semester Id"
+            "title": "Semesterid"
           },
           "status": {
             "anyOf": [
@@ -5362,7 +5404,7 @@
                 "type": "null"
               }
             ],
-            "title": "Supervisor Count"
+            "title": "Supervisorcount"
           },
           "supervisors": {
             "items": {
@@ -5384,7 +5426,7 @@
                 "type": "null"
               }
             ],
-            "title": "Title En"
+            "title": "Titleen"
           },
           "titleVi": {
             "anyOf": [
@@ -5395,7 +5437,7 @@
                 "type": "null"
               }
             ],
-            "title": "Title Vi"
+            "title": "Titlevi"
           }
         },
         "required": [
@@ -5456,7 +5498,7 @@
                 "type": "null"
               }
             ],
-            "title": "Semester Id"
+            "title": "Semesterid"
           },
           "status": {
             "anyOf": [
@@ -5482,7 +5524,7 @@
                 "type": "null"
               }
             ],
-            "title": "Title En"
+            "title": "Titleen"
           },
           "titleVi": {
             "anyOf": [
@@ -5493,7 +5535,7 @@
                 "type": "null"
               }
             ],
-            "title": "Title Vi"
+            "title": "Titlevi"
           }
         },
         "required": [
@@ -5524,7 +5566,7 @@
                 "type": "null"
               }
             ],
-            "title": "Major Code"
+            "title": "Majorcode"
           },
           "majorId": {
             "anyOf": [
@@ -5535,7 +5577,7 @@
                 "type": "null"
               }
             ],
-            "title": "Major Id"
+            "title": "Majorid"
           },
           "semesterCode": {
             "anyOf": [
@@ -5546,7 +5588,7 @@
                 "type": "null"
               }
             ],
-            "title": "Semester Code"
+            "title": "Semestercode"
           },
           "semesterId": {
             "anyOf": [
@@ -5557,7 +5599,7 @@
                 "type": "null"
               }
             ],
-            "title": "Semester Id"
+            "title": "Semesterid"
           },
           "status": {
             "anyOf": [
@@ -5579,7 +5621,7 @@
                 "type": "null"
               }
             ],
-            "title": "Supervisor Count"
+            "title": "Supervisorcount"
           },
           "supervisors": {
             "items": {
@@ -5601,7 +5643,7 @@
                 "type": "null"
               }
             ],
-            "title": "Title En"
+            "title": "Titleen"
           },
           "titleVi": {
             "anyOf": [
@@ -5612,7 +5654,7 @@
                 "type": "null"
               }
             ],
-            "title": "Title Vi"
+            "title": "Titlevi"
           }
         },
         "required": [
@@ -5782,11 +5824,11 @@
         "properties": {
           "recipientCount": {
             "default": 0,
-            "title": "Recipient Count",
+            "title": "Recipientcount",
             "type": "integer"
           },
           "roundId": {
-            "title": "Round Id",
+            "title": "Roundid",
             "type": "integer"
           },
           "status": {
@@ -5794,7 +5836,7 @@
             "type": "string"
           },
           "versionId": {
-            "title": "Version Id",
+            "title": "Versionid",
             "type": "integer"
           }
         },
@@ -5849,7 +5891,7 @@
         "properties": {
           "activeMembers": {
             "default": 0,
-            "title": "Active Members",
+            "title": "Activemembers",
             "type": "integer"
           },
           "code": {
@@ -5885,7 +5927,7 @@
                 "type": "null"
               }
             ],
-            "title": "Display Name"
+            "title": "Displayname"
           },
           "lecturerCode": {
             "anyOf": [
@@ -5896,10 +5938,10 @@
                 "type": "null"
               }
             ],
-            "title": "Lecturer Code"
+            "title": "Lecturercode"
           },
           "lecturerId": {
-            "title": "Lecturer Id",
+            "title": "Lecturerid",
             "type": "integer"
           },
           "quota": {
@@ -5915,7 +5957,7 @@
                 "type": "null"
               }
             ],
-            "title": "Semester Id"
+            "title": "Semesterid"
           },
           "updatedAt": {
             "anyOf": [
@@ -5927,7 +5969,7 @@
                 "type": "null"
               }
             ],
-            "title": "Updated At"
+            "title": "Updatedat"
           },
           "used": {
             "anyOf": [
@@ -5984,7 +6026,7 @@
         "properties": {
           "groupAvailability": {
             "default": 0,
-            "title": "Group Availability",
+            "title": "Groupavailability",
             "type": "integer"
           },
           "invited": {
@@ -5994,7 +6036,7 @@
           },
           "lecturerAvailability": {
             "default": 0,
-            "title": "Lecturer Availability",
+            "title": "Lectureravailability",
             "type": "integer"
           },
           "responded": {
@@ -6044,7 +6086,7 @@
                 "type": "null"
               }
             ],
-            "title": "Round Id"
+            "title": "Roundid"
           },
           "rows": {
             "items": {
@@ -6080,7 +6122,7 @@
                 "type": "null"
               }
             ],
-            "title": "Due At"
+            "title": "Dueat"
           },
           "groupCode": {
             "anyOf": [
@@ -6091,10 +6133,10 @@
                 "type": "null"
               }
             ],
-            "title": "Group Code"
+            "title": "Groupcode"
           },
           "groupId": {
-            "title": "Group Id",
+            "title": "Groupid",
             "type": "integer"
           },
           "id": {
@@ -6114,7 +6156,7 @@
                 "type": "null"
               }
             ],
-            "title": "Verifier Lecturer Id"
+            "title": "Verifierlecturerid"
           }
         },
         "required": [
@@ -6175,7 +6217,7 @@
             "items": {
               "type": "integer"
             },
-            "title": "Reviewer Ids",
+            "title": "Reviewerids",
             "type": "array"
           },
           "roomId": {
@@ -6187,10 +6229,10 @@
                 "type": "null"
               }
             ],
-            "title": "Room Id"
+            "title": "Roomid"
           },
           "timeslotId": {
-            "title": "Timeslot Id",
+            "title": "Timeslotid",
             "type": "integer"
           }
         },
@@ -6252,7 +6294,7 @@
                 "type": "null"
               }
             ],
-            "title": "Created At"
+            "title": "Createdat"
           },
           "endAt": {
             "anyOf": [
@@ -6264,7 +6306,7 @@
                 "type": "null"
               }
             ],
-            "title": "End At"
+            "title": "Endat"
           },
           "groupCode": {
             "anyOf": [
@@ -6275,7 +6317,7 @@
                 "type": "null"
               }
             ],
-            "title": "Group Code"
+            "title": "Groupcode"
           },
           "groupId": {
             "anyOf": [
@@ -6286,7 +6328,7 @@
                 "type": "null"
               }
             ],
-            "title": "Group Id"
+            "title": "Groupid"
           },
           "id": {
             "title": "Id",
@@ -6312,7 +6354,7 @@
                 "type": "null"
               }
             ],
-            "title": "Requested By"
+            "title": "Requestedby"
           },
           "requesterName": {
             "anyOf": [
@@ -6323,7 +6365,7 @@
                 "type": "null"
               }
             ],
-            "title": "Requester Name"
+            "title": "Requestername"
           },
           "reviewedAt": {
             "anyOf": [
@@ -6335,7 +6377,7 @@
                 "type": "null"
               }
             ],
-            "title": "Reviewed At"
+            "title": "Reviewedat"
           },
           "reviewedBy": {
             "anyOf": [
@@ -6346,7 +6388,7 @@
                 "type": "null"
               }
             ],
-            "title": "Reviewed By"
+            "title": "Reviewedby"
           },
           "roomCode": {
             "anyOf": [
@@ -6357,10 +6399,10 @@
                 "type": "null"
               }
             ],
-            "title": "Room Code"
+            "title": "Roomcode"
           },
           "sessionId": {
-            "title": "Session Id",
+            "title": "Sessionid",
             "type": "integer"
           },
           "startAt": {
@@ -6373,7 +6415,7 @@
                 "type": "null"
               }
             ],
-            "title": "Start At"
+            "title": "Startat"
           },
           "status": {
             "title": "Status",
@@ -6400,7 +6442,7 @@
                 "type": "null"
               }
             ],
-            "title": "Group Status"
+            "title": "Groupstatus"
           },
           "result": {
             "title": "Result"
@@ -6414,10 +6456,10 @@
                 "type": "null"
               }
             ],
-            "title": "Round Type"
+            "title": "Roundtype"
           },
           "sessionId": {
-            "title": "Session Id",
+            "title": "Sessionid",
             "type": "integer"
           }
         },
@@ -6445,15 +6487,15 @@
         "additionalProperties": true,
         "properties": {
           "resultOwnerId": {
-            "title": "Result Owner Id",
+            "title": "Resultownerid",
             "type": "integer"
           },
           "sessionId": {
-            "title": "Session Id",
+            "title": "Sessionid",
             "type": "integer"
           },
           "versionId": {
-            "title": "Version Id",
+            "title": "Versionid",
             "type": "integer"
           }
         },
@@ -6541,7 +6583,7 @@
                 "type": "null"
               }
             ],
-            "title": "Entered At"
+            "title": "Enteredat"
           },
           "groupCode": {
             "anyOf": [
@@ -6552,7 +6594,7 @@
                 "type": "null"
               }
             ],
-            "title": "Group Code"
+            "title": "Groupcode"
           },
           "groupId": {
             "anyOf": [
@@ -6563,7 +6605,7 @@
                 "type": "null"
               }
             ],
-            "title": "Group Id"
+            "title": "Groupid"
           },
           "id": {
             "title": "Id",
@@ -6601,7 +6643,7 @@
                 "type": "null"
               }
             ],
-            "title": "Remediation Due At"
+            "title": "Remediationdueat"
           },
           "roundType": {
             "anyOf": [
@@ -6612,10 +6654,10 @@
                 "type": "null"
               }
             ],
-            "title": "Round Type"
+            "title": "Roundtype"
           },
           "sessionId": {
-            "title": "Session Id",
+            "title": "Sessionid",
             "type": "integer"
           },
           "verifierLecturerId": {
@@ -6627,7 +6669,7 @@
                 "type": "null"
               }
             ],
-            "title": "Verifier Lecturer Id"
+            "title": "Verifierlecturerid"
           },
           "verifyStatus": {
             "anyOf": [
@@ -6638,7 +6680,7 @@
                 "type": "null"
               }
             ],
-            "title": "Verify Status"
+            "title": "Verifystatus"
           }
         },
         "required": [
@@ -6660,7 +6702,7 @@
                 "type": "null"
               }
             ],
-            "title": "Group Status"
+            "title": "Groupstatus"
           },
           "id": {
             "title": "Id",
@@ -6678,7 +6720,7 @@
             "title": "Outcome"
           },
           "sessionId": {
-            "title": "Session Id",
+            "title": "Sessionid",
             "type": "integer"
           }
         },
@@ -6739,7 +6781,7 @@
             "items": {
               "type": "string"
             },
-            "title": "Available Roles",
+            "title": "Availableroles",
             "type": "array"
           }
         },
@@ -6798,14 +6840,14 @@
                 "type": "null"
               }
             ],
-            "title": "End At"
+            "title": "Endat"
           },
           "roomId": {
-            "title": "Room Id",
+            "title": "Roomid",
             "type": "integer"
           },
           "sessionId": {
-            "title": "Session Id",
+            "title": "Sessionid",
             "type": "integer"
           },
           "startAt": {
@@ -6818,7 +6860,7 @@
                 "type": "null"
               }
             ],
-            "title": "Start At"
+            "title": "Startat"
           }
         },
         "required": [
@@ -6893,7 +6935,7 @@
           },
           "roomType": {
             "default": "NORMAL",
-            "title": "Room Type",
+            "title": "Roomtype",
             "type": "string"
           },
           "status": {
@@ -6931,16 +6973,16 @@
           },
           "changedCount": {
             "default": 0,
-            "title": "Changed Count",
+            "title": "Changedcount",
             "type": "integer"
           },
           "roundId": {
-            "title": "Round Id",
+            "title": "Roundid",
             "type": "integer"
           },
           "unchangedCount": {
             "default": 0,
-            "title": "Unchanged Count",
+            "title": "Unchangedcount",
             "type": "integer"
           }
         },
@@ -6976,7 +7018,7 @@
                 "type": "null"
               }
             ],
-            "title": "End At"
+            "title": "Endat"
           },
           "roomCode": {
             "anyOf": [
@@ -6987,10 +7029,10 @@
                 "type": "null"
               }
             ],
-            "title": "Room Code"
+            "title": "Roomcode"
           },
           "roomId": {
-            "title": "Room Id",
+            "title": "Roomid",
             "type": "integer"
           },
           "roomType": {
@@ -7002,10 +7044,10 @@
                 "type": "null"
               }
             ],
-            "title": "Room Type"
+            "title": "Roomtype"
           },
           "sessionId": {
-            "title": "Session Id",
+            "title": "Sessionid",
             "type": "integer"
           },
           "startAt": {
@@ -7018,7 +7060,7 @@
                 "type": "null"
               }
             ],
-            "title": "Start At"
+            "title": "Startat"
           }
         },
         "required": [
@@ -7361,18 +7403,18 @@
         "additionalProperties": true,
         "properties": {
           "dayId": {
-            "title": "Day Id",
+            "title": "Dayid",
             "type": "integer"
           },
           "roundId": {
-            "title": "Round Id",
+            "title": "Roundid",
             "type": "integer"
           },
           "timeslotIds": {
             "items": {
               "type": "integer"
             },
-            "title": "Timeslot Ids",
+            "title": "Timeslotids",
             "type": "array"
           }
         },
@@ -7625,14 +7667,14 @@
                 "type": "null"
               }
             ],
-            "title": "Active Member Count"
+            "title": "Activemembercount"
           },
           "groupCode": {
-            "title": "Group Code",
+            "title": "Groupcode",
             "type": "string"
           },
           "groupId": {
-            "title": "Group Id",
+            "title": "Groupid",
             "type": "integer"
           },
           "leaderName": {
@@ -7644,7 +7686,7 @@
                 "type": "null"
               }
             ],
-            "title": "Leader Name"
+            "title": "Leadername"
           },
           "projectCode": {
             "anyOf": [
@@ -7655,7 +7697,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Code"
+            "title": "Projectcode"
           },
           "selectedSlotCount": {
             "anyOf": [
@@ -7666,7 +7708,7 @@
                 "type": "null"
               }
             ],
-            "title": "Selected Slot Count"
+            "title": "Selectedslotcount"
           },
           "status": {
             "anyOf": [
@@ -7699,7 +7741,7 @@
                 "type": "null"
               }
             ],
-            "title": "Ui Status"
+            "title": "Uistatus"
           }
         },
         "required": [
@@ -7744,7 +7786,7 @@
             "items": {
               "type": "string"
             },
-            "title": "Room Types",
+            "title": "Roomtypes",
             "type": "array"
           },
           "rooms": {
@@ -7752,7 +7794,7 @@
             "type": "integer"
           },
           "roundId": {
-            "title": "Round Id",
+            "title": "Roundid",
             "type": "integer"
           },
           "timeslots": {
@@ -7830,7 +7872,7 @@
                 "type": "null"
               }
             ],
-            "title": "End Date"
+            "title": "Enddate"
           },
           "groupPreferenceDeadline": {
             "anyOf": [
@@ -7842,11 +7884,11 @@
                 "type": "null"
               }
             ],
-            "title": "Group Preference Deadline"
+            "title": "Grouppreferencedeadline"
           },
           "groupSelectionMode": {
             "default": false,
-            "title": "Group Selection Mode",
+            "title": "Groupselectionmode",
             "type": "boolean"
           },
           "h12SemesterQuota": {
@@ -7858,7 +7900,7 @@
                 "type": "null"
               }
             ],
-            "title": "H12 Semester Quota"
+            "title": "H12Semesterquota"
           },
           "h12SessionsPerDay": {
             "anyOf": [
@@ -7869,7 +7911,7 @@
                 "type": "null"
               }
             ],
-            "title": "H12 Sessions Per Day"
+            "title": "H12Sessionsperday"
           },
           "h12SessionsPerPart": {
             "anyOf": [
@@ -7880,7 +7922,7 @@
                 "type": "null"
               }
             ],
-            "title": "H12 Sessions Per Part"
+            "title": "H12Sessionsperpart"
           },
           "id": {
             "title": "Id",
@@ -7895,7 +7937,7 @@
                 "type": "null"
               }
             ],
-            "title": "Max Groups Per Timeslot"
+            "title": "Maxgroupspertimeslot"
           },
           "maxMinutesPerDay": {
             "anyOf": [
@@ -7906,7 +7948,7 @@
                 "type": "null"
               }
             ],
-            "title": "Max Minutes Per Day"
+            "title": "Maxminutesperday"
           },
           "maxMinutesPerPart": {
             "anyOf": [
@@ -7917,7 +7959,7 @@
                 "type": "null"
               }
             ],
-            "title": "Max Minutes Per Part"
+            "title": "Maxminutesperpart"
           },
           "name": {
             "anyOf": [
@@ -7940,26 +7982,26 @@
                 "type": "null"
               }
             ],
-            "title": "Registration Deadline"
+            "title": "Registrationdeadline"
           },
           "resultOwnerMode": {
             "default": false,
-            "title": "Result Owner Mode",
+            "title": "Resultownermode",
             "type": "boolean"
           },
           "reviewerCount": {
-            "title": "Reviewer Count",
+            "title": "Reviewercount",
             "type": "integer"
           },
           "roomTypes": {
             "items": {
               "type": "string"
             },
-            "title": "Room Types",
+            "title": "Roomtypes",
             "type": "array"
           },
           "semesterId": {
-            "title": "Semester Id",
+            "title": "Semesterid",
             "type": "integer"
           },
           "sessionDurationMinutes": {
@@ -7971,13 +8013,13 @@
                 "type": "null"
               }
             ],
-            "title": "Session Duration Minutes"
+            "title": "Sessiondurationminutes"
           },
           "softWeights": {
             "additionalProperties": {
               "type": "integer"
             },
-            "title": "Soft Weights",
+            "title": "Softweights",
             "type": "object"
           },
           "startDate": {
@@ -7990,7 +8032,7 @@
                 "type": "null"
               }
             ],
-            "title": "Start Date"
+            "title": "Startdate"
           },
           "status": {
             "title": "Status",
@@ -8005,7 +8047,7 @@
                 "type": "null"
               }
             ],
-            "title": "Timeframe Id"
+            "title": "Timeframeid"
           },
           "timeframeVersionId": {
             "anyOf": [
@@ -8016,7 +8058,7 @@
                 "type": "null"
               }
             ],
-            "title": "Timeframe Version Id"
+            "title": "Timeframeversionid"
           },
           "type": {
             "title": "Type",
@@ -8264,6 +8306,111 @@
         "title": "RoundUpdate",
         "type": "object"
       },
+      "ScheduleAssignmentResponse": {
+        "additionalProperties": true,
+        "description": "Durable solver assignment exposed with the same camel-case contract as sessions.",
+        "properties": {
+          "assignmentId": {
+            "title": "Assignmentid",
+            "type": "integer"
+          },
+          "endAt": {
+            "format": "date-time",
+            "title": "Endat",
+            "type": "string"
+          },
+          "groupCode": {
+            "title": "Groupcode",
+            "type": "string"
+          },
+          "groupId": {
+            "title": "Groupid",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "projectId": {
+            "title": "Projectid",
+            "type": "integer"
+          },
+          "resultOwnerIds": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Resultownerids",
+            "type": "array"
+          },
+          "reviewerIds": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Reviewerids",
+            "type": "array"
+          },
+          "reviewerNames": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Reviewernames",
+            "type": "object"
+          },
+          "roomCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roomcode"
+          },
+          "roomId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roomid"
+          },
+          "scheduleVersionId": {
+            "title": "Scheduleversionid",
+            "type": "integer"
+          },
+          "startAt": {
+            "format": "date-time",
+            "title": "Startat",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "timeslotId": {
+            "title": "Timeslotid",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "assignmentId",
+          "id",
+          "scheduleVersionId",
+          "groupId",
+          "groupCode",
+          "projectId",
+          "timeslotId",
+          "startAt",
+          "endAt",
+          "status"
+        ],
+        "title": "ScheduleAssignmentResponse",
+        "type": "object"
+      },
       "ScheduleRunPayload": {
         "properties": {
           "randomSeed": {
@@ -8299,7 +8446,7 @@
                 "type": "null"
               }
             ],
-            "title": "Objective Label"
+            "title": "Objectivelabel"
           },
           "objectiveProfile": {
             "anyOf": [
@@ -8310,16 +8457,16 @@
                 "type": "null"
               }
             ],
-            "title": "Objective Profile"
+            "title": "Objectiveprofile"
           },
           "scheduledCount": {
             "default": 0,
-            "title": "Scheduled Count",
+            "title": "Scheduledcount",
             "type": "integer"
           },
           "softScores": {
             "additionalProperties": true,
-            "title": "Soft Scores",
+            "title": "Softscores",
             "type": "object"
           },
           "status": {
@@ -8335,7 +8482,7 @@
             "type": "array"
           },
           "versionId": {
-            "title": "Version Id",
+            "title": "Versionid",
             "type": "integer"
           },
           "versions": {
@@ -8444,7 +8591,7 @@
                 "type": "null"
               }
             ],
-            "title": "Academic Year"
+            "title": "Academicyear"
           },
           "code": {
             "title": "Code",
@@ -8460,7 +8607,7 @@
                 "type": "null"
               }
             ],
-            "title": "Created At"
+            "title": "Createdat"
           },
           "createdBy": {
             "anyOf": [
@@ -8482,11 +8629,11 @@
                 "type": "null"
               }
             ],
-            "title": "End Date"
+            "title": "Enddate"
           },
           "groupCount": {
             "default": 0,
-            "title": "Group Count",
+            "title": "Groupcount",
             "type": "integer"
           },
           "id": {
@@ -8510,12 +8657,12 @@
           },
           "projectCount": {
             "default": 0,
-            "title": "Project Count",
+            "title": "Projectcount",
             "type": "integer"
           },
           "roundCount": {
             "default": 0,
-            "title": "Round Count",
+            "title": "Roundcount",
             "type": "integer"
           },
           "startDate": {
@@ -8528,7 +8675,7 @@
                 "type": "null"
               }
             ],
-            "title": "Start Date"
+            "title": "Startdate"
           },
           "status": {
             "enum": [
@@ -8550,7 +8697,7 @@
                 "type": "null"
               }
             ],
-            "title": "Updated At"
+            "title": "Updatedat"
           },
           "updatedBy": {
             "anyOf": [
@@ -8731,10 +8878,10 @@
                 "type": "null"
               }
             ],
-            "title": "Assignment Id"
+            "title": "Assignmentid"
           },
           "sessionId": {
-            "title": "Session Id",
+            "title": "Sessionid",
             "type": "integer"
           },
           "status": {
@@ -8742,7 +8889,7 @@
             "type": "string"
           },
           "versionId": {
-            "title": "Version Id",
+            "title": "Versionid",
             "type": "integer"
           }
         },
@@ -8766,7 +8913,7 @@
                 "type": "null"
               }
             ],
-            "title": "Assignment Id"
+            "title": "Assignmentid"
           },
           "councilId": {
             "anyOf": [
@@ -8777,14 +8924,14 @@
                 "type": "null"
               }
             ],
-            "title": "Council Id"
+            "title": "Councilid"
           },
           "councilMembers": {
             "items": {
               "additionalProperties": true,
               "type": "object"
             },
-            "title": "Council Members",
+            "title": "Councilmembers",
             "type": "array"
           },
           "endAt": {
@@ -8797,7 +8944,7 @@
                 "type": "null"
               }
             ],
-            "title": "End At"
+            "title": "Endat"
           },
           "groupCode": {
             "anyOf": [
@@ -8808,7 +8955,7 @@
                 "type": "null"
               }
             ],
-            "title": "Group Code"
+            "title": "Groupcode"
           },
           "groupId": {
             "anyOf": [
@@ -8819,7 +8966,7 @@
                 "type": "null"
               }
             ],
-            "title": "Group Id"
+            "title": "Groupid"
           },
           "id": {
             "title": "Id",
@@ -8834,7 +8981,7 @@
                 "type": "null"
               }
             ],
-            "title": "Project Code"
+            "title": "Projectcode"
           },
           "reviewers": {
             "anyOf": [
@@ -8859,7 +9006,7 @@
                 "type": "null"
               }
             ],
-            "title": "Room Code"
+            "title": "Roomcode"
           },
           "roomId": {
             "anyOf": [
@@ -8870,7 +9017,7 @@
                 "type": "null"
               }
             ],
-            "title": "Room Id"
+            "title": "Roomid"
           },
           "roundId": {
             "anyOf": [
@@ -8881,7 +9028,7 @@
                 "type": "null"
               }
             ],
-            "title": "Round Id"
+            "title": "Roundid"
           },
           "scheduleVersionId": {
             "anyOf": [
@@ -8892,7 +9039,7 @@
                 "type": "null"
               }
             ],
-            "title": "Schedule Version Id"
+            "title": "Scheduleversionid"
           },
           "startAt": {
             "anyOf": [
@@ -8904,7 +9051,7 @@
                 "type": "null"
               }
             ],
-            "title": "Start At"
+            "title": "Startat"
           },
           "status": {
             "anyOf": [
@@ -8926,7 +9073,7 @@
                 "type": "null"
               }
             ],
-            "title": "Timeslot Id"
+            "title": "Timeslotid"
           },
           "versionId": {
             "anyOf": [
@@ -8937,7 +9084,7 @@
                 "type": "null"
               }
             ],
-            "title": "Version Id"
+            "title": "Versionid"
           }
         },
         "required": [
@@ -8978,10 +9125,10 @@
                 "type": "null"
               }
             ],
-            "title": "Display Name"
+            "title": "Displayname"
           },
           "lecturerCode": {
-            "title": "Lecturer Code",
+            "title": "Lecturercode",
             "type": "string"
           },
           "type": {
@@ -13509,7 +13656,7 @@
           },
           "endAt": {
             "format": "date-time",
-            "title": "End At",
+            "title": "Endat",
             "type": "string"
           },
           "id": {
@@ -13528,12 +13675,12 @@
             "title": "Part"
           },
           "roundDayId": {
-            "title": "Round Day Id",
+            "title": "Rounddayid",
             "type": "integer"
           },
           "startAt": {
             "format": "date-time",
-            "title": "Start At",
+            "title": "Startat",
             "type": "string"
           }
         },
@@ -13619,11 +13766,11 @@
         "properties": {
           "generatedAt": {
             "format": "date-time",
-            "title": "Generated At",
+            "title": "Generatedat",
             "type": "string"
           },
           "roundId": {
-            "title": "Round Id",
+            "title": "Roundid",
             "type": "integer"
           },
           "versions": {
@@ -13672,12 +13819,11 @@
                 "type": "null"
               }
             ],
-            "title": "Activated At"
+            "title": "Activatedat"
           },
           "assignments": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/ScheduleAssignmentResponse"
             },
             "title": "Assignments",
             "type": "array"
@@ -13692,7 +13838,7 @@
                 "type": "null"
               }
             ],
-            "title": "Created At"
+            "title": "Createdat"
           },
           "generatedAt": {
             "anyOf": [
@@ -13704,7 +13850,7 @@
                 "type": "null"
               }
             ],
-            "title": "Generated At"
+            "title": "Generatedat"
           },
           "id": {
             "anyOf": [
@@ -13726,7 +13872,7 @@
                 "type": "null"
               }
             ],
-            "title": "Is Active"
+            "title": "Isactive"
           },
           "metrics": {
             "additionalProperties": true,
@@ -13742,7 +13888,7 @@
                 "type": "null"
               }
             ],
-            "title": "Objective Label"
+            "title": "Objectivelabel"
           },
           "objectiveProfile": {
             "anyOf": [
@@ -13753,7 +13899,7 @@
                 "type": "null"
               }
             ],
-            "title": "Objective Profile"
+            "title": "Objectiveprofile"
           },
           "randomSeed": {
             "anyOf": [
@@ -13764,7 +13910,7 @@
                 "type": "null"
               }
             ],
-            "title": "Random Seed"
+            "title": "Randomseed"
           },
           "roundId": {
             "anyOf": [
@@ -13775,7 +13921,7 @@
                 "type": "null"
               }
             ],
-            "title": "Round Id"
+            "title": "Roundid"
           },
           "semesterCode": {
             "anyOf": [
@@ -13786,7 +13932,7 @@
                 "type": "null"
               }
             ],
-            "title": "Semester Code"
+            "title": "Semestercode"
           },
           "semesterId": {
             "anyOf": [
@@ -13797,7 +13943,7 @@
                 "type": "null"
               }
             ],
-            "title": "Semester Id"
+            "title": "Semesterid"
           },
           "sessions": {
             "items": {
@@ -13810,7 +13956,7 @@
             "additionalProperties": {
               "type": "number"
             },
-            "title": "Soft Scores",
+            "title": "Softscores",
             "type": "object"
           },
           "solverStatus": {
@@ -13822,7 +13968,7 @@
                 "type": "null"
               }
             ],
-            "title": "Solver Status"
+            "title": "Solverstatus"
           },
           "status": {
             "anyOf": [
@@ -13844,7 +13990,7 @@
                 "type": "null"
               }
             ],
-            "title": "Total Score"
+            "title": "Totalscore"
           },
           "type": {
             "anyOf": [
@@ -13866,7 +14012,7 @@
                 "type": "null"
               }
             ],
-            "title": "Ui Status"
+            "title": "Uistatus"
           },
           "versionId": {
             "anyOf": [
@@ -13877,7 +14023,7 @@
                 "type": "null"
               }
             ],
-            "title": "Version Id"
+            "title": "Versionid"
           },
           "versionNo": {
             "anyOf": [
@@ -13888,7 +14034,7 @@
                 "type": "null"
               }
             ],
-            "title": "Version No"
+            "title": "Versionno"
           }
         },
         "title": "VersionDetailResponse",
@@ -13907,7 +14053,7 @@
                 "type": "null"
               }
             ],
-            "title": "Activated At"
+            "title": "Activatedat"
           },
           "createdAt": {
             "anyOf": [
@@ -13919,7 +14065,7 @@
                 "type": "null"
               }
             ],
-            "title": "Created At"
+            "title": "Createdat"
           },
           "generatedAt": {
             "anyOf": [
@@ -13931,7 +14077,7 @@
                 "type": "null"
               }
             ],
-            "title": "Generated At"
+            "title": "Generatedat"
           },
           "id": {
             "anyOf": [
@@ -13953,7 +14099,7 @@
                 "type": "null"
               }
             ],
-            "title": "Is Active"
+            "title": "Isactive"
           },
           "metrics": {
             "additionalProperties": true,
@@ -13969,7 +14115,7 @@
                 "type": "null"
               }
             ],
-            "title": "Objective Label"
+            "title": "Objectivelabel"
           },
           "objectiveProfile": {
             "anyOf": [
@@ -13980,7 +14126,7 @@
                 "type": "null"
               }
             ],
-            "title": "Objective Profile"
+            "title": "Objectiveprofile"
           },
           "randomSeed": {
             "anyOf": [
@@ -13991,7 +14137,7 @@
                 "type": "null"
               }
             ],
-            "title": "Random Seed"
+            "title": "Randomseed"
           },
           "roundId": {
             "anyOf": [
@@ -14002,7 +14148,7 @@
                 "type": "null"
               }
             ],
-            "title": "Round Id"
+            "title": "Roundid"
           },
           "semesterCode": {
             "anyOf": [
@@ -14013,7 +14159,7 @@
                 "type": "null"
               }
             ],
-            "title": "Semester Code"
+            "title": "Semestercode"
           },
           "semesterId": {
             "anyOf": [
@@ -14024,13 +14170,13 @@
                 "type": "null"
               }
             ],
-            "title": "Semester Id"
+            "title": "Semesterid"
           },
           "softScores": {
             "additionalProperties": {
               "type": "number"
             },
-            "title": "Soft Scores",
+            "title": "Softscores",
             "type": "object"
           },
           "solverStatus": {
@@ -14042,7 +14188,7 @@
                 "type": "null"
               }
             ],
-            "title": "Solver Status"
+            "title": "Solverstatus"
           },
           "status": {
             "anyOf": [
@@ -14064,7 +14210,7 @@
                 "type": "null"
               }
             ],
-            "title": "Total Score"
+            "title": "Totalscore"
           },
           "type": {
             "anyOf": [
@@ -14086,7 +14232,7 @@
                 "type": "null"
               }
             ],
-            "title": "Ui Status"
+            "title": "Uistatus"
           },
           "versionId": {
             "anyOf": [
@@ -14097,7 +14243,7 @@
                 "type": "null"
               }
             ],
-            "title": "Version Id"
+            "title": "Versionid"
           },
           "versionNo": {
             "anyOf": [
@@ -14108,7 +14254,7 @@
                 "type": "null"
               }
             ],
-            "title": "Version No"
+            "title": "Versionno"
           }
         },
         "title": "VersionSummaryResponse",
@@ -14119,7 +14265,7 @@
   "info": {
     "title": "Capstone Defense Scheduler API",
     "version": "0.1.0",
-    "x-be-commit": "aa973c90ece602afe143ccba8fa80f16baa1a2ff",
+    "x-be-commit": "92f50f878c8a2d6d5150c3138c9b12a9dd81bebc",
     "x-be-wire-case": "camelCase"
   },
   "openapi": "3.1.0",
@@ -15583,6 +15729,73 @@
           }
         },
         "summary": "Export Round",
+        "tags": [
+          "manager-ui-compatibility"
+        ]
+      }
+    },
+    "/api/v1/exports/round/{roundId}/council.xlsx": {
+      "get": {
+        "description": "Council export: one row per Group with its council seats spread across fixed columns.\n\nSeat count follows the Round's own ``reviewer_count`` configuration (not a\nhardcoded number), so a 3-reviewer Round exports 3 seat columns and a\n5-reviewer Round exports 5. Seat order (Chủ tịch/Thư ký/Thành viên when\nseat_count > 3) is recovered from the Round's assigned Committee catalog\nwhen a Session's Council members match a Committee's member set exactly\n(same order the Committee was created with); otherwise seats fall back to\nascending lecturer_id order, since a live Council only stores membership,\nnot a Chair/Secretary/Member role.",
+        "operationId": "export_round_council_api_v1_exports_round__roundId__council_xlsx_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "roundId",
+            "required": true,
+            "schema": {
+              "title": "Roundid",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Test-Session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Test-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Export Round Council",
         "tags": [
           "manager-ui-compatibility"
         ]
