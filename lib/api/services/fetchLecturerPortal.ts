@@ -2,6 +2,7 @@ import apiService from "../core";
 import type { RoundType, RoundInvitationStatus } from "./fetchRounds";
 import type { RoundResult } from "./fetchResults";
 import type { ProjectStatus } from "./fetchProjects";
+import type { TopicType } from "@/lib/utils/masterDataLabels";
 import { formatInVietnamTime } from "@/lib/utils/formatDate";
 
 /** capstone-fe-be-implementation-spec.md §5 — IMPLEMENTATION PROPOSAL */
@@ -115,9 +116,8 @@ export const fetchLecturerPortal = {
   },
 
   /**
-   * GET /lecturer/me/supervised-projects — spec §34. BE hiện chỉ trả row phẳng
-   * (id/code/title/status project DB ACTIVE|ARCHIVED, không có group/leader/latestResult/
-   * remediation) — contract gap đã báo BE, chưa có ETA. Adapt tạm những field có sẵn,
+   * GET /lecturer/me/supervised-projects — spec §34. BE trả row phẳng với topicType và
+   * group/leader; latestResult/remediation vẫn có thể vắng mặt. Adapt những field có sẵn,
    * phần thiếu giữ null để UI hiện fallback thay vì crash.
    */
   supervisedProjects: async (): Promise<SupervisedProject[]> => {
@@ -246,6 +246,7 @@ export interface SupervisedProject {
   code: string;
   titleVi: string;
   titleEn: string | null;
+  topicType: TopicType;
   supervisorRole: "MAIN" | "CO";
   group: {
     id: string;
@@ -292,6 +293,7 @@ export interface SupervisedProjectApi {
   title: string;
   titleVi?: string | null;
   titleEn?: string | null;
+  topicType?: TopicType | null;
   /** Trạng thái project DB (ACTIVE|ARCHIVED) — KHÔNG phải 8 enum ProjectStatus của spec §3. */
   status: string;
   semesterId?: number | string;
@@ -311,6 +313,7 @@ export function adaptSupervisedProject(dto: SupervisedProjectApi): SupervisedPro
     code: dto.code,
     titleVi: dto.titleVi ?? dto.title,
     titleEn: dto.titleEn ?? null,
+    topicType: dto.topicType ?? "REGULAR",
     supervisorRole: dto.supervisorType,
     group: dto.group
       ? {

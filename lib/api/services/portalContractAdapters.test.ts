@@ -2,6 +2,7 @@ import { test, expect } from "vitest";
 
 import { adaptGroupPreferences, adaptLeaderSession } from "./fetchLeaderPortal";
 import { adaptLecturerAvailability, adaptLecturerSession, adaptSupervisedProject } from "./fetchLecturerPortal";
+import { SENIORITY_META, TOPIC_TYPE_META, topicTypeLabel } from "@/lib/utils/masterDataLabels";
 
 test("adaptGroupPreferences flattens BE timeslots in Vietnam time", () => {
   expect(
@@ -123,6 +124,7 @@ test("adaptSupervisedProject maps group with leader and members, nulls out field
     code: "PRJ001",
     titleVi: "Demo project",
     titleEn: null,
+    topicType: "REGULAR",
     supervisorRole: "MAIN",
     group: {
       id: "7",
@@ -156,6 +158,7 @@ test("adaptSupervisedProject keeps group null when BE hasn't formed a group yet"
     code: "PRJ002",
     titleVi: "Demo project 2",
     titleEn: null,
+    topicType: "REGULAR",
     supervisorRole: "CO",
     group: null,
     projectStatus: "ACTIVE",
@@ -163,4 +166,13 @@ test("adaptSupervisedProject keeps group null when BE hasn't formed a group yet"
     latestResult: null,
     remediation: null,
   });
+});
+
+test("master-data labels preserve all topic types and seniority semantics", () => {
+  expect(Object.keys(TOPIC_TYPE_META)).toEqual(["APPLICATION", "RESEARCH", "INTEGRATED", "REGULAR"]);
+  expect(topicTypeLabel(undefined)).toBe("Thường");
+  expect(topicTypeLabel("APPLICATION")).toBe("Ứng dụng");
+  expect(topicTypeLabel("INTEGRATED")).toBe("Tích hợp");
+  expect(SENIORITY_META.Senior.description).toBe("Lâu năm, nhiều kinh nghiệm");
+  expect(SENIORITY_META.Rookie.description).toBe("Người mới, chưa từng ngồi hội đồng");
 });

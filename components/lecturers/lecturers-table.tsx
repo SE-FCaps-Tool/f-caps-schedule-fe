@@ -1,16 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { TriangleAlert } from "lucide-react";
+import { MoreHorizontal, Pencil, TriangleAlert } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useUpdateAccountStatus } from "@/hooks/admin/useAccounts";
 import { ReasonDialog } from "@/components/shared/reason-dialog";
 import type { LecturerApiItem } from "@/lib/api/services/fetchLecturers";
+import { seniorityLabel } from "@/lib/utils/masterDataLabels";
+import { EditLecturerSeniorityDialog } from "./edit-lecturer-seniority-dialog";
 
 export function LecturersTable({ lecturers }: { lecturers: LecturerApiItem[] }) {
   const [pending, setPending] = useState<LecturerApiItem | null>(null);
+  const [editing, setEditing] = useState<LecturerApiItem | null>(null);
   const updateStatus = useUpdateAccountStatus();
 
   if (lecturers.length === 0) {
@@ -26,6 +31,7 @@ export function LecturersTable({ lecturers }: { lecturers: LecturerApiItem[] }) 
               <TableHead className="pl-4">Mã GV</TableHead>
               <TableHead>Họ tên</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Kinh nghiệm</TableHead>
               <TableHead>Xung đột</TableHead>
               <TableHead className="pr-4 text-right">Hoạt động</TableHead>
             </TableRow>
@@ -36,6 +42,9 @@ export function LecturersTable({ lecturers }: { lecturers: LecturerApiItem[] }) 
                 <TableCell className="pl-4 font-mono text-xs font-medium">{lecturer.lecturerCode}</TableCell>
                 <TableCell className="font-medium">{lecturer.displayName}</TableCell>
                 <TableCell className="text-muted-foreground">{lecturer.email}</TableCell>
+                <TableCell>
+                  <span className="text-sm">{seniorityLabel(lecturer.seniorityLevel)}</span>
+                </TableCell>
                 <TableCell>
                   {lecturer.conflicts.length > 0 ? (
                     <Tooltip>
@@ -62,11 +71,28 @@ export function LecturersTable({ lecturers }: { lecturers: LecturerApiItem[] }) 
                   )}
                 </TableCell>
                 <TableCell className="pr-4 text-right">
-                  <Switch
-                    checked={lecturer.accountStatus === "ACTIVE"}
-                    onCheckedChange={() => setPending(lecturer)}
-                    aria-label={`${lecturer.accountStatus === "ACTIVE" ? "Vô hiệu hóa" : "Kích hoạt"} ${lecturer.displayName}`}
-                  />
+                  <div className="inline-flex items-center gap-2">
+                    <Switch
+                      checked={lecturer.accountStatus === "ACTIVE"}
+                      onCheckedChange={() => setPending(lecturer)}
+                      aria-label={`${lecturer.accountStatus === "ACTIVE" ? "Vô hiệu hóa" : "Kích hoạt"} ${lecturer.displayName}`}
+                    />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button variant="ghost" size="icon-sm" aria-label={`Hành động với ${lecturer.displayName}`}>
+                            <MoreHorizontal />
+                          </Button>
+                        }
+                      />
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setEditing(lecturer)}>
+                          <Pencil />
+                          Sửa kinh nghiệm
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -88,6 +114,12 @@ export function LecturersTable({ lecturers }: { lecturers: LecturerApiItem[] }) 
           });
           setPending(null);
         }}
+      />
+      <EditLecturerSeniorityDialog
+        key={editing?.id ?? "no-lecturer"}
+        lecturer={editing}
+        open={editing !== null}
+        onOpenChange={(open) => !open && setEditing(null)}
       />
     </>
   );

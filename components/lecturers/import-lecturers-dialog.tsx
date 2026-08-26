@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { useImportLecturers } from "@/hooks/useLecturers";
 import type { LecturerImportResponse } from "@/lib/api/services/fetchLecturers";
+import { seniorityLabel } from "@/lib/utils/masterDataLabels";
 
 async function copyToClipboard(value: string) {
   try {
@@ -71,6 +72,7 @@ function ResultSummary({ result }: { result: LecturerImportResponse }) {
                 <TableRow>
                   <TableHead>Mã GV</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Kinh nghiệm</TableHead>
                   <TableHead>Mật khẩu tạm</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
@@ -80,6 +82,7 @@ function ResultSummary({ result }: { result: LecturerImportResponse }) {
                   <TableRow key={account.lecturerId}>
                     <TableCell className="font-medium">{account.lecturerCode}</TableCell>
                     <TableCell className="text-muted-foreground">{account.email}</TableCell>
+                    <TableCell>{seniorityLabel(account.seniorityLevel)}</TableCell>
                     <TableCell className="font-mono text-xs">{account.tempPassword}</TableCell>
                     <TableCell>
                       <Button
@@ -160,8 +163,9 @@ export function ImportLecturersDialog() {
         <DialogHeader icon={FileSpreadsheet} iconTone="emerald">
           <DialogTitle>Import giảng viên từ Excel</DialogTitle>
           <DialogDescription>
-            Dùng đúng mẫu lecturers_template.xlsx (cột STT, Mã giảng viên, Họ và tên, Email). Mỗi
-            dòng hợp lệ sẽ tạo một tài khoản giảng viên với mật khẩu tạm được sinh tự động.
+            Dùng mẫu lecturers_template.xlsx (cột STT, Mã giảng viên, Họ và tên, Email; có thể thêm cột Mức độ kinh nghiệm).
+            Cột thêm nhận Senior, MidLevel, Junior hoặc Rookie; để trống sẽ là Chưa xét. Mỗi dòng hợp lệ sẽ tạo một tài khoản
+            giảng viên với mật khẩu tạm được sinh tự động.
           </DialogDescription>
         </DialogHeader>
 

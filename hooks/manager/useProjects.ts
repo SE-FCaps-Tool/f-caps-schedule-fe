@@ -57,7 +57,7 @@ export function useCreateProject(semesterId?: number | null) {
   });
 }
 
-/** PATCH /projects/:projectId — cập nhật GVHD của đề tài */
+/** PATCH /projects/:projectId — cập nhật metadata/GVHD của đề tài */
 export function useUpdateProject() {
   const queryClient = useQueryClient();
 
@@ -68,10 +68,10 @@ export function useUpdateProject() {
       await queryClient.invalidateQueries({ queryKey: ["manager", "projects"] });
       await queryClient.invalidateQueries({ queryKey: ["manager", "project", variables.projectId] });
       await queryClient.invalidateQueries({ queryKey: ["manager", "dashboard"] });
-      toast.success("Đã cập nhật GVHD đề tài");
+      toast.success("Đã cập nhật đề tài");
     },
     onError: (error: ApiError) => {
-      toast.error(friendlyErrorMessage(error, "Không cập nhật được GVHD"));
+      toast.error(friendlyErrorMessage(error, "Không cập nhật được đề tài"));
     },
   });
 }

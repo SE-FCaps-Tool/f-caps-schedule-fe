@@ -2,7 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { fetchLecturers, type LecturerCreatePayload, type LecturerListParams } from "@/lib/api/services/fetchLecturers";
+import {
+  fetchLecturers,
+  type LecturerCreatePayload,
+  type LecturerListParams,
+  type LecturerUpdatePayload,
+} from "@/lib/api/services/fetchLecturers";
 import { adminKeys } from "@/lib/api/adminQueryKeys";
 import type { ApiError } from "@/types/api";
 
@@ -51,6 +56,25 @@ export function useCreateLecturer() {
         return;
       }
       toast.error(error.message || "Không thêm được giảng viên");
+    },
+  });
+}
+
+export function useUpdateLecturer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ lecturerId, payload }: { lecturerId: number; payload: LecturerUpdatePayload }) =>
+      fetchLecturers.update(lecturerId, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.lecturers });
+      await queryClient.invalidateQueries({ queryKey: ["manager", "lecturers"] });
+      await queryClient.invalidateQueries({ queryKey: adminKeys.accounts });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
+      toast.success("Đã cập nhật mức độ kinh nghiệm giảng viên");
+    },
+    onError: (error: ApiError) => {
+      toast.error(error.message || "Không cập nhật được mức độ kinh nghiệm");
     },
   });
 }

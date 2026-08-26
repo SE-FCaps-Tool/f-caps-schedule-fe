@@ -18,6 +18,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCreateAccount } from "@/hooks/admin/useAccounts";
 import { ROLE_ADMIN, ROLE_MANAGER, ROLE_LECTURER, ROLE_STUDENT, type UserRole } from "@/lib/types/roles";
 import { ROLE_LABEL_VI } from "@/lib/utils/roleLabels";
+import {
+  SENIORITY_NONE_VALUE,
+  SENIORITY_OPTIONS,
+  type LecturerSeniorityLevel,
+  seniorityLabel,
+} from "@/lib/utils/masterDataLabels";
 
 const ROLE_OPTIONS: UserRole[] = [ROLE_ADMIN, ROLE_MANAGER, ROLE_LECTURER, ROLE_STUDENT];
 
@@ -29,6 +35,7 @@ export function CreateAccountDialog() {
   const [role, setRole] = useState<UserRole | null>(ROLE_LECTURER);
   const [lecturerCode, setLecturerCode] = useState("");
   const [studentCode, setStudentCode] = useState("");
+  const [seniorityLevel, setSeniorityLevel] = useState<LecturerSeniorityLevel | null>(null);
   const { mutate, isPending } = useCreateAccount();
 
   const canSave =
@@ -48,6 +55,7 @@ export function CreateAccountDialog() {
         password,
         role,
         lecturerCode: role === ROLE_LECTURER ? lecturerCode.trim() : undefined,
+        seniorityLevel: role === ROLE_LECTURER ? seniorityLevel : undefined,
         studentCode: role === ROLE_STUDENT ? studentCode.trim() : undefined,
       },
       {
@@ -58,6 +66,7 @@ export function CreateAccountDialog() {
           setPassword("");
           setLecturerCode("");
           setStudentCode("");
+          setSeniorityLevel(null);
           setRole(ROLE_LECTURER);
         },
       }
@@ -105,7 +114,13 @@ export function CreateAccountDialog() {
           </div>
           <div className="space-y-1.5">
             <Label>Vai trò</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
+            <Select
+              value={role}
+              onValueChange={(v) => {
+                setRole(v as UserRole);
+                if (v !== ROLE_LECTURER) setSeniorityLevel(null);
+              }}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Chọn vai trò">{(v: UserRole) => ROLE_LABEL_VI[v]}</SelectValue>
               </SelectTrigger>
@@ -119,15 +134,40 @@ export function CreateAccountDialog() {
             </Select>
           </div>
           {role === ROLE_LECTURER && (
-            <div className="space-y-1.5">
-              <Label htmlFor="new-account-lecturer-code">Mã giảng viên</Label>
-              <Input
-                id="new-account-lecturer-code"
-                placeholder="GV001"
-                value={lecturerCode}
-                onChange={(e) => setLecturerCode(e.target.value)}
-              />
-            </div>
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="new-account-lecturer-code">Mã giảng viên</Label>
+                <Input
+                  id="new-account-lecturer-code"
+                  placeholder="GV001"
+                  value={lecturerCode}
+                  onChange={(e) => setLecturerCode(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Mức độ kinh nghiệm</Label>
+                <Select
+                  value={seniorityLevel ?? SENIORITY_NONE_VALUE}
+                  onValueChange={(value) =>
+                    setSeniorityLevel(value === SENIORITY_NONE_VALUE ? null : (value as LecturerSeniorityLevel))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Chọn mức độ kinh nghiệm">
+                      {(value: string) => seniorityLabel(value === SENIORITY_NONE_VALUE ? null : (value as LecturerSeniorityLevel))}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SENIORITY_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <span>{option.label}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">{option.description}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
           )}
           {role === ROLE_STUDENT && (
             <div className="space-y-1.5">

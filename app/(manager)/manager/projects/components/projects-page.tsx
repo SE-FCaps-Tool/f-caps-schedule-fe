@@ -7,6 +7,7 @@ import { FilePlus2, MoreHorizontal, Pencil, Search, Upload, UserRoundPlus, WifiO
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -26,6 +27,11 @@ import { useSemesterContext } from "../../_shared/semester-context";
 import { useProjects, useCreateProject, useUpdateProject } from "@/hooks/manager/useProjects";
 import { useLecturersInfinite } from "@/hooks/manager/useLecturers";
 import type { ProjectListItem } from "@/lib/api/services/fetchProjects";
+import {
+  TOPIC_TYPE_OPTIONS,
+  type TopicType,
+  topicTypeLabel,
+} from "@/lib/utils/masterDataLabels";
 import type { LecturerApiItem } from "@/lib/api/services/fetchLecturers";
 import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
@@ -122,6 +128,7 @@ function CreateProjectDialog({
   const [nameEn, setNameEn] = useState("");
   const [mainLecturerId, setMainLecturerId] = useState("");
   const [coLecturerId, setCoLecturerId] = useState("");
+  const [topicType, setTopicType] = useState<TopicType>("REGULAR");
 
   function reset() {
     setCode("");
@@ -129,6 +136,7 @@ function CreateProjectDialog({
     setNameEn("");
     setMainLecturerId("");
     setCoLecturerId("");
+    setTopicType("REGULAR");
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -141,6 +149,7 @@ function CreateProjectDialog({
         nameEn: nameEn.trim() || undefined,
         mainSupervisorId: mainLecturerId,
         coSupervisorId: coLecturerId || undefined,
+        topicType,
       },
       {
         onSuccess: () => {
@@ -172,6 +181,24 @@ function CreateProjectDialog({
             <div className="space-y-1.5">
               <Label>Tên đề tài (Tiếng Anh, tùy chọn)</Label>
               <Input value={nameEn} onChange={(e) => setNameEn(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Loại đề tài</Label>
+              <Select value={topicType} onValueChange={(value) => setTopicType(value as TopicType)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn loại đề tài">
+                    {(value: TopicType) => topicTypeLabel(value)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {TOPIC_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <span>{option.label}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{option.description}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <SupervisorPicker
               mainLecturerId={mainLecturerId}
@@ -208,6 +235,7 @@ function EditProjectSupervisorsDialog({
   const updateProject = useUpdateProject();
   const [mainLecturerId, setMainLecturerId] = useState(() => toLecturerSelectValue(project?.mainSupervisor?.id));
   const [coLecturerId, setCoLecturerId] = useState(() => toLecturerSelectValue(project?.coSupervisor?.id));
+  const [topicType, setTopicType] = useState<TopicType>(() => project?.topicType ?? "REGULAR");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -218,6 +246,7 @@ function EditProjectSupervisorsDialog({
         payload: {
           mainSupervisorId: mainLecturerId,
           coSupervisorId: coLecturerId || undefined,
+          topicType,
         },
       },
       { onSuccess: () => onOpenChange(false) }
@@ -229,12 +258,30 @@ function EditProjectSupervisorsDialog({
       <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto sm:max-w-lg">
         <form onSubmit={handleSubmit}>
           <DialogHeader icon={UserRoundPlus} iconTone="sky">
-            <DialogTitle>Gán giảng viên cho đề tài</DialogTitle>
+            <DialogTitle>Cập nhật đề tài</DialogTitle>
             <DialogDescription>
               {project ? `${project.code} — ${project.nameVi}` : "Chọn giảng viên hướng dẫn chính và phụ."}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="space-y-4 py-4">
+            <div className="space-y-1.5">
+              <Label>Loại đề tài</Label>
+              <Select value={topicType} onValueChange={(value) => setTopicType(value as TopicType)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn loại đề tài">
+                    {(value: TopicType) => topicTypeLabel(value)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {TOPIC_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <span>{option.label}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{option.description}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <SupervisorPicker
               mainLecturerId={mainLecturerId}
               coLecturerId={coLecturerId}
@@ -246,7 +293,7 @@ function EditProjectSupervisorsDialog({
           </div>
           <DialogFooter>
             <Button type="submit" disabled={updateProject.isPending || !project || !mainLecturerId}>
-              {updateProject.isPending ? "Đang lưu..." : "Lưu GVHD"}
+              {updateProject.isPending ? "Đang lưu..." : "Lưu thay đổi"}
             </Button>
           </DialogFooter>
         </form>
@@ -377,7 +424,14 @@ export function ProjectsPage() {
                       <TableCell>
                         <Tooltip>
                           <TooltipTrigger
-                            render={<span className="block truncate font-medium text-foreground">{project.nameEn?.trim() || project.nameVi}</span>}
+                            render={
+                              <div>
+                                <span className="block truncate font-medium text-foreground">{project.nameEn?.trim() || project.nameVi}</span>
+                                <span className="mt-1 inline-flex rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                  {topicTypeLabel(project.topicType)}
+                                </span>
+                              </div>
+                            }
                           />
                           <TooltipContent className="rounded-md border border-border bg-popover text-popover-foreground shadow-md">
                             {project.nameVi}

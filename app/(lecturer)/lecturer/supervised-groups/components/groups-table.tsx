@@ -13,6 +13,7 @@ import {
   REMEDIATION_STATUS_META,
 } from "../../_shared/labels";
 import { toneBadgeClass } from "./tone";
+import { topicTypeLabel } from "@/lib/utils/masterDataLabels";
 
 const colDivider = "border-r border-border";
 
@@ -65,9 +66,14 @@ export function GroupsTable({ projects }: { projects: SupervisedProject[] }) {
                       {project.supervisorRole === "MAIN" ? "Chính" : "Đồng HD"}
                     </span>
                   </div>
-                  <p className="mt-0.5 max-w-72 truncate text-sm text-muted-foreground" title={project.titleVi}>
-                    {project.titleEn?.trim() || project.titleVi}
-                  </p>
+                  <div className="mt-0.5 flex max-w-72 items-center gap-2">
+                    <p className="truncate text-sm text-muted-foreground" title={project.titleVi}>
+                      {project.titleEn?.trim() || project.titleVi}
+                    </p>
+                    <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      {topicTypeLabel(project.topicType)}
+                    </span>
+                  </div>
                 </TableCell>
 
                 <TableCell className={colDivider}>
