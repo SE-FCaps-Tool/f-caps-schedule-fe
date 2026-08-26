@@ -112,6 +112,12 @@ type ActiveEditor = {
   sessionId?: string;
 };
 
+type VersionConfirmation = {
+  action: "copy" | "delete";
+  versionId: number;
+  versionNo: number;
+};
+
 
 function blockersFromPublishError(error: unknown): ManualBlocker[] {
   if (!isRecord(error)) return [];
@@ -499,6 +505,7 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
     [storedVersions],
   );
   const [copyingVersionId, setCopyingVersionId] = useState<number | null>(null);
+  const [versionConfirmation, setVersionConfirmation] = useState<VersionConfirmation | null>(null);
   const publishPending = publishMutation.isPending;
   const scheduleInteractionLocked =
     manualBoardQuery.isLoading || copyingVersionId !== null || bulkUpsertMutation.isPending;
@@ -953,10 +960,7 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
     }
   }
 
-  async function selectVersion(versionId: number, versionNo: number) {
-    if (!canPublishManualSchedule || copyingVersionId !== null) return;
-    if (!window.confirm(`Thay thế lịch tay hiện tại bằng V${versionNo}? Lịch tay hiện tại sẽ bị ghi đè.`)) return;
-
+  async function copyVersion(versionId: number) {
     closeEditor();
     setCopyingVersionId(versionId);
     try {
@@ -971,6 +975,7 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
         clientRevision: latestManualBoard.revision,
         allowDraftIncomplete: true,
         deletedSessionIds: latestManualBoard.sessions.map((session) => session.id),
+        sourceVersionId: versionId,
         sessions: selectedVersionDetail.assignments.map((assignment) => {
           const reviewerIds = [
             ...assignment.resultOwnerIds,
@@ -1005,8 +1010,7 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
     }
   }
 
-  async function deleteVersion(versionId: number, versionNo: number) {
-    if (!window.confirm(`Xóa V${versionNo}? Phương án nháp này sẽ không thể khôi phục.`)) return;
+  async function removeVersion(versionId: number) {
     try {
       await deleteVersionMutation.mutateAsync({
         versionId,
@@ -1016,6 +1020,27 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
     } catch {
       // Mutation hook surfaces the server error.
     }
+  }
+
+  function requestCopyVersion(versionId: number, versionNo: number) {
+    if (!canPublishManualSchedule || copyingVersionId !== null || deleteVersionMutation.isPending) return;
+    setVersionConfirmation({ action: "copy", versionId, versionNo });
+  }
+
+  function requestDeleteVersion(versionId: number, versionNo: number) {
+    if (copyingVersionId !== null || deleteVersionMutation.isPending) return;
+    setVersionConfirmation({ action: "delete", versionId, versionNo });
+  }
+
+  async function confirmVersionAction() {
+    const pending = versionConfirmation;
+    if (!pending || copyingVersionId !== null || deleteVersionMutation.isPending) return;
+    setVersionConfirmation(null);
+    if (pending.action === "copy") {
+      await copyVersion(pending.versionId);
+      return;
+    }
+    await removeVersion(pending.versionId);
   }
 
   function updateRoom(roomId: string | null) {
@@ -1151,8 +1176,8 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
                 >
                   <button
                     type="button"
-                    onClick={() => selectVersion(version.id, version.versionNo)}
-                    disabled={copyingVersionId !== null || !canPublishManualSchedule}
+                    onClick={() => requestCopyVersion(version.id, version.versionNo)}
+                    disabled={copyingVersionId !== null || deleteVersionMutation.isPending || !canPublishManualSchedule}
                     className="px-2.5 py-1.5 text-left font-medium hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {copyingVersionId === version.id ? "Đang chép…" : `V${version.versionNo} · ${version.objectiveLabel ?? "Phương án"} · ${scheduledCount} nhóm`}
@@ -1163,7 +1188,7 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
                       type="button"
                       aria-label={`Xóa version V${version.versionNo}`}
                       title="Xóa phương án nháp"
-                      onClick={() => deleteVersion(version.id, version.versionNo)}
+                      onClick={() => requestDeleteVersion(version.id, version.versionNo)}
                       disabled={scheduleInteractionLocked || deleteVersionMutation.isPending}
                       className="border-l border-border/70 px-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
                     >
@@ -1561,6 +1586,62 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
                   }
                 >
                   Lưu{draft.groupIds.length > 0 ? ` (${draft.groupIds.length} nhóm)` : ""}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={versionConfirmation !== null}
+        onOpenChange={(open) => {
+          if (!open && copyingVersionId === null && !deleteVersionMutation.isPending) {
+            setVersionConfirmation(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          {versionConfirmation && (
+            <>
+              <DialogHeader
+                icon={versionConfirmation.action === "delete" ? Trash2 : Sparkles}
+                iconTone={versionConfirmation.action === "delete" ? "destructive" : "primary"}
+              >
+                <DialogTitle>
+                  {versionConfirmation.action === "delete"
+                    ? `Xóa phương án V${versionConfirmation.versionNo}?`
+                    : `Chép phương án V${versionConfirmation.versionNo} vào lịch tay?`}
+                </DialogTitle>
+                <DialogDescription>
+                  {versionConfirmation.action === "delete"
+                    ? "Phương án nháp và dữ liệu lịch thuộc phương án sẽ bị xóa. Nếu phương án này đã được chép vào lịch tay, toàn bộ lịch tay liên kết cũng sẽ được dọn. Thao tác này không thể hoàn tác."
+                    : "Toàn bộ lịch tay hiện tại sẽ được xóa trong một lần và thay bằng các nhóm, khung giờ, phòng và reviewer của phương án đã chọn."}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className={cn(
+                "rounded-lg border px-3 py-2.5 text-sm leading-5",
+                versionConfirmation.action === "delete"
+                  ? "border-destructive/20 bg-destructive/5 text-destructive"
+                  : "border-primary/20 bg-primary/5 text-foreground",
+              )}>
+                {versionConfirmation.action === "delete"
+                  ? "Các phiên lịch đã materialize và bản nháp lịch tay được chép từ version này sẽ không còn được giữ lại."
+                  : "Nếu bạn đang chỉnh lịch tay, mọi phiên hiện tại sẽ bị thay thế bằng dữ liệu của version này."}
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setVersionConfirmation(null)}>
+                  Hủy
+                </Button>
+                <Button
+                  type="button"
+                  variant={versionConfirmation.action === "delete" ? "destructive" : "default"}
+                  onClick={() => void confirmVersionAction()}
+                  disabled={copyingVersionId !== null || deleteVersionMutation.isPending}
+                >
+                  {versionConfirmation.action === "delete" ? "Xóa phương án" : "Chép vào lịch tay"}
                 </Button>
               </DialogFooter>
             </>

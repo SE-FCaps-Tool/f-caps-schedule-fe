@@ -118,12 +118,29 @@ export function useActivateVersion() {
 
 export function useDeleteScheduleVersion() {
   const invalidate = useInvalidateAfterScheduleChange();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ versionId, semesterId }: { versionId: number; roundId: number; semesterId?: number | null }) =>
       fetchScheduling.deleteVersion(versionId, semesterId),
     onSuccess: async (_data, variables) => {
       await invalidate(variables.roundId);
+      // Do not leave a deleted version or its session list in React Query. This
+      // matters when the manager deletes a version while another schedule view
+      // for the same round is still mounted.
+      await queryClient.removeQueries({ queryKey: managerKeys.scheduleVersion(variables.versionId) });
+      await queryClient.removeQueries({
+        queryKey: ["manager", "round", String(variables.roundId), "sessions", String(variables.versionId)],
+      });
+      await queryClient.removeQueries({
+        queryKey: ["manager", "round", variables.roundId, "sessions", String(variables.versionId)],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["manager", "round", String(variables.roundId), "manual-schedule"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["manager", "round", variables.roundId, "manual-schedule"],
+      });
       toast.success("Đã xóa phương án nháp");
     },
     onError: (error: ApiError) => {

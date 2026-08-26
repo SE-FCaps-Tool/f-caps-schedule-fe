@@ -61,6 +61,7 @@ export interface ManualScheduleBoard {
   reviewerCount: number;
   maxGroupsPerTimeslot: number | null;
   revision: number;
+  sourceVersionId: number | null;
   roles: Array<{ key: ManualReviewerRole; label: string; order: number }>;
   config: {
     roomTypes: string[];
@@ -153,6 +154,7 @@ export interface ManualScheduleBulkUpsertPayload {
   clientRevision?: number | null;
   allowDraftIncomplete?: boolean;
   deletedSessionIds?: Array<string | number>;
+  sourceVersionId?: number | null;
   sessions: Array<Omit<ManualScheduleSessionPayload, "clientRevision">>;
 }
 
