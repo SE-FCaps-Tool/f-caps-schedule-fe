@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -477,24 +478,34 @@ export function GroupsPage() {
           </div>
         )}
         {groupsResult && (
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <Table className="min-w-[920px]">
+          <div className="rounded-lg border border-border">
+            <Table className="min-w-[1360px] table-fixed">
+              <colgroup>
+                <col className="w-[170px]" />
+                <col className="w-[128px]" />
+                <col className="w-[420px]" />
+                <col className="w-[138px]" />
+                <col className="w-[280px]" />
+                <col className="w-[110px]" />
+                <col className="w-[88px]" />
+              </colgroup>
               <TableHeader>
                 <TableRow>
                   <TableHead className="pl-4">Nhóm</TableHead>
                   <TableHead>Mã đề tài</TableHead>
                   <TableHead>Đề tài</TableHead>
-                  <TableHead>TV / Leader</TableHead>
-                  <TableHead>Cảnh báo</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead>Leader</TableHead>
+                  <TableHead>Thành viên</TableHead>
                   <TableHead className="pr-4 text-right">
-                    <span className="sr-only">Hành động</span>
+                    <span className="sr-only">Cảnh báo và hành động</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                       Chưa có nhóm nào khớp tìm kiếm.
                     </TableCell>
                   </TableRow>
@@ -503,6 +514,7 @@ export function GroupsPage() {
                   const projectStateMeta = group.project
                     ? PROJECT_STATUS_META[group.project.status as ProjectProgressState]
                     : null;
+                  const warningMessage = group.warnings.map((warning) => warning.message).join("; ");
                   return (
                     <TableRow
                       key={group.id}
@@ -530,58 +542,71 @@ export function GroupsPage() {
                       </TableCell>
                       <TableCell className="max-w-[28rem] text-xs">
                         {group.project ? (
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <p className="truncate font-medium text-foreground" title={group.project.name}>
-                                {group.project.name}
-                              </p>
-                              {projectStateMeta && <StatusDot tone={projectStateMeta.tone} label={projectStateMeta.label} />}
-                            </div>
-                          </div>
+                          <p className="truncate text-sm font-medium text-foreground" title={group.project.name}>
+                            {group.project.name}
+                          </p>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="max-w-[280px]">
-                        <div className="flex min-w-0 items-center gap-2">
-                          {group.leader ? (
-                            <span className="truncate font-medium text-foreground" title={group.leader.fullName}>{group.leader.fullName}</span>
-                          ) : (
-                            <span className="text-amber-600 dark:text-amber-400">Chưa có leader</span>
-                          )}
-                          <span className="text-muted-foreground/50" aria-hidden="true">·</span>
-                          <span className={`shrink-0 tabular-nums ${group.memberCount < 4 ? "font-medium text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
-                            {group.memberCount} TV
-                          </span>
-                        </div>
-                      </TableCell>
                       <TableCell>
-                        {group.warnings.length > 0 ? (
-                          <span className="inline-flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
-                            <AlertTriangle className="size-3.5 shrink-0" />
-                            {group.warnings.map((w) => w.message).join("; ")}
-                          </span>
+                        {projectStateMeta ? (
+                          <StatusDot tone={projectStateMeta.tone} label={projectStateMeta.label} className="text-xs" />
                         ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
+                          <span className="text-sm text-muted-foreground">Chưa gắn</span>
                         )}
                       </TableCell>
+                      <TableCell>
+                        {group.leader ? (
+                          <span className="block truncate font-medium text-foreground" title={group.leader.fullName}>
+                            {group.leader.fullName}
+                          </span>
+                        ) : (
+                          <span className="text-amber-600 dark:text-amber-400">Chưa có leader</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`tabular-nums ${group.memberCount < 4 ? "font-medium text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+                          {group.memberCount} TV
+                        </span>
+                      </TableCell>
                       <TableCell className="pr-4 text-right" onClick={(event) => event.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            render={
-                              <Button variant="ghost" size="icon-sm" aria-label="Hành động">
-                                <MoreHorizontal />
-                              </Button>
-                            }
-                          />
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setAssignTarget(group)} disabled={group.status === "DISBANDED"}>
-                              {group.project ? "Đổi đề tài" : "Gắn đề tài"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setLeaderTarget(group)}>Gán/đổi Leader</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setLeaveTarget(group)}>Đánh dấu rời nhóm</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center justify-end gap-1">
+                          {warningMessage && (
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <button
+                                    type="button"
+                                    aria-label={`Cảnh báo: ${warningMessage}`}
+                                    className="inline-flex size-7 items-center justify-center rounded-md text-amber-600 transition-colors hover:bg-amber-100 hover:text-amber-700 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none dark:text-amber-400 dark:hover:bg-amber-950/40 dark:hover:text-amber-300"
+                                  />
+                                }
+                              >
+                                <AlertTriangle className="size-4" aria-hidden="true" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs text-left leading-5">
+                                {warningMessage}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={
+                                <Button variant="ghost" size="icon-sm" aria-label="Hành động">
+                                  <MoreHorizontal />
+                                </Button>
+                              }
+                            />
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setAssignTarget(group)} disabled={group.status === "DISBANDED"}>
+                                {group.project ? "Đổi đề tài" : "Gắn đề tài"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setLeaderTarget(group)}>Gán/đổi Leader</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setLeaveTarget(group)}>Đánh dấu rời nhóm</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

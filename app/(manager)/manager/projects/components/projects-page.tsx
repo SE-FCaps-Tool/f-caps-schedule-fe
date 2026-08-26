@@ -331,14 +331,24 @@ export function ProjectsPage() {
         )}
         {projectsResult && (
           <div className="overflow-hidden rounded-lg border border-border">
-            <Table>
+            <Table className="min-w-[1446px] table-fixed">
+              <colgroup>
+                <col className="w-[150px]" />
+                <col className="w-[440px]" />
+                <col className="w-[235px]" />
+                <col className="w-[235px]" />
+                <col className="w-[180px]" />
+                <col className="w-[150px]" />
+                <col className="w-[56px]" />
+              </colgroup>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-px pl-4 whitespace-nowrap">Mã đề tài</TableHead>
-                  <TableHead className="w-1/2">Tên đề tài</TableHead>
-                  <TableHead>GVHD</TableHead>
-                  <TableHead className="w-px whitespace-nowrap">Nhóm</TableHead>
-                  <TableHead className="w-px whitespace-nowrap">Trạng thái</TableHead>
+                  <TableHead className="pl-4">Mã đề tài</TableHead>
+                  <TableHead>Tên đề tài</TableHead>
+                  <TableHead>GVHD 1</TableHead>
+                  <TableHead>GVHD 2</TableHead>
+                  <TableHead>Nhóm</TableHead>
+                  <TableHead>Trạng thái</TableHead>
                   <TableHead className="pr-4 text-right">
                     <span className="sr-only">Hành động</span>
                   </TableHead>
@@ -347,7 +357,7 @@ export function ProjectsPage() {
               <TableBody>
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                       Chưa có đề tài nào khớp tìm kiếm.
                     </TableCell>
                   </TableRow>
@@ -356,28 +366,46 @@ export function ProjectsPage() {
                   const stateMeta = PROJECT_STATUS_META[project.status as ProjectProgressState];
                   return (
                     <TableRow key={project.id}>
-                      <TableCell className="w-px pl-4 p-0 whitespace-nowrap">
-                        <Link href={`/manager/projects/${project.id}`} className="block px-4 py-2 font-mono text-xs font-medium">
+                      <TableCell className="pl-4 font-mono text-xs font-medium">
+                        <Link
+                          href={`/manager/projects/${project.id}`}
+                          className="rounded-sm hover:text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                        >
                           {project.code}
                         </Link>
                       </TableCell>
-                      <TableCell className="max-w-0 py-2.5 font-medium whitespace-normal">
+                      <TableCell>
                         <Tooltip>
                           <TooltipTrigger
-                            render={<span className="block break-words">{project.nameEn?.trim() || project.nameVi}</span>}
+                            render={<span className="block truncate font-medium text-foreground">{project.nameEn?.trim() || project.nameVi}</span>}
                           />
                           <TooltipContent className="rounded-md border border-border bg-popover text-popover-foreground shadow-md">
                             {project.nameVi}
                           </TooltipContent>
                         </Tooltip>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {project.mainSupervisor
-                          ? `${project.mainSupervisor.fullName}${project.coSupervisor ? ` + ${project.coSupervisor.fullName}` : ""}`
-                          : "—"}
+                      <TableCell>
+                        {project.mainSupervisor ? (
+                          <span className="block truncate text-muted-foreground" title={project.mainSupervisor.fullName}>
+                            {project.mainSupervisor.fullName}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/60">—</span>
+                        )}
                       </TableCell>
-                      <TableCell className="w-px font-mono text-xs whitespace-nowrap text-muted-foreground">{project.group?.code ?? "—"}</TableCell>
-                      <TableCell className="w-px whitespace-nowrap">
+                      <TableCell>
+                        {project.coSupervisor ? (
+                          <span className="block truncate text-muted-foreground" title={project.coSupervisor.fullName}>
+                            {project.coSupervisor.fullName}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/60">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {project.group?.code ?? "—"}
+                      </TableCell>
+                      <TableCell>
                         <StatusDot tone={stateMeta.tone} label={stateMeta.label} />
                       </TableCell>
                       <TableCell className="pr-4 text-right">
