@@ -67,6 +67,18 @@ Google và password dùng chung luồng:
 `session_role` không phải cơ chế phân quyền. Backend luôn kiểm tra role gắn trong session và
 membership hiện tại của account.
 
+**Đổi role giữa chừng (không cần logout):** `POST /api/v1/auth/select-role` cũng chấp nhận được
+gọi khi đã có session hợp lệ (không cần `login_challenge` cookie) — dùng để chuyển account
+multi-role sang role khác mà không cần đăng xuất. Cùng validate role thuộc account, cùng response
+shape; khác biệt duy nhất: session cũ bị revoke ngay khi switch thành công. `fetchAuth.selectRole`
+(FE) dùng chung cho cả 2 trường hợp.
+
+**CSRF cho `/auth/select-role`:** phụ thuộc việc đã có `scheduler_session` cookie hay chưa —
+middleware chỉ miễn CSRF khi request **chưa có** session cookie (lần đăng nhập đầu tiên, chỉ có
+`login_challenge` cookie). Nếu đã có session cookie (switch role, hoặc re-login trong khi tab khác
+vẫn còn phiên sống), CSRF token bắt buộc. `apiService` (FE) tự đính `X-CSRF-Token` cho mọi
+mutating call khi cookie `scheduler_csrf` tồn tại nên không cần xử lý riêng ở call site.
+
 Google vẫn dùng callback URL và scope hiện tại; không cần đổi Google Console nếu các biến
 `GOOGLE_REDIRECT_URI` và `FRONTEND_URL` giữ nguyên.
 

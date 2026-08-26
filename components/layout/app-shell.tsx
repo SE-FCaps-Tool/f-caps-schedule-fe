@@ -40,6 +40,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
+import { RoleSwitchMenuItems } from "@/components/layout/role-switch-menu-items";
 import { useLecturerInvitations } from "@/hooks/lecturer/useLecturerPortal";
 import { ROLE_LABEL_EN } from "@/lib/utils/roleLabels";
 import { ROLE_ADMIN, ROLE_MANAGER, ROLE_LECTURER, ROLE_STUDENT, type UserRole } from "@/lib/types/roles";
@@ -332,6 +333,7 @@ function UserMenu({
             Cài đặt
           </DropdownMenuItem>
         </DropdownMenuGroup>
+        <RoleSwitchMenuItems />
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem variant="destructive" onClick={onLogout}>

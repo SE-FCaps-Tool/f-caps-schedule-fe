@@ -8,12 +8,14 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { fetchAuth } from "@/lib/api/services/fetchAuth";
+import { authKeys } from "@/hooks/useAuth";
 import type { UserRole } from "@/lib/types/roles";
 import { ROLE_HOME } from "@/lib/types/roles";
 import { ROLE_LABEL_VI } from "@/lib/utils/roleLabels";
 import { SESSION_ROLE_COOKIE } from "@/lib/constants/auth";
 import { getSecureCookieConfig } from "@/utils/cookieConfig";
 import { setCookie } from "cookies-next";
+import { rememberAuthProfile } from "@/lib/utils/authProfile";
 import type { ApiError } from "@/types/api";
 
 const VALID_ROLES: UserRole[] = ["ADMIN", "MANAGER", "LECTURER", "STUDENT"];
@@ -48,7 +50,8 @@ export default function SelectRoleClient({ rolesParam }: { rolesParam: string | 
         data.role,
         getSecureCookieConfig({ maxAge: data.expiresAt ? Math.max(1, Math.floor((new Date(data.expiresAt).getTime() - Date.now()) / 1000)) : undefined })
       );
-      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+      rememberAuthProfile({ availableRoles: data.availableRoles });
+      await queryClient.invalidateQueries({ queryKey: authKeys.me });
       toast.success("Đăng nhập thành công");
       router.replace(ROLE_HOME[data.role] ?? "/login");
     },

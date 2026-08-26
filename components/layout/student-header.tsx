@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
+import { RoleSwitchMenuItems } from "@/components/layout/role-switch-menu-items";
 import { ROLE_LABEL_EN } from "@/lib/utils/roleLabels";
 import type { UserRole } from "@/lib/types/roles";
 
@@ -101,6 +102,7 @@ export function StudentHeader() {
                 Cài đặt
               </DropdownMenuItem>
             </DropdownMenuGroup>
+            <RoleSwitchMenuItems />
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem variant="destructive" onClick={logout}>

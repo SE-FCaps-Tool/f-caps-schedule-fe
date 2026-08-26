@@ -1,8 +1,11 @@
 import { AUTH_PROFILE_STORAGE_KEY } from "@/lib/constants/auth";
+import type { UserRole } from "@/lib/types/roles";
 
 export interface StoredAuthProfile {
   email?: string | null;
   displayName?: string | null;
+  /** Captured from the login response — a snapshot, not re-synced until next login. */
+  availableRoles?: UserRole[];
 }
 
 function canUseSessionStorage() {
