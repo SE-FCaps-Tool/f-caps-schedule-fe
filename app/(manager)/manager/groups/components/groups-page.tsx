@@ -538,7 +538,17 @@ export function GroupsPage() {
                         </Link>
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">
-                        {group.project?.code ?? "—"}
+                        {group.project ? (
+                          <Link
+                            href={`/manager/projects/${group.project.id}`}
+                            onClick={(event) => event.stopPropagation()}
+                            className="rounded-sm hover:text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                          >
+                            {group.project.code}
+                          </Link>
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
                       <TableCell className="max-w-[28rem] text-xs">
                         {group.project ? (
