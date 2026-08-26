@@ -478,7 +478,7 @@ export function GroupsPage() {
           </div>
         )}
         {groupsResult && (
-          <div className="rounded-lg border border-border">
+          <div className="overflow-x-auto rounded-lg border border-border">
             <Table className="min-w-[1360px] table-fixed">
               <colgroup>
                 <col className="w-[170px]" />

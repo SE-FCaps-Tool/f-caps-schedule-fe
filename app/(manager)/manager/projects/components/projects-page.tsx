@@ -330,7 +330,7 @@ export function ProjectsPage() {
           </div>
         )}
         {projectsResult && (
-          <div className="overflow-hidden rounded-lg border border-border">
+          <div className="overflow-x-auto rounded-lg border border-border">
             <Table className="min-w-[1446px] table-fixed">
               <colgroup>
                 <col className="w-[150px]" />
