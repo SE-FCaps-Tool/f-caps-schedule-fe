@@ -27,20 +27,37 @@ export function CreateAccountDialog() {
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole | null>(ROLE_LECTURER);
+  const [lecturerCode, setLecturerCode] = useState("");
+  const [studentCode, setStudentCode] = useState("");
   const { mutate, isPending } = useCreateAccount();
 
-  const canSave = email.trim().length > 3 && displayName.trim().length > 1 && password.length >= 12 && role;
+  const canSave =
+    email.trim().length > 3 &&
+    displayName.trim().length > 1 &&
+    password.length >= 12 &&
+    role &&
+    (role !== ROLE_LECTURER || lecturerCode.trim().length > 0) &&
+    (role !== ROLE_STUDENT || studentCode.trim().length > 0);
 
   function handleSave() {
     if (!canSave || !role) return;
     mutate(
-      { email: email.trim(), displayName: displayName.trim(), password, role },
+      {
+        email: email.trim(),
+        displayName: displayName.trim(),
+        password,
+        role,
+        lecturerCode: role === ROLE_LECTURER ? lecturerCode.trim() : undefined,
+        studentCode: role === ROLE_STUDENT ? studentCode.trim() : undefined,
+      },
       {
         onSuccess: () => {
           setOpen(false);
           setEmail("");
           setDisplayName("");
           setPassword("");
+          setLecturerCode("");
+          setStudentCode("");
           setRole(ROLE_LECTURER);
         },
       }
@@ -101,6 +118,28 @@ export function CreateAccountDialog() {
               </SelectContent>
             </Select>
           </div>
+          {role === ROLE_LECTURER && (
+            <div className="space-y-1.5">
+              <Label htmlFor="new-account-lecturer-code">Mã giảng viên</Label>
+              <Input
+                id="new-account-lecturer-code"
+                placeholder="GV001"
+                value={lecturerCode}
+                onChange={(e) => setLecturerCode(e.target.value)}
+              />
+            </div>
+          )}
+          {role === ROLE_STUDENT && (
+            <div className="space-y-1.5">
+              <Label htmlFor="new-account-student-code">Mã sinh viên</Label>
+              <Input
+                id="new-account-student-code"
+                placeholder="SE001"
+                value={studentCode}
+                onChange={(e) => setStudentCode(e.target.value)}
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter>

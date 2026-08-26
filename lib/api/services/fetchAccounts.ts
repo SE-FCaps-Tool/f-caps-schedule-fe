@@ -7,8 +7,9 @@ export interface AccountApiItem {
   displayName: string;
   status: "ACTIVE" | "INACTIVE";
   createdAt: string;
-  /** Account có nhiều role trong DB sẽ chỉ trả role đầu tiên theo thứ tự ưu tiên cố định của backend */
-  role: UserRole;
+  /** Legacy primary role; use roles for authorization management. */
+  role?: UserRole;
+  roles: UserRole[];
 }
 
 export interface AccountCreatePayload {
@@ -16,6 +17,8 @@ export interface AccountCreatePayload {
   displayName: string;
   password: string;
   role: UserRole;
+  lecturerCode?: string;
+  studentCode?: string;
 }
 
 export interface AccountCreateResponse {
@@ -34,13 +37,19 @@ export interface AccountStatusPayload {
 export interface AccountRolePayload {
   role: UserRole;
   reason: string;
+  lecturerCode?: string;
+  studentCode?: string;
 }
 
 export const fetchAccounts = {
   /** GET /accounts — ADMIN only */
   list: async (): Promise<AccountApiItem[]> => {
     const response = await apiService.get<AccountApiItem[]>("api/v1/accounts");
-    return response.data;
+    return response.data.map((account) => ({
+      ...account,
+      // Keep the UI resilient while older BE instances are being rolled out.
+      roles: account.roles?.length ? account.roles : account.role ? [account.role] : [],
+    }));
   },
 
   /** POST /accounts */
