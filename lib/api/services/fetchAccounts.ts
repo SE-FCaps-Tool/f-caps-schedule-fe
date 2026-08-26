@@ -1,5 +1,6 @@
 import apiService from "../core";
 import type { UserRole } from "@/lib/types/roles";
+import type { LecturerSeniorityLevel } from "@/lib/utils/masterDataLabels";
 
 export interface AccountApiItem {
   id: number;
@@ -18,6 +19,7 @@ export interface AccountCreatePayload {
   password: string;
   role: UserRole;
   lecturerCode?: string;
+  seniorityLevel?: LecturerSeniorityLevel | null;
   studentCode?: string;
 }
 
@@ -38,6 +40,7 @@ export interface AccountRolePayload {
   role: UserRole;
   reason: string;
   lecturerCode?: string;
+  seniorityLevel?: LecturerSeniorityLevel | null;
   studentCode?: string;
 }
 

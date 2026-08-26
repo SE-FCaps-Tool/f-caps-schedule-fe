@@ -14,7 +14,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateLecturer } from "@/hooks/useLecturers";
+import {
+  SENIORITY_NONE_VALUE,
+  SENIORITY_OPTIONS,
+  type LecturerSeniorityLevel,
+  seniorityLabel,
+} from "@/lib/utils/masterDataLabels";
 
 export function AddLecturerDialog() {
   const [open, setOpen] = useState(false);
@@ -22,6 +29,7 @@ export function AddLecturerDialog() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [seniorityLevel, setSeniorityLevel] = useState<LecturerSeniorityLevel | null>(null);
   const { mutate, isPending } = useCreateLecturer();
 
   const canSave =
@@ -30,7 +38,13 @@ export function AddLecturerDialog() {
   function handleSave() {
     if (!canSave) return;
     mutate(
-      { lecturerCode: lecturerCode.trim(), displayName: displayName.trim(), email: email.trim(), password },
+      {
+        lecturerCode: lecturerCode.trim(),
+        displayName: displayName.trim(),
+        email: email.trim(),
+        password,
+        seniorityLevel,
+      },
       {
         onSuccess: () => {
           setOpen(false);
@@ -38,6 +52,7 @@ export function AddLecturerDialog() {
           setDisplayName("");
           setEmail("");
           setPassword("");
+          setSeniorityLevel(null);
         },
       }
     );
@@ -80,6 +95,29 @@ export function AddLecturerDialog() {
             {password.length > 0 && password.length < 12 && (
               <p className="text-xs text-destructive">Mật khẩu cần tối thiểu 12 ký tự (còn thiếu {12 - password.length}).</p>
             )}
+          </div>
+          <div className="space-y-1.5">
+            <Label>Mức độ kinh nghiệm</Label>
+            <Select
+              value={seniorityLevel ?? SENIORITY_NONE_VALUE}
+              onValueChange={(value) =>
+                setSeniorityLevel(value === SENIORITY_NONE_VALUE ? null : (value as LecturerSeniorityLevel))
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Chọn mức độ kinh nghiệm">
+                  {(value: string) => seniorityLabel(value === SENIORITY_NONE_VALUE ? null : (value as LecturerSeniorityLevel))}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {SENIORITY_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <span>{option.label}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{option.description}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

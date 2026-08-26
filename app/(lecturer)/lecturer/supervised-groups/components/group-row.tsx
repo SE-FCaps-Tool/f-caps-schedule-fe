@@ -13,6 +13,7 @@ import {
   REMEDIATION_STATUS_META,
 } from "../../_shared/labels";
 import { toneBadgeClass, toneDotClass } from "./tone";
+import { topicTypeLabel } from "@/lib/utils/masterDataLabels";
 
 export function GroupRow({ project }: { project: SupervisedProject }) {
   const [expanded, setExpanded] = useState(false);
@@ -43,9 +44,14 @@ export function GroupRow({ project }: { project: SupervisedProject }) {
               {project.supervisorRole === "MAIN" ? "GVHD chính" : "Đồng hướng dẫn"}
             </span>
           </div>
-          <p className="mt-0.5 truncate text-sm text-muted-foreground" title={project.titleVi}>
-            {project.titleEn?.trim() || project.titleVi}
-          </p>
+          <div className="mt-0.5 flex min-w-0 items-center gap-2">
+            <p className="truncate text-sm text-muted-foreground" title={project.titleVi}>
+              {project.titleEn?.trim() || project.titleVi}
+            </p>
+            <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+              {topicTypeLabel(project.topicType)}
+            </span>
+          </div>
           <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
             {leader ? (
               <span className="inline-flex items-center gap-1">

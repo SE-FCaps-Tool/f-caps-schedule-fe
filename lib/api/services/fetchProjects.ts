@@ -1,5 +1,6 @@
 import apiService from "../core";
 import type { RoundType } from "./fetchRounds";
+import type { TopicType } from "@/lib/utils/masterDataLabels";
 
 /** capstone-fe-be-implementation-spec.md §3 — academic progression, BE tự transition, FE chỉ hiển thị */
 export type ProjectStatus =
@@ -26,6 +27,7 @@ export interface ProjectListItem {
   nameVi: string;
   nameEn: string | null;
   status: ProjectStatus;
+  topicType: TopicType;
   mainSupervisor: ProjectSupervisor | null;
   coSupervisor: ProjectSupervisor | null;
   group: { id: string; code: string } | null;
@@ -52,6 +54,7 @@ export interface ProjectCreatePayload {
   nameEn?: string;
   mainSupervisorId: string;
   coSupervisorId?: string;
+  topicType: TopicType;
 }
 
 export interface ProjectCreateResponse {
@@ -59,6 +62,7 @@ export interface ProjectCreateResponse {
   code: string;
   nameVi: string;
   status: ProjectStatus;
+  topicType: TopicType;
 }
 
 export interface ProjectUpdatePayload {
@@ -66,6 +70,7 @@ export interface ProjectUpdatePayload {
   nameEn?: string | null;
   mainSupervisorId: string;
   coSupervisorId?: string;
+  topicType: TopicType;
 }
 
 export interface ProjectDetail {
@@ -74,6 +79,7 @@ export interface ProjectDetail {
   nameVi: string;
   nameEn: string | null;
   status: ProjectStatus;
+  topicType: TopicType;
   mainSupervisor: ProjectSupervisor | null;
   coSupervisor: ProjectSupervisor | null;
   group: { id: string; code: string; memberCount: number; leader: { id: string; fullName: string } | null } | null;
@@ -109,11 +115,14 @@ export const fetchProjects = {
     semesterId: string,
     params?: ProjectListParams
   ): Promise<{ data: ProjectListItem[]; meta?: ProjectListMeta }> => {
-    const response = await apiService.get<{ data: ProjectListItem[]; meta?: ProjectListMeta }, ProjectListParams>(
+    const response = await apiService.get<{ data: Array<Omit<ProjectListItem, "topicType"> & { topicType?: TopicType }>; meta?: ProjectListMeta }, ProjectListParams>(
       `api/v1/semesters/${semesterId}/projects`,
       params
     );
-    return response.data;
+    return {
+      ...response.data,
+      data: response.data.data.map((project) => ({ ...project, topicType: project.topicType ?? "REGULAR" })),
+    };
   },
 
   /** POST /semesters/:semesterId/projects — spec §17/§47. Trạng thái khởi tạo luôn DRAFT */
@@ -122,7 +131,7 @@ export const fetchProjects = {
       `api/v1/semesters/${semesterId}/projects`,
       payload
     );
-    return response.data.data;
+    return { ...response.data.data, topicType: response.data.data.topicType ?? "REGULAR" };
   },
 
   /** PATCH /projects/:projectId — đổi tên/GVHD của đề tài */
@@ -133,7 +142,7 @@ export const fetchProjects = {
   /** GET /projects/:projectId — spec §18 */
   getById: async (projectId: string): Promise<ProjectDetail> => {
     const response = await apiService.get<{ data: ProjectDetail }>(`api/v1/projects/${projectId}`);
-    return response.data.data;
+    return { ...response.data.data, topicType: response.data.data.topicType ?? "REGULAR" };
   },
 
   /** GET /projects/:projectId/progression — spec §18/§75 */

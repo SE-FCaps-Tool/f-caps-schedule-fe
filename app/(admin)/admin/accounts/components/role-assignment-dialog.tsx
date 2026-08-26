@@ -14,9 +14,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROLE_LABEL_VI } from "@/lib/utils/roleLabels";
 import { ROLE_LECTURER, ROLE_STUDENT, type UserRole } from "@/lib/types/roles";
 import type { AccountApiItem, AccountRolePayload } from "@/lib/api/services/fetchAccounts";
+import {
+  SENIORITY_NONE_VALUE,
+  SENIORITY_OPTIONS,
+  type LecturerSeniorityLevel,
+  seniorityLabel,
+} from "@/lib/utils/masterDataLabels";
 
 export function RoleAssignmentDialog({
   account,
@@ -34,6 +41,7 @@ export function RoleAssignmentDialog({
   const [reason, setReason] = useState("");
   const [lecturerCode, setLecturerCode] = useState("");
   const [studentCode, setStudentCode] = useState("");
+  const [seniorityLevel, setSeniorityLevel] = useState<LecturerSeniorityLevel | null>(null);
 
   if (!account || !role) return null;
 
@@ -48,6 +56,7 @@ export function RoleAssignmentDialog({
       role: selectedRole,
       reason: reason.trim(),
       lecturerCode: selectedRole === ROLE_LECTURER ? lecturerCode.trim() : undefined,
+      seniorityLevel: selectedRole === ROLE_LECTURER ? seniorityLevel : undefined,
       studentCode: selectedRole === ROLE_STUDENT ? studentCode.trim() : undefined,
     });
   }
@@ -63,15 +72,40 @@ export function RoleAssignmentDialog({
         </DialogHeader>
 
         {selectedRole === ROLE_LECTURER && (
-          <div className="space-y-1.5">
-            <Label htmlFor="assign-lecturer-code">Mã giảng viên</Label>
-            <Input
-              id="assign-lecturer-code"
-              placeholder="GV001"
-              value={lecturerCode}
-              onChange={(e) => setLecturerCode(e.target.value)}
-            />
-          </div>
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="assign-lecturer-code">Mã giảng viên</Label>
+              <Input
+                id="assign-lecturer-code"
+                placeholder="GV001"
+                value={lecturerCode}
+                onChange={(e) => setLecturerCode(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Mức độ kinh nghiệm</Label>
+              <Select
+                value={seniorityLevel ?? SENIORITY_NONE_VALUE}
+                onValueChange={(value) =>
+                  setSeniorityLevel(value === SENIORITY_NONE_VALUE ? null : (value as LecturerSeniorityLevel))
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn mức độ kinh nghiệm">
+                    {(value: string) => seniorityLabel(value === SENIORITY_NONE_VALUE ? null : (value as LecturerSeniorityLevel))}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {SENIORITY_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <span>{option.label}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{option.description}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
         )}
         {selectedRole === ROLE_STUDENT && (
           <div className="space-y-1.5">

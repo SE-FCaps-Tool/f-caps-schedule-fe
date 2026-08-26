@@ -13,6 +13,7 @@ import {
 } from "../../../_shared/labels";
 import { useProjectDetail, useProjectProgression, useProjectResults } from "@/hooks/manager/useProjects";
 import { formatDate, formatDateTime } from "@/lib/utils/formatDate";
+import { topicTypeDescription, topicTypeLabel } from "@/lib/utils/masterDataLabels";
 
 function LoadingBlock() {
   return (
@@ -98,6 +99,11 @@ export function ProjectDetailPage({ projectId }: { projectId: string }) {
             <div>
               <dt className="text-xs text-muted-foreground">Tên (Tiếng Anh)</dt>
               <dd className="mt-1 text-sm">{project.nameEn || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Loại đề tài</dt>
+              <dd className="mt-1 text-sm font-medium">{topicTypeLabel(project.topicType)}</dd>
+              <p className="mt-0.5 text-xs text-muted-foreground">{topicTypeDescription(project.topicType)}</p>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">Trạng thái</dt>

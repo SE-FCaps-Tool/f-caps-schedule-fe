@@ -1,5 +1,6 @@
 import apiService from "../core";
 import type { ListMeta, ListResponse } from "@/types/api";
+import type { LecturerSeniorityLevel } from "@/lib/utils/masterDataLabels";
 
 export interface LecturerConflict {
   projectId: number;
@@ -13,6 +14,7 @@ export interface LecturerApiItem {
   email: string;
   displayName: string;
   accountStatus: "ACTIVE" | "INACTIVE";
+  seniorityLevel: LecturerSeniorityLevel | null;
   conflicts: LecturerConflict[];
 }
 
@@ -21,12 +23,18 @@ export interface LecturerCreatePayload {
   email: string;
   displayName: string;
   password: string;
+  seniorityLevel?: LecturerSeniorityLevel | null;
 }
 
 export interface LecturerCreateResponse {
   id: number;
   lecturerCode: string;
   accountId: number;
+  seniorityLevel: LecturerSeniorityLevel | null;
+}
+
+export interface LecturerUpdatePayload {
+  seniorityLevel: LecturerSeniorityLevel | null;
 }
 
 export interface LecturerListParams {
@@ -47,6 +55,7 @@ export interface LecturerImportAccount {
   lecturerCode: string;
   email: string;
   displayName: string;
+  seniorityLevel: LecturerSeniorityLevel | null;
   tempPassword: string;
 }
 
@@ -68,13 +77,25 @@ export const fetchLecturers = {
       "api/v1/lecturers",
       params
     );
-    return { data: response.data.data, meta: response.data.meta };
+    return {
+      data: response.data.data.map((lecturer) => ({ ...lecturer, seniorityLevel: lecturer.seniorityLevel ?? null })),
+      meta: response.data.meta,
+    };
   },
 
   /** POST /lecturers — ADMIN only, tạo account + lecturer trong 1 transaction */
   create: async (payload: LecturerCreatePayload): Promise<LecturerCreateResponse> => {
     const response = await apiService.post<LecturerCreateResponse, LecturerCreatePayload>("api/v1/lecturers", payload);
-    return response.data;
+    return { ...response.data, seniorityLevel: response.data.seniorityLevel ?? null };
+  },
+
+  /** PATCH /lecturers/{lecturer_id} — ADMIN, MANAGER */
+  update: async (lecturerId: number, payload: LecturerUpdatePayload): Promise<LecturerApiItem> => {
+    const response = await apiService.patch<LecturerApiItem, LecturerUpdatePayload>(
+      `api/v1/lecturers/${lecturerId}`,
+      payload
+    );
+    return { ...response.data, seniorityLevel: response.data.seniorityLevel ?? null };
   },
 
   /** POST /lecturers/import — ADMIN, MANAGER. Nhận file .xlsx theo mẫu lecturers_template.xlsx. */
