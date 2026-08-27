@@ -74,6 +74,7 @@ export function GroupsTable({ projects }: { projects: SupervisedProject[] }) {
                       {topicTypeLabel(project.topicType)}
                     </span>
                   </div>
+                  {project.semesterCode && <p className="mt-1 font-mono text-[11px] text-muted-foreground">{project.semesterCode}</p>}
                 </TableCell>
 
                 <TableCell className={colDivider}>

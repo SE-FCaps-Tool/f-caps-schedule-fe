@@ -21,6 +21,7 @@ export function RemediationTaskRow({ task }: { task: LecturerRemediation }) {
           <p className="text-sm font-semibold">Khắc phục Review 3</p>
           <span className="font-mono text-xs text-muted-foreground">{task.group.code}</span>
         </div>
+        {task.semesterCode && <p className="mt-1 font-mono text-[11px] text-muted-foreground">{task.semesterCode}</p>}
         {task.group.projectTitle && (
           <p className="mt-0.5 truncate text-xs text-muted-foreground">{task.group.projectTitle}</p>
         )}
