@@ -49,16 +49,5 @@ jobs:
       - name: Unit tests
         run: npm test
 
-      - name: Compare generated API contract
-        shell: bash
-        run: |
-          backend=.contract-be/apps/api/openapi.json
-          frontend=lib/api/generated/openapi.json
-          if cmp -s "$backend" "$frontend"; then
-            echo "FE generated contract matches BE main."
-          else
-            echo "::error file=$frontend::FE generated openapi.json differs from BE main. Run npm run typegen and commit the generated contract."
-            echo "BE SHA256: $(sha256sum "$backend" | cut -d' ' -f1)"
-            echo "FE SHA256: $(sha256sum "$frontend" | cut -d' ' -f1)"
-            exit 1
-          fi
+      - name: Generate and verify API contract
+        run: npm run typegen:check -- .contract-be/apps/api/openapi.json

@@ -8,6 +8,21 @@ import { formatInVietnamTime } from "@/lib/utils/formatDate";
 /** capstone-fe-be-implementation-spec.md §5 — IMPLEMENTATION PROPOSAL */
 export type PreferredLoad = "LOW" | "MEDIUM" | "HIGH";
 
+export type LecturerSemesterStatus = "PLANNING" | "ACTIVE" | "CLOSED" | "ARCHIVED";
+
+export interface LecturerSemester {
+  id: number;
+  code: string;
+  name: string;
+  status: LecturerSemesterStatus;
+  startDate: string;
+  endDate: string;
+}
+
+export interface LecturerPortalParams {
+  semesterId?: number;
+}
+
 export interface LecturerInvitation {
   id: string;
   round: {
@@ -15,6 +30,7 @@ export interface LecturerInvitation {
     name: string;
     type: RoundType;
     registrationDeadline: string;
+    semester?: LecturerSemester;
   };
   status: RoundInvitationStatus;
   respondedAt: string | null;
@@ -69,9 +85,18 @@ export interface SubmitAvailabilityPayload {
 }
 
 export const fetchLecturerPortal = {
+  /** GET /lecturer/me/semesters — only semesters related to the current Lecturer. */
+  semesters: async (): Promise<LecturerSemester[]> => {
+    const response = await apiService.get<{ data: LecturerSemester[] }>("api/v1/lecturer/me/semesters");
+    return response.data.data;
+  },
+
   /** GET /lecturer/me/invitations — spec §31 */
-  invitations: async (): Promise<LecturerInvitation[]> => {
-    const response = await apiService.get<{ data: LecturerInvitation[] }>("api/v1/lecturer/me/invitations");
+  invitations: async (params?: LecturerPortalParams): Promise<LecturerInvitation[]> => {
+    const response = await apiService.get<{ data: LecturerInvitation[] }, LecturerPortalParams>(
+      "api/v1/lecturer/me/invitations",
+      params
+    );
     return response.data.data;
   },
 
@@ -120,14 +145,20 @@ export const fetchLecturerPortal = {
    * group/leader; latestResult/remediation vẫn có thể vắng mặt. Adapt những field có sẵn,
    * phần thiếu giữ null để UI hiện fallback thay vì crash.
    */
-  supervisedProjects: async (): Promise<SupervisedProject[]> => {
-    const response = await apiService.get<{ data: SupervisedProjectApi[] }>("api/v1/lecturer/me/supervised-projects");
+  supervisedProjects: async (params?: LecturerPortalParams): Promise<SupervisedProject[]> => {
+    const response = await apiService.get<{ data: SupervisedProjectApi[] }, LecturerPortalParams>(
+      "api/v1/lecturer/me/supervised-projects",
+      params
+    );
     return response.data.data.map(adaptSupervisedProject);
   },
 
   /** GET /lecturer/me/remediations — spec §36 */
-  remediations: async (): Promise<LecturerRemediation[]> => {
-    const response = await apiService.get<{ data: LecturerRemediation[] }>("api/v1/lecturer/me/remediations");
+  remediations: async (params?: LecturerPortalParams): Promise<LecturerRemediation[]> => {
+    const response = await apiService.get<{ data: LecturerRemediation[] }, LecturerPortalParams>(
+      "api/v1/lecturer/me/remediations",
+      params
+    );
     return response.data.data;
   },
 };
@@ -152,6 +183,7 @@ export type LecturerScheduleSessionStatus =
 export type LecturerSessionRole = "REVIEWER" | "RESULT_OWNER";
 
 export interface MySessionsParams {
+  semesterId?: number;
   roundId?: string;
   dateFrom?: string;
   dateTo?: string;
@@ -170,6 +202,8 @@ export interface LecturerScheduleSession {
   endTime: string;
   roomCode: string | null;
   status: LecturerScheduleSessionStatus;
+  semesterId?: string;
+  semesterCode?: string;
 }
 
 /**
@@ -190,6 +224,8 @@ export interface LecturerSessionApi {
   projectCode: string;
   roomCode: string | null;
   roundType: RoundType;
+  semesterId?: number;
+  semesterCode?: string;
 }
 
 export function adaptLecturerSession(dto: LecturerSessionApi): LecturerScheduleSession {
@@ -205,6 +241,9 @@ export function adaptLecturerSession(dto: LecturerSessionApi): LecturerScheduleS
     endTime: formatInVietnamTime(dto.endAt, "HH:mm"),
     roomCode: dto.roomCode,
     status: dto.status,
+    ...(dto.semesterId === undefined
+      ? {}
+      : { semesterId: String(dto.semesterId), semesterCode: dto.semesterCode }),
   };
 }
 
@@ -268,6 +307,8 @@ export interface SupervisedProject {
     verifierName: string;
     status: RemediationStatus;
   } | null;
+  semesterId?: string;
+  semesterCode?: string;
 }
 
 export interface SupervisedProjectApiGroupMember {
@@ -336,6 +377,9 @@ export function adaptSupervisedProject(dto: SupervisedProjectApi): SupervisedPro
     nextEvaluation: null,
     latestResult: null,
     remediation: null,
+    ...(dto.semesterId === undefined
+      ? {}
+      : { semesterId: String(dto.semesterId), semesterCode: dto.semesterCode }),
   };
 }
 
@@ -351,4 +395,6 @@ export interface LecturerRemediation {
   group: { id: string; code: string; projectTitle: string | null };
   deadline: string;
   status: RemediationStatus;
+  semesterId?: number | string;
+  semesterCode?: string;
 }

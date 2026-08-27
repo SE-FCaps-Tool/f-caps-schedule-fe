@@ -11,13 +11,35 @@ import {
 import { fetchResults, type SubmitSessionResultPayload, type VerifyRemediationPayload } from "@/lib/api/services/fetchResults";
 import { friendlyErrorMessage, detailMessage } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
+import { useOptionalSemesterContext } from "@/components/semesters/semester-context";
+
+function useSelectedSemesterId(explicitSemesterId?: number) {
+  const semesterContext = useOptionalSemesterContext();
+  return explicitSemesterId ?? semesterContext?.currentSemester?.id;
+}
+
+function semesterQueryEnabled(semesterId: number | undefined, enabled: boolean) {
+  return enabled && semesterId !== undefined;
+}
+
+/** GET /lecturer/me/semesters — Lecturer-scoped semester context. */
+export function useLecturerSemesters(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["lecturer", "semesters"] as const,
+    queryFn: fetchLecturerPortal.semesters,
+    enabled: options?.enabled ?? true,
+    staleTime: Infinity,
+  });
+}
 
 /** GET /lecturer/me/invitations — spec §31 */
-export function useLecturerInvitations(options?: { enabled?: boolean }) {
+export function useLecturerInvitations(options?: { enabled?: boolean; semesterId?: number }) {
+  const semesterId = useSelectedSemesterId(options?.semesterId);
+  const enabled = semesterQueryEnabled(semesterId, options?.enabled ?? true);
   return useQuery({
-    queryKey: ["lecturer", "invitations"] as const,
-    queryFn: fetchLecturerPortal.invitations,
-    enabled: options?.enabled ?? true,
+    queryKey: ["lecturer", "invitations", semesterId] as const,
+    queryFn: () => fetchLecturerPortal.invitations({ semesterId }),
+    enabled,
     staleTime: Infinity,
   });
 }
@@ -41,10 +63,11 @@ export function useRespondInvitation() {
 
 /** GET /rounds/:roundId/availability/me — spec §32/§55 */
 export function useLecturerAvailability(roundId: string | null) {
+  const semesterContext = useOptionalSemesterContext();
   return useQuery({
-    queryKey: ["lecturer", "availability", roundId] as const,
+    queryKey: ["lecturer", "availability", semesterContext?.currentSemesterId, roundId] as const,
     queryFn: () => fetchLecturerPortal.availability(roundId as string),
-    enabled: roundId !== null,
+    enabled: roundId !== null && (semesterContext === null || semesterContext.currentSemesterId !== null),
     staleTime: Infinity,
   });
 }
@@ -67,27 +90,34 @@ export function useSubmitAvailability(roundId: string) {
 
 /** GET /lecturer/me/sessions — spec §33 */
 export function useLecturerSessions(params: MySessionsParams = {}) {
+  const semesterId = useSelectedSemesterId(params.semesterId);
+  const scopedParams = { ...params, semesterId };
   return useQuery({
-    queryKey: ["lecturer", "sessions", params] as const,
-    queryFn: () => fetchLecturerPortal.mySessions(params),
+    queryKey: ["lecturer", "sessions", scopedParams] as const,
+    queryFn: () => fetchLecturerPortal.mySessions(scopedParams),
+    enabled: semesterId !== undefined,
     staleTime: Infinity,
   });
 }
 
 /** GET /lecturer/me/supervised-projects — spec §34 */
 export function useSupervisedProjects() {
+  const semesterId = useSelectedSemesterId();
   return useQuery({
-    queryKey: ["lecturer", "supervised-projects"] as const,
-    queryFn: fetchLecturerPortal.supervisedProjects,
+    queryKey: ["lecturer", "supervised-projects", semesterId] as const,
+    queryFn: () => fetchLecturerPortal.supervisedProjects({ semesterId }),
+    enabled: semesterId !== undefined,
     staleTime: Infinity,
   });
 }
 
 /** GET /lecturer/me/remediations — spec §36 */
 export function useLecturerRemediations() {
+  const semesterId = useSelectedSemesterId();
   return useQuery({
-    queryKey: ["lecturer", "remediations"] as const,
-    queryFn: fetchLecturerPortal.remediations,
+    queryKey: ["lecturer", "remediations", semesterId] as const,
+    queryFn: () => fetchLecturerPortal.remediations({ semesterId }),
+    enabled: semesterId !== undefined,
     staleTime: Infinity,
   });
 }
@@ -112,10 +142,11 @@ export function useVerifyLecturerRemediation() {
 
 /** GET /sessions/:sessionId — spec §35 */
 export function useLecturerSessionDetail(sessionId: string | null) {
+  const semesterContext = useOptionalSemesterContext();
   return useQuery({
-    queryKey: ["lecturer", "session", sessionId] as const,
+    queryKey: ["lecturer", "session", semesterContext?.currentSemesterId, sessionId] as const,
     queryFn: () => fetchLecturerPortal.sessionDetail(sessionId as string),
-    enabled: sessionId !== null,
+    enabled: sessionId !== null && (semesterContext === null || semesterContext.currentSemesterId !== null),
     staleTime: Infinity,
   });
 }
