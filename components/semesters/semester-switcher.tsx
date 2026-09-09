@@ -14,7 +14,7 @@ export function SemesterSwitcher() {
   if (semesters.length === 0) return <span className="text-xs text-muted-foreground">Chưa có học kỳ liên quan</span>;
 
   return (
-    <Select value={currentSemesterId ?? undefined} onValueChange={(value) => value && setCurrentSemesterId(value)}>
+    <Select value={currentSemesterId || ""} onValueChange={(value) => value && setCurrentSemesterId(value)}>
       <SelectTrigger
         className="h-8 gap-1.5 border-none bg-transparent px-2 shadow-none hover:bg-muted"
         aria-label="Chọn học kỳ"

@@ -105,3 +105,28 @@ export function useProjectResults(projectId: string | null) {
     staleTime: Infinity,
   });
 }
+
+/** POST /projects/import — Import danh sách đề tài từ file Excel */
+export function useImportProjects() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => fetchProjects.importFile(file),
+    onSuccess: async (data) => {
+      if (data.created > 0) {
+        await queryClient.invalidateQueries({ queryKey: ["manager", "projects"] });
+        await queryClient.invalidateQueries({ queryKey: ["manager", "dashboard"] });
+      }
+      if (data.created > 0 && data.skipped === 0) {
+        toast.success(`Đã import thành công ${data.created} đề tài`);
+      } else if (data.created > 0) {
+        toast.warning(`Đã tạo ${data.created} đề tài, bỏ qua ${data.skipped} dòng lỗi`);
+      } else {
+        toast.error("Không có đề tài nào được tạo — vui lòng kiểm tra danh sách lỗi");
+      }
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Import đề tài thất bại"));
+    },
+  });
+}

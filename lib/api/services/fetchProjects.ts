@@ -157,5 +157,23 @@ export const fetchProjects = {
     return response.data.data;
   },
 
-  // Chưa migrate: spec chưa liệt kê PATCH /projects/:projectId (sửa code/tên/đổi GVHD sau khi tạo).
+  /** POST /projects/import — ADMIN, MANAGER. Nhận file .xlsx theo template danh sách đề tài. */
+  importFile: async (file: File): Promise<ProjectImportResponse> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiService.upload<ProjectImportResponse>("api/v1/projects/import", formData);
+    return response.data;
+  },
 };
+
+export interface ProjectImportError {
+  row: number;
+  code: string;
+  message?: string;
+}
+
+export interface ProjectImportResponse {
+  created: number;
+  skipped: number;
+  errors: ProjectImportError[];
+}
