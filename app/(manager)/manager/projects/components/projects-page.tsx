@@ -341,7 +341,7 @@ export function ProjectsPage() {
         </div>
       </div>
 
-      <ImportProjectsDialog open={importOpen} onOpenChange={setImportOpen} currentSemesterCode={currentSemesterId} />
+      <ImportProjectsDialog open={importOpen} onOpenChange={setImportOpen} currentSemesterCode={currentSemesterId ?? undefined} />
       <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} semesterId={currentSemester?.id} />
       <EditProjectSupervisorsDialog
         key={editingProject?.id ?? "no-project"}
