@@ -84,7 +84,10 @@ function normalizeMeResponse(data: RawMeResponse): MeResponse {
 
 export const fetchAuth = {
   /** Start the server-side Google OAuth flow. */
-  googleLoginUrl: (): string => new URL("api/v1/auth/google/start", process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/").toString(),
+  googleLoginUrl: (): string => {
+    const base = typeof window !== "undefined" ? window.location.origin + "/" : (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/");
+    return new URL("api/v1/auth/google/start", base).toString();
+  },
 
   /**
    * POST /api/v1/auth/login

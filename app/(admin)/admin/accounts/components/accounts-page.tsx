@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAccounts } from "@/hooks/admin/useAccounts";
 import { AccountsTable, RoleFilterSelect } from "./accounts-table";
 import { CreateAccountDialog } from "./create-account-dialog";
+import { ImportAccountsDialog } from "./import-accounts-dialog";
 import type { UserRole } from "@/lib/types/roles";
 import { useAutoPageSize } from "@/hooks/shared/useAutoPageSize";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
@@ -23,6 +24,7 @@ export function AccountsPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<AccountStatus | "ALL">("ALL");
+  const [importOpen, setImportOpen] = useState(false);
   const { containerRef, pageSize } = useAutoPageSize();
   const [page, setPage] = usePageState(search, roleFilter, statusFilter, pageSize);
 
@@ -55,13 +57,15 @@ export function AccountsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => toast.info("Import CSV/Excel — chưa nối backend")}>
+          <Button onClick={() => setImportOpen(true)}>
             <Upload />
-            Import CSV
+            Import Excel
           </Button>
           <CreateAccountDialog />
         </div>
       </div>
+
+      <ImportAccountsDialog open={importOpen} onOpenChange={setImportOpen} />
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <div className="relative min-w-56 flex-1">

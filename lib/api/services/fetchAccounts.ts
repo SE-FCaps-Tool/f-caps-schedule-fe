@@ -44,6 +44,30 @@ export interface AccountRolePayload {
   studentCode?: string;
 }
 
+export interface AccountImportError {
+  row: number;
+  code: string;
+  message?: string;
+}
+
+export interface AccountImportItem {
+  row: number;
+  accountId?: number;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  code?: string | null;
+  seniorityLevel?: LecturerSeniorityLevel | null;
+  tempPassword: string;
+}
+
+export interface AccountImportResponse {
+  created: number;
+  skipped: number;
+  errors: AccountImportError[];
+  accounts: AccountImportItem[];
+}
+
 export const fetchAccounts = {
   /** GET /accounts — ADMIN only */
   list: async (): Promise<AccountApiItem[]> => {
@@ -58,6 +82,17 @@ export const fetchAccounts = {
   /** POST /accounts */
   create: async (payload: AccountCreatePayload): Promise<AccountCreateResponse> => {
     const response = await apiService.post<AccountCreateResponse, AccountCreatePayload>("api/v1/accounts", payload);
+    return response.data;
+  },
+
+  /** POST /accounts/import */
+  import: async (file: File): Promise<AccountImportResponse> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiService.upload<AccountImportResponse>(
+      "api/v1/accounts/import",
+      formData
+    );
     return response.data;
   },
 
@@ -87,3 +122,4 @@ export const fetchAccounts = {
     return response.data;
   },
 };
+
