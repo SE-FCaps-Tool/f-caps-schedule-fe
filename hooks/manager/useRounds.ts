@@ -8,6 +8,7 @@ import {
   type InviteLecturersPayload,
   type RoundCreatePayload,
   type RoundUpdatePayload,
+  type CouncilConfig,
 } from "@/lib/api/services/fetchRounds";
 import { managerKeys } from "@/lib/api/managerQueryKeys";
 import { friendlyErrorMessage } from "@/lib/api/errorDetail";
@@ -208,6 +209,39 @@ export function useUpdateRound() {
     },
   });
 }
+
+/** GET /rounds/:roundId/role-config */
+export function useCouncilConfig(roundId: string | null) {
+  return useQuery({
+    queryKey: ["manager", "round", roundId, "council-config"] as const,
+    queryFn: () => fetchRounds.getCouncilConfig(roundId as string),
+    enabled: roundId !== null,
+    staleTime: 30000,
+  });
+}
+
+/** PUT /rounds/:roundId/role-config */
+export function useUpdateCouncilConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ roundId, payload }: { roundId: string; payload: CouncilConfig }) =>
+      fetchRounds.updateCouncilConfig(roundId, payload),
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["manager", "round", variables.roundId, "council-config"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["manager", "round", variables.roundId],
+      });
+      toast.success("Đã lưu cấu hình phân vai Hội đồng thành công");
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không thể lưu cấu hình Hội đồng"));
+    },
+  });
+}
+
 // Cũng bỏ hẳn "nhập lịch rảnh hộ" (useSubmitLecturerAvailability/useSubmitGroupAvailability cũ)
 // — spec chỉ có PUT /rounds/:roundId/availability/me và .../groups/:groupId/preferences (self-service
 // của Lecturer/Leader), không có endpoint nào cho Manager nhập hộ.

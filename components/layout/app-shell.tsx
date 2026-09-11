@@ -44,6 +44,7 @@ import { RoleSwitchMenuItems } from "@/components/layout/role-switch-menu-items"
 import { useLecturerInvitations } from "@/hooks/lecturer/useLecturerPortal";
 import { ROLE_LABEL_EN } from "@/lib/utils/roleLabels";
 import { ROLE_ADMIN, ROLE_MANAGER, ROLE_LECTURER, ROLE_STUDENT, type UserRole } from "@/lib/types/roles";
+import { useOptionalSemesterContext } from "@/components/semesters/semester-context";
 
 interface NavItem {
   label: string;
@@ -351,7 +352,11 @@ export function AppShell({ children, area, headerExtra, disabledHrefs, onDisable
   const { user, logout } = useAuth();
   const { areaLabel, groups } = NAV_CONFIG[area];
   const navItems = groups.flatMap((group) => group.items);
-  const { data: lecturerInvitations } = useLecturerInvitations({ enabled: area === ROLE_LECTURER });
+  const semesterContext = useOptionalSemesterContext();
+  const { data: lecturerInvitations } = useLecturerInvitations({
+    enabled: area === ROLE_LECTURER,
+    semesterId: semesterContext?.currentSemester?.id,
+  });
   const pendingInvitationCount = lecturerInvitations?.filter((invitation) => invitation.status === "PENDING").length ?? 0;
 
   const activeItem = navItems.find((item) => isNavItemActive(item, pathname));

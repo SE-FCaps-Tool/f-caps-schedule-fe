@@ -140,6 +140,8 @@ test("adaptSupervisedProject maps group with leader and members, nulls out field
     nextEvaluation: null,
     latestResult: null,
     remediation: null,
+    semesterId: "1",
+    semesterCode: "SE-2026-2027",
   });
 });
 

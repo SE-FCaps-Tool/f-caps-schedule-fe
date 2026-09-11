@@ -197,7 +197,14 @@ export function InvitationsPage() {
                     <InvitationStatus status={invitation.status} />
                   </div>
                   <div className="mt-5 min-w-0">
-                    <h3 className="min-h-12 font-semibold leading-6">{roundName}</h3>
+                    <h3 className="min-h-12 font-semibold leading-6">
+                      {roundName}
+                      {invitation.round.semester?.code && (
+                        <span className="mt-1 block font-mono text-xs font-medium text-muted-foreground">
+                          {invitation.round.semester.code}
+                        </span>
+                      )}
+                    </h3>
                     <p className="mt-3 flex items-start gap-1.5 text-sm text-muted-foreground">
                       <Clock3 className="mt-0.5 size-4 shrink-0" />
                       <span>Hạn đăng ký: <span className="font-medium text-foreground tabular-nums">{formatDateTime(invitation.round.registrationDeadline)}</span></span>
@@ -229,7 +236,15 @@ export function InvitationsPage() {
                       variant="outline"
                       nativeButton={false}
                       className="mt-auto w-full sm:mt-5"
-                      render={<Link href="/lecturer/availability" />}
+                      render={
+                        <Link
+                          href={
+                            invitation.round.semester?.code
+                              ? `/lecturer/availability?semester=${encodeURIComponent(invitation.round.semester.code)}`
+                              : "/lecturer/availability"
+                          }
+                        />
+                      }
                     >
                       <CalendarCheck className="size-4" />
                       Đăng ký lịch rảnh

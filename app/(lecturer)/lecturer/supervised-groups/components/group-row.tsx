@@ -62,6 +62,7 @@ export function GroupRow({ project }: { project: SupervisedProject }) {
               "Chưa có trưởng nhóm"
             )}
           </div>
+          {project.semesterCode && <p className="mt-1 font-mono text-[11px] text-muted-foreground">{project.semesterCode}</p>}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">

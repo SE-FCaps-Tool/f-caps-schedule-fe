@@ -29,6 +29,7 @@ export interface LecturerSession {
   groupCode: string;
   projectCode: string;
   status: LecturerScheduleSessionStatus;
+  semesterCode?: string;
 }
 
 export function toLecturerSession(dto: LecturerScheduleSession): LecturerSession {
@@ -42,5 +43,6 @@ export function toLecturerSession(dto: LecturerScheduleSession): LecturerSession
     groupCode: dto.groupCode,
     projectCode: dto.projectCode,
     status: dto.status,
+    semesterCode: dto.semesterCode,
   };
 }

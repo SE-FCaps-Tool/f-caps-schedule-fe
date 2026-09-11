@@ -8,6 +8,7 @@ import {
   Download,
   Loader2,
   Send,
+  ShieldCheck,
   UserPlus,
   UsersRound,
 } from "lucide-react";
@@ -273,6 +274,18 @@ export function RoundDetailHeader({
           <span className="hidden sm:inline">
             Nhóm{groupCount !== undefined ? ` ${groupCount}` : ""}
           </span>
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="px-2 sm:px-3 gap-1.5"
+          aria-label="Cấu hình phân vai Hội đồng"
+          title="Cấu hình phân vai Hội đồng"
+          nativeButton={false}
+          render={<Link href={`/manager/rounds/${roundId}/council-config`} />}
+        >
+          <ShieldCheck className="size-4 text-primary" />
+          <span className="hidden sm:inline">Phân vai Hội đồng</span>
         </Button>
         {round.status === "DRAFT" && (
           <Button

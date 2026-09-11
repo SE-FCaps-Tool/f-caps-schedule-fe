@@ -133,7 +133,11 @@ export function AvailabilityRoundListPage() {
               return (
                 <Link
                   key={invitation.id}
-                  href={`/lecturer/availability/${invitation.round.id}`}
+                  href={
+                    invitation.round.semester?.code
+                      ? `/lecturer/availability/${invitation.round.id}?semester=${encodeURIComponent(invitation.round.semester.code)}`
+                      : `/lecturer/availability/${invitation.round.id}`
+                  }
                   className="group flex min-h-52 flex-col rounded-xl border border-emerald-200/80 bg-emerald-50/35 p-4 transition-colors hover:border-emerald-300 hover:bg-emerald-50/60 dark:border-emerald-900/50 dark:bg-emerald-500/5 dark:hover:bg-emerald-500/10 sm:p-5"
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -145,7 +149,14 @@ export function AvailabilityRoundListPage() {
                     </span>
                   </div>
                   <div className="mt-5 min-w-0">
-                    <h3 className="min-h-12 font-semibold leading-6">{roundName}</h3>
+                    <h3 className="min-h-12 font-semibold leading-6">
+                      {roundName}
+                      {invitation.round.semester?.code && (
+                        <span className="mt-1 block font-mono text-xs font-medium text-muted-foreground">
+                          {invitation.round.semester.code}
+                        </span>
+                      )}
+                    </h3>
                     <p className="mt-3 flex items-start gap-1.5 text-sm text-muted-foreground">
                       <Clock3 className="mt-0.5 size-4 shrink-0" />
                       <span>Hạn đăng ký: <span className="font-medium text-foreground tabular-nums">{formatDateTime(invitation.round.registrationDeadline)}</span></span>

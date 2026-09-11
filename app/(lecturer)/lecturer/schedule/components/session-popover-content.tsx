@@ -12,6 +12,7 @@ export function SessionPopoverContent({ session }: { session: LecturerSession })
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold">{ROUND_TYPE_LABEL[session.roundType]}</p>
+          {session.semesterCode && <p className="font-mono text-[11px] text-muted-foreground">{session.semesterCode}</p>}
           <p className="text-xs text-muted-foreground tabular-nums">
             {formatTimeRange(session.startAtIso, session.endAtIso)}
           </p>

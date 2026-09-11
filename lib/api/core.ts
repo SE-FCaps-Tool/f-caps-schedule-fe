@@ -16,7 +16,7 @@ const AUTH_ENDPOINT_PATTERN = /\/api\/v1\/auth\//;
 class ApiService {
   private client: AxiosInstance;
 
-  constructor(baseURL: string, timeout = 60000) {
+  constructor(baseURL: string, timeout = 300000) {
     this.client = axios.create({
       baseURL,
       timeout,
@@ -69,8 +69,8 @@ class ApiService {
     return this.request<T>({ method: "GET", url, params });
   }
 
-  async post<T, D, P = never>(url: string, data?: D, params?: P): Promise<AxiosResponse<T>> {
-    return this.request<T>({ method: "POST", url, data, params });
+  async post<T, D, P = never>(url: string, data?: D, params?: P, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.request<T>({ method: "POST", url, data, params, ...config });
   }
 
   async put<T, D, P = never>(url: string, data?: D, params?: P): Promise<AxiosResponse<T>> {
@@ -108,6 +108,13 @@ class ApiService {
   }
 }
 
-const apiService = new ApiService(process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/");
+const getBaseUrl = () => {
+  if (typeof window !== "undefined") {
+    return "/"; // Same-origin relative path in browser
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/";
+};
+
+const apiService = new ApiService(getBaseUrl());
 
 export default apiService;

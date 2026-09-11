@@ -221,8 +221,8 @@ function GroupProjectOverview({ data }: { data: LeaderDashboard }) {
         <InfoItem label="Đồng hướng dẫn" value={data.coSupervisor?.name ?? "Chưa gán"} />
         <InfoItem
           label="Thành viên"
-          value={data.group ? `${data.group.memberCount}/${data.group.maxMembers}` : "—"}
-          hint="thành viên hiện tại / tối đa"
+          value={data.group ? `${data.group.memberCount}` : "—"}
+          hint="thành viên hiện tại"
         />
         <InfoItem
           label="Mã nhóm"
