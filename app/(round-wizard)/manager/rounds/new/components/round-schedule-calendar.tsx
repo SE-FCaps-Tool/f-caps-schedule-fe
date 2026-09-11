@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CalendarRange, ChevronLeft, ChevronRight, Clock3 } from "lucide-react";
+import { CalendarRange, ChevronLeft, ChevronRight, Clock3, Plus, Sparkles, Sun, Sunset, Trash2, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/shared/date-field";
 import { TimeField } from "@/components/shared/time-field";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -34,12 +39,12 @@ export interface DeadlineDraft {
 
 const START_MINUTES = 7 * 60;
 const END_MINUTES = 18 * 60;
-const PIXELS_PER_MINUTE = 64 / 60;
+const PIXELS_PER_MINUTE = 54 / 60;
 const GRID_PADDING = 14;
 const GRID_HEIGHT =
   (END_MINUTES - START_MINUTES) * PIXELS_PER_MINUTE + GRID_PADDING * 2;
-const COLUMN_WIDTH = 100;
-const GUTTER_WIDTH = 56;
+const COLUMN_WIDTH = 160;
+const GUTTER_WIDTH = 64;
 const WEEKDAY_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
 function pixelsFromMinutes(minutes: number) {
@@ -74,6 +79,37 @@ function addDaysStr(dateStr: string, n: number): string {
 
 function todayKey(): string {
   return toDateKey(new Date());
+}
+
+function getMonday(dateStr: string): Date {
+  const d = parseDateOnly(dateStr);
+  const day = (d.getDay() + 6) % 7; // 0 for Mon, 6 for Sun
+  d.setDate(d.getDate() - day);
+  return d;
+}
+
+function getWeekColumns(startDate: string, endDate: string): string[][] {
+  if (!startDate || !endDate) return [];
+  const startD = getMonday(startDate);
+  const endD = parseDateOnly(endDate);
+  
+  const weeks: string[][] = [];
+  let curMonday = new Date(startD);
+  
+  // Create full Monday->Sunday weeks until the week containing endDate is included
+  let safeGuard = 0;
+  while (curMonday <= endD && safeGuard < 100) {
+    const week: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(curMonday);
+      d.setDate(d.getDate() + i);
+      week.push(toDateKey(d));
+    }
+    weeks.push(week);
+    curMonday.setDate(curMonday.getDate() + 7);
+    safeGuard++;
+  }
+  return weeks;
 }
 
 interface MonthCell {
@@ -183,6 +219,8 @@ interface RoundScheduleCalendarProps {
   days: DayDraft[];
   onAddSlot: (date: string, startTime: string) => void;
   onRemoveSlot: (date: string, index: number) => void;
+  onApplyPreset?: (dates: string[], preset: "morning" | "afternoon" | "full") => void;
+  onClearSlots?: (dates?: string[]) => void;
 }
 
 export function RoundScheduleCalendar({
@@ -201,6 +239,8 @@ export function RoundScheduleCalendar({
   days,
   onAddSlot,
   onRemoveSlot,
+  onApplyPreset,
+  onClearSlots,
 }: RoundScheduleCalendarProps) {
   const reduceMotion = useReducedMotion();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -208,6 +248,7 @@ export function RoundScheduleCalendar({
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [hoverDate, setHoverDate] = useState<string | null>(null);
   const [previewSlot, setPreviewSlot] = useState<{
     date: string;
@@ -223,6 +264,10 @@ export function RoundScheduleCalendar({
     sourceDate: string;
     sourceIndex: number;
   } | null>(null);
+  const [hoverGridSlot, setHoverGridSlot] = useState<{
+    date: string;
+    minutes: number;
+  } | null>(null);
   const [manualMode, setManualMode] = useState<Mode | null>(null);
   const [deadlineMovePreview, setDeadlineMovePreview] = useState<{
     date: string;
@@ -236,12 +281,20 @@ export function RoundScheduleCalendar({
     phase === "range" ? "range" : activeMode === "deadline" ? "deadline" : "slots";
   const banner = PHASE_BANNER[bannerPhase];
 
+  const weeksOfRange = phase !== "range" ? getWeekColumns(startDate, endDate) : [];
+  const currentWeekColumns = weeksOfRange[currentWeekIndex] || [];
+  const totalWeeks = weeksOfRange.length;
+
+  useEffect(() => {
+    setCurrentWeekIndex(0);
+  }, [startDate, endDate]);
+
   function handleResetRange() {
     setManualMode(null);
     onResetRange();
   }
 
-  const columns = phase === "range" ? [] : dateRange(startDate, endDate);
+  const columns = phase === "range" ? [] : currentWeekColumns;
 
   const dayByDate = new Map(days.map((d) => [d.date, d]));
   const today = todayKey();
@@ -260,12 +313,16 @@ export function RoundScheduleCalendar({
 
   function dateAtClientX(clientX: number): string | null {
     const el = scrollRef.current;
-    if (!el || columns.length === 0) return null;
+    if (!el || currentWeekColumns.length === 0) return null;
     const rect = el.getBoundingClientRect();
     const contentX = clientX - rect.left + el.scrollLeft - GUTTER_WIDTH;
     if (contentX < 0) return null;
-    const index = Math.floor(contentX / COLUMN_WIDTH);
-    return columns[index] ?? null;
+    const totalGridWidth = Math.max(el.clientWidth, 800) - GUTTER_WIDTH;
+    const colWidth = totalGridWidth / currentWeekColumns.length;
+    const index = Math.floor(contentX / colWidth);
+    const date = currentWeekColumns[index] ?? null;
+    if (date && (date < startDate || date > endDate)) return null;
+    return date;
   }
 
   function minutesAtClientY(clientY: number): number {
@@ -353,13 +410,14 @@ export function RoundScheduleCalendar({
   }
 
   function handleSlotMouseDown(
-    e: React.MouseEvent<HTMLButtonElement>,
+    e: React.MouseEvent<HTMLDivElement | HTMLButtonElement>,
     date: string,
     index: number,
     startTime: string,
   ) {
     e.stopPropagation();
     if (e.button !== 0 || activeMode !== "slot" || !scrollRef.current) return;
+    if (date < startDate || date > endDate) return;
     e.preventDefault();
     const startMinutes = minutesFromTime(startTime);
     const rect = gridBodyRef.current?.getBoundingClientRect();
@@ -471,6 +529,20 @@ export function RoundScheduleCalendar({
 
     if (drag.kind === "create" && drag.date) {
       setPreviewSlot({ date: drag.date, minutes: minutesAtClientY(e.clientY) });
+    }
+
+    if (drag.kind === null && activeMode === "slot") {
+      const date = dateAtClientX(e.clientX);
+      if (date) {
+        const minutes = minutesAtClientY(e.clientY);
+        if (slotFits(date, timeFromMinutes(minutes), "", -1)) {
+          setHoverGridSlot({ date, minutes });
+        } else {
+          setHoverGridSlot(null);
+        }
+      } else {
+        setHoverGridSlot(null);
+      }
     }
   }
 
@@ -706,60 +778,213 @@ export function RoundScheduleCalendar({
         </div>
       )}
 
+      {phase !== "range" && currentWeekColumns.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-muted/10 px-4 py-2">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              disabled={currentWeekIndex === 0}
+              onClick={() => setCurrentWeekIndex((i) => i - 1)}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="text-sm font-medium text-center px-2">
+              Tuần {currentWeekIndex + 1}/{totalWeeks}
+              {currentWeekColumns.length > 0 && (
+                <span className="text-xs text-muted-foreground font-normal ml-2 hidden sm:inline-block">
+                  ({formatDate(currentWeekColumns[0], "DD/MM")} – {formatDate(currentWeekColumns[6], "DD/MM/YYYY")})
+                </span>
+              )}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              disabled={currentWeekIndex === totalWeeks - 1}
+              onClick={() => setCurrentWeekIndex((i) => i + 1)}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground mr-1 hidden sm:inline">Thao tác nhanh tuần này:</span>
+            {onApplyPreset && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onApplyPreset(currentWeekColumns.filter(d => d >= startDate && d <= endDate), "morning")}
+                  className="h-7 px-2.5 gap-1.5 text-xs bg-card"
+                >
+                  <Sun className="size-3.5 text-amber-500" />
+                  + Ca sáng
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onApplyPreset(currentWeekColumns.filter(d => d >= startDate && d <= endDate), "afternoon")}
+                  className="h-7 px-2.5 gap-1.5 text-xs bg-card"
+                >
+                  <Sunset className="size-3.5 text-orange-500" />
+                  + Ca chiều
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onApplyPreset(currentWeekColumns.filter(d => d >= startDate && d <= endDate), "full")}
+                  className="h-7 px-2.5 gap-1.5 text-xs bg-card"
+                >
+                  <Sparkles className="size-3.5 text-primary" />
+                  + Cả ngày
+                </Button>
+              </>
+            )}
+            {onClearSlots && days.length > 0 && (
+              <div className="ml-2 border-l border-border pl-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onClearSlots()}
+                  className="h-7 px-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="mr-1.5 size-3" />
+                  Xoá tất cả
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {phase !== "range" && (
         <div
           ref={scrollRef}
           onMouseDown={handleGridMouseDown}
+          onMouseLeave={() => setHoverGridSlot(null)}
           className={cn(
-            "min-h-0 flex-1 overflow-auto scrollbar-hide select-none",
-            isPanning || movePreview ? "cursor-grabbing" : "cursor-grab",
+            "min-h-[500px] flex-1 overflow-auto select-none",
+            isPanning || movePreview ? "cursor-grabbing" : "cursor-default",
           )}
         >
-          <div
-            style={{ minWidth: columns.length * COLUMN_WIDTH + GUTTER_WIDTH }}
-          >
-            <div className="sticky top-0 z-30 flex border-b border-border bg-card">
+          <div className="w-full min-w-[760px]">
+            <div className="sticky top-0 z-30 flex w-full border-b border-border bg-card">
               <div
                 className="sticky left-0 z-40 shrink-0 border-r border-border bg-card"
                 style={{ width: GUTTER_WIDTH }}
               />
-              {columns.map((date, index) => {
-                const isToday = date === today;
-                const isMonthStart =
-                  index === 0 ||
-                  date.slice(0, 7) !== columns[index - 1].slice(0, 7);
-                const isDeadlineDay = registrationDeadline?.date === date;
+              <div className="flex flex-1 min-w-0">
+                {currentWeekColumns.map((date, index) => {
+                  const isToday = date === today;
+                  const isMonthStart =
+                    index === 0 ||
+                    date.slice(0, 7) !== currentWeekColumns[index - 1].slice(0, 7);
+                  const draft = dayByDate.get(date);
+                  const isDeadlineDay = registrationDeadline?.date === date;
+                  const isOutOfRange = date < startDate || date > endDate;
 
-                return (
-                  <div
-                    key={date}
-                    className={cn(
-                      "flex shrink-0 flex-col items-center gap-1 border-r border-border px-1 py-2.5",
-                      isToday && "bg-sky-500/5",
-                    )}
-                    style={{ width: COLUMN_WIDTH }}
-                  >
-                    <span className="h-3.5 text-[10px] font-medium text-primary/80">
-                      {isMonthStart ? formatDate(date, "MM/YYYY") : ""}
-                    </span>
-                    <span className="text-[11px] font-medium text-muted-foreground capitalize">
-                      {formatDate(date, "dd")}
-                    </span>
-                    <span
+                  return (
+                    <div
+                      key={date}
                       className={cn(
-                        "flex size-7 items-center justify-center rounded-full text-sm font-semibold tabular-nums",
-                        isDeadlineDay && "bg-amber-500 text-white",
-                        !isDeadlineDay &&
-                          isToday &&
-                          "ring-2 ring-sky-500 text-foreground",
-                        !isDeadlineDay && !isToday && "text-foreground",
+                        "flex flex-1 min-w-0 flex-col items-center justify-center gap-1 border-r border-border px-2 py-2",
+                        isToday && "bg-sky-500/5",
+                        isOutOfRange && "bg-muted/30 opacity-70"
                       )}
                     >
-                      {formatDate(date, "DD")}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn("text-[11px] font-medium uppercase", isOutOfRange ? "text-muted-foreground/60" : "text-muted-foreground")}>
+                        {WEEKDAY_LABELS[index]}
+                      </span>
+                      <span
+                        className={cn(
+                          "flex size-6 items-center justify-center rounded-full text-xs font-bold tabular-nums",
+                          isDeadlineDay && "bg-amber-500 text-white shadow-xs",
+                          !isDeadlineDay &&
+                            isToday &&
+                            "ring-1.5 ring-sky-500 text-foreground",
+                          !isDeadlineDay && !isToday && (isOutOfRange ? "text-muted-foreground/60" : "text-foreground"),
+                        )}
+                      >
+                        {formatDate(date, "DD")}
+                      </span>
+                    </div>
+                    
+                    {isOutOfRange ? (
+                      <div className="flex items-center">
+                        <span className="rounded bg-muted/50 px-1.5 py-0.5 text-[9px] text-muted-foreground/60">Ngoài đợt</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <span className={cn(
+                          "rounded-full px-1.5 py-0.5 text-[9px] font-medium transition-colors",
+                          (draft?.slots.length ?? 0) > 0 ? "bg-primary/10 text-primary" : "bg-muted/50 text-muted-foreground"
+                        )}>
+                          {draft?.slots.length ?? 0} slot
+                        </span>
+                        {onApplyPreset && (
+                          <Popover>
+                            <PopoverTrigger
+                              className="flex size-4.5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                              title="Thao tác nhanh cho ngày này"
+                            >
+                              <Plus className="size-3" />
+                            </PopoverTrigger>
+                            <PopoverContent align="center" className="w-48 p-1.5 text-xs">
+                              <div className="space-y-1">
+                                <p className="px-2 py-1 font-medium text-muted-foreground text-[11px]">
+                                  {formatDate(date, "dddd, DD/MM")}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => onApplyPreset([date], "morning")}
+                                  className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left hover:bg-muted"
+                                >
+                                  <Sun className="size-3 text-amber-500" />
+                                  + Ca sáng (07:30 - 11:30)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => onApplyPreset([date], "afternoon")}
+                                  className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left hover:bg-muted"
+                                >
+                                  <Sunset className="size-3 text-orange-500" />
+                                  + Ca chiều (13:00 - 17:00)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => onApplyPreset([date], "full")}
+                                  className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left hover:bg-muted"
+                                >
+                                  <Sparkles className="size-3 text-primary" />
+                                  + Cả ngày
+                                </button>
+                                {(draft?.slots.length ?? 0) > 0 && onClearSlots && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onClearSlots([date])}
+                                    className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-destructive hover:bg-destructive/10"
+                                  >
+                                    <Trash2 className="size-3" />
+                                    Xoá các slot
+                                  </button>
+                                )}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
+              </div>
             </div>
 
             <motion.div
@@ -767,7 +992,7 @@ export function RoundScheduleCalendar({
               initial={reduceMotion ? undefined : { opacity: 0, scaleY: 0.96 }}
               animate={reduceMotion ? undefined : { opacity: 1, scaleY: 1 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-              className="flex"
+              className="flex w-full"
               style={{ height: GRID_HEIGHT, transformOrigin: "top" }}
             >
               <div
@@ -788,21 +1013,24 @@ export function RoundScheduleCalendar({
                 ))}
               </div>
 
-              {columns.map((date) => {
-                const draft = dayByDate.get(date);
-                const isToday = date === today;
-                const isSlotMode = activeMode === "slot";
-                const isDeadlineDay = registrationDeadline?.date === date;
+              <div className="flex flex-1 min-w-0">
+                {currentWeekColumns.map((date) => {
+                  const draft = dayByDate.get(date);
+                  const isToday = date === today;
+                  const isSlotMode = activeMode === "slot";
+                  const isDeadlineDay = registrationDeadline?.date === date;
+                  const isOutOfRange = date < startDate || date > endDate;
 
-                return (
-                  <div
-                    key={date}
-                    className={cn(
-                      "relative shrink-0 cursor-crosshair border-r border-border select-none",
-                      isToday && "bg-sky-500/5",
-                    )}
-                    style={{ width: COLUMN_WIDTH, height: GRID_HEIGHT }}
-                  >
+                  return (
+                    <div
+                      key={date}
+                      className={cn(
+                        "relative flex-1 min-w-0 border-r border-border select-none",
+                        isToday && "bg-sky-500/5",
+                        isOutOfRange ? "bg-muted/20 cursor-not-allowed" : "cursor-crosshair",
+                      )}
+                      style={{ height: GRID_HEIGHT }}
+                    >
                     {Array.from(
                       {
                         length:
@@ -887,17 +1115,29 @@ export function RoundScheduleCalendar({
                         </div>
                       )}
 
-                    {movePreview?.date === date && movingSource && (
+                    {hoverGridSlot?.date === date && !isCreatingSlot && !movingSource && duration > 0 && (
                       <div
-                        className="pointer-events-none absolute inset-x-1 rounded-md border-2 border-primary bg-primary/30 px-1.5 py-1 text-left text-[11px] leading-tight font-medium text-primary shadow-md"
+                        className="pointer-events-none absolute inset-x-1.5 flex items-center justify-center rounded-lg border border-dashed border-primary bg-primary/5 text-[11px] font-semibold text-primary transition-colors"
                         style={{
-                          top: pixelsFromMinutes(movePreview.minutes) + 1,
-                          height:
-                            Math.max(18, duration * PIXELS_PER_MINUTE) - 2,
+                          top: pixelsFromMinutes(hoverGridSlot.minutes) + 1,
+                          height: Math.max(22, duration * PIXELS_PER_MINUTE) - 2,
                         }}
                       >
-                        {timeFromMinutes(movePreview.minutes)}–
-                        {timeFromMinutes(movePreview.minutes + duration)}
+                        + {timeFromMinutes(hoverGridSlot.minutes)}–{timeFromMinutes(hoverGridSlot.minutes + duration)}
+                      </div>
+                    )}
+
+                    {movePreview?.date === date && movingSource && (
+                      <div
+                        className="pointer-events-none absolute inset-x-1.5 flex flex-col justify-center rounded-lg border-2 border-primary bg-primary/30 px-2 py-1 text-left text-primary shadow-md"
+                        style={{
+                          top: pixelsFromMinutes(movePreview.minutes) + 1,
+                          height: Math.max(22, duration * PIXELS_PER_MINUTE) - 2,
+                        }}
+                      >
+                        <span className="text-xs font-semibold tabular-nums leading-tight">
+                          {timeFromMinutes(movePreview.minutes)}–{timeFromMinutes(movePreview.minutes + duration)}
+                        </span>
                       </div>
                     )}
 
@@ -906,7 +1146,7 @@ export function RoundScheduleCalendar({
                         minutesFromTime(slot.startTime),
                       );
                       const height = Math.max(
-                        18,
+                        22,
                         (minutesFromTime(slot.endTime) -
                           minutesFromTime(slot.startTime)) *
                           PIXELS_PER_MINUTE,
@@ -915,85 +1155,100 @@ export function RoundScheduleCalendar({
                         movingSource?.sourceDate === date &&
                         movingSource.sourceIndex === index;
                       return (
-                        <button
+                        <div
                           key={`${slot.startTime}-${index}`}
-                          type="button"
                           onMouseDown={(e) =>
                             handleSlotMouseDown(e, date, index, slot.startTime)
                           }
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRemoveSlot(date, index);
-                          }}
                           className={cn(
-                            "absolute inset-x-1 cursor-grab rounded-md border border-primary/40 bg-primary/15 px-1.5 py-1 text-left text-[11px] leading-tight font-medium text-primary shadow-sm backdrop-blur-[1px] transition-colors hover:bg-primary/25 active:cursor-grabbing",
+                            "group absolute inset-x-1.5 flex cursor-grab flex-col justify-center rounded-lg border border-primary/40 bg-primary/15 px-2 py-1 text-left text-primary shadow-sm backdrop-blur-[1px] transition-colors hover:border-primary hover:bg-primary/25 active:cursor-grabbing",
                             isBeingMoved && "pointer-events-none opacity-0",
                           )}
                           style={{
                             top: top + 1,
-                            height: Math.max(18, height) - 2,
+                            height: height - 2,
                           }}
-                          title="Kéo để đổi giờ · Bấm để xoá"
+                          title="Kéo để đổi giờ · Bấm ✕ để xoá"
                         >
-                          {slot.startTime}–{slot.endTime}
-                        </button>
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[11px] font-bold tracking-tight tabular-nums sm:text-xs">
+                              {slot.startTime}–{slot.endTime}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onRemoveSlot(date, index);
+                              }}
+                              className="flex size-4 shrink-0 items-center justify-center rounded-md text-primary/70 opacity-0 transition-all hover:bg-destructive hover:text-white group-hover:opacity-100"
+                              title="Xoá khung giờ"
+                            >
+                              <X className="size-3" />
+                            </button>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
                 );
               })}
+              </div>
             </motion.div>
           </div>
         </div>
       )}
 
       {phase !== "range" && (
-        <div className="flex flex-wrap items-end gap-4 border-t border-border px-4 py-3">
-          <div className="space-y-1.5">
-            <label htmlFor="manual-registration-deadline-date" className="text-xs font-medium text-foreground">
-              Hạn đăng ký chọn lịch
-            </label>
-            <DateField
-              id="manual-registration-deadline-date"
-              ariaLabel="Ngày hạn đăng ký chọn lịch"
-              value={registrationDeadline?.date ?? ""}
-              max={startDate || undefined}
-              onChange={(date) =>
-                onRegistrationDeadlineChange({
-                  date,
-                  time: registrationDeadline?.time ?? "23:59",
-                })
-              }
-              className="h-11 w-44"
-              aria-describedby="manual-registration-deadline-help"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor="manual-registration-deadline-time" className="text-xs font-medium text-foreground">
-              Giờ hạn đăng ký
-            </label>
-            <TimeField
-              id="manual-registration-deadline-time"
-              size="default"
-              ariaLabel="Giờ hạn đăng ký chọn lịch"
-              value={registrationDeadline?.time ?? "23:59"}
-              onChange={(time) =>
-                onRegistrationDeadlineChange({
-                  date: registrationDeadline?.date ?? "",
-                  time,
-                })
-              }
-              className="min-h-11 w-36"
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border bg-muted/10 px-5 py-3">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label htmlFor="manual-registration-deadline-date" className="text-xs font-semibold text-foreground shrink-0">
+                Hạn đăng ký chọn lịch:
+              </label>
+              <DateField
+                id="manual-registration-deadline-date"
+                ariaLabel="Ngày hạn đăng ký chọn lịch"
+                value={registrationDeadline?.date ?? ""}
+                max={startDate || undefined}
+                onChange={(date) =>
+                  onRegistrationDeadlineChange({
+                    date,
+                    time: registrationDeadline?.time ?? "23:59",
+                  })
+                }
+                className="h-9 w-40 bg-background"
+                aria-describedby="manual-registration-deadline-help"
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="manual-registration-deadline-time" className="text-xs font-semibold text-foreground shrink-0">
+                Giờ hạn:
+              </label>
+              <TimeField
+                id="manual-registration-deadline-time"
+                size="default"
+                ariaLabel="Giờ hạn đăng ký chọn lịch"
+                value={registrationDeadline?.time ?? "23:59"}
+                onChange={(time) =>
+                  onRegistrationDeadlineChange({
+                    date: registrationDeadline?.date ?? "",
+                    time,
+                  })
+                }
+                className="min-h-9 h-9 w-32 bg-background"
+              />
+            </div>
           </div>
-          <p id="manual-registration-deadline-help" className="pb-1 text-xs text-muted-foreground">
-            Deadline có thể đặt trước hoặc đúng ngày bắt đầu chấm; lịch bên trên chỉ dùng để thêm khung giờ.
-          </p>
-          {registrationDeadline && startDate && registrationDeadline.date > startDate && (
-            <p className="basis-full text-xs text-destructive">
-              Hạn đăng ký phải vào hoặc trước ngày bắt đầu chấm ({startDate}).
+          <div className="flex flex-col gap-1 text-right">
+            <p id="manual-registration-deadline-help" className="text-xs text-muted-foreground">
+              Deadline phải trước/bằng ngày bắt đầu ({startDate || "..."}).
             </p>
-          )}
+            {registrationDeadline && startDate && registrationDeadline.date > startDate && (
+              <p className="text-xs font-medium text-destructive">
+                Lỗi: Hạn đăng ký phải vào hoặc trước ngày bắt đầu chấm.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
