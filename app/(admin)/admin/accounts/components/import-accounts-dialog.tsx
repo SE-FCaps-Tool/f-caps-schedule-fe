@@ -24,7 +24,6 @@ import {
 import { useImportAccounts } from "@/hooks/admin/useAccounts";
 import type { AccountImportResponse } from "@/lib/api/services/fetchAccounts";
 import { ROLE_LABEL_VI } from "@/lib/utils/roleLabels";
-import { seniorityLabel } from "@/lib/utils/masterDataLabels";
 
 const TEMPLATE_COLUMNS = [
   { header: "Email", example: "nam.nguyen@fe.edu.vn", note: "Bắt buộc, duy nhất", required: true },

@@ -345,7 +345,7 @@ export function CreateRoundWizard() {
     }
 
     setDays((prev) => {
-      let nextDays = [...prev];
+      const nextDays = [...prev];
       for (const date of dates) {
         const generatedSlots: RoundTimeslotDraft[] = [];
         for (const w of windows) {

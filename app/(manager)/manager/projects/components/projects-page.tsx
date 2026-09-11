@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
 import { FilePlus2, MoreHorizontal, Pencil, Search, Upload, UserRoundPlus, WifiOff } from "lucide-react";
 import { ImportProjectsDialog } from "@/components/projects/import-projects-dialog";
 import { Button } from "@/components/ui/button";

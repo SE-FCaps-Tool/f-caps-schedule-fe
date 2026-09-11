@@ -43,7 +43,6 @@ const PIXELS_PER_MINUTE = 54 / 60;
 const GRID_PADDING = 14;
 const GRID_HEIGHT =
   (END_MINUTES - START_MINUTES) * PIXELS_PER_MINUTE + GRID_PADDING * 2;
-const COLUMN_WIDTH = 160;
 const GUTTER_WIDTH = 64;
 const WEEKDAY_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
@@ -94,7 +93,7 @@ function getWeekColumns(startDate: string, endDate: string): string[][] {
   const endD = parseDateOnly(endDate);
   
   const weeks: string[][] = [];
-  let curMonday = new Date(startD);
+  const curMonday = new Date(startD);
   
   // Create full Monday->Sunday weeks until the week containing endDate is included
   let safeGuard = 0;
@@ -285,16 +284,16 @@ export function RoundScheduleCalendar({
   const currentWeekColumns = weeksOfRange[currentWeekIndex] || [];
   const totalWeeks = weeksOfRange.length;
 
-  useEffect(() => {
+  const [prevRange, setPrevRange] = useState({ startDate, endDate });
+  if (startDate !== prevRange.startDate || endDate !== prevRange.endDate) {
+    setPrevRange({ startDate, endDate });
     setCurrentWeekIndex(0);
-  }, [startDate, endDate]);
+  }
 
   function handleResetRange() {
     setManualMode(null);
     onResetRange();
   }
-
-  const columns = phase === "range" ? [] : currentWeekColumns;
 
   const dayByDate = new Map(days.map((d) => [d.date, d]));
   const today = todayKey();
@@ -882,9 +881,6 @@ export function RoundScheduleCalendar({
               <div className="flex flex-1 min-w-0">
                 {currentWeekColumns.map((date, index) => {
                   const isToday = date === today;
-                  const isMonthStart =
-                    index === 0 ||
-                    date.slice(0, 7) !== currentWeekColumns[index - 1].slice(0, 7);
                   const draft = dayByDate.get(date);
                   const isDeadlineDay = registrationDeadline?.date === date;
                   const isOutOfRange = date < startDate || date > endDate;
