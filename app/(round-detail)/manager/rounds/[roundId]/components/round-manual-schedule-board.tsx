@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
+  ArrowLeftRight,
   Check,
   CheckCircle2,
   ChevronDown,
   DoorOpen,
+  GripVertical,
   Info,
   Loader2,
   Pencil,
@@ -111,6 +113,8 @@ type ActiveEditor = {
   slot: RoundConfigTimeslot;
   sessionId?: string;
 };
+
+export type DropPosition = "before" | "swap" | "after" | "cell";
 
 type VersionConfirmation = {
   action: "copy" | "delete";
@@ -269,6 +273,14 @@ function ManualSessionChip({
   lecturerById,
   onEdit,
   disabled = false,
+  isDragging = false,
+  isDragOver = false,
+  dragOverPosition = "swap",
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
 }: {
   session: ManualScheduleSession;
   roles: ReviewerRole[];
@@ -277,6 +289,14 @@ function ManualSessionChip({
   lecturerById: Map<string, RoundInvitation>;
   onEdit: () => void;
   disabled?: boolean;
+  isDragging?: boolean;
+  isDragOver?: boolean;
+  dragOverPosition?: DropPosition;
+  onDragStart?: (e: React.DragEvent<HTMLButtonElement>) => void;
+  onDragEnd?: (e: React.DragEvent<HTMLButtonElement>) => void;
+  onDragOver?: (e: React.DragEvent<HTMLButtonElement>) => void;
+  onDragLeave?: (e: React.DragEvent<HTMLButtonElement>) => void;
+  onDrop?: (e: React.DragEvent<HTMLButtonElement>) => void;
 }) {
   const groupCodes = getGroupCodes(session.groupIds, groupById);
   const room = session.roomId ? roomById.get(session.roomId) : undefined;
@@ -287,13 +307,54 @@ function ManualSessionChip({
       type="button"
       onClick={onEdit}
       disabled={disabled}
-      title="Chỉnh hội đồng"
-      className="group relative w-full rounded-md border border-primary/25 bg-primary/10 px-2.5 py-2.5 text-left text-xs transition-colors hover:border-primary/50 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+      draggable={!disabled}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      title="Kéo thả để di chuyển hoặc hoán đổi · Nhấp để chỉnh hội đồng"
+      className={cn(
+        "group relative w-full rounded-md border border-primary/25 bg-primary/10 px-2.5 py-2.5 text-left text-xs transition-all",
+        !disabled && "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:bg-primary/15",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60",
+        isDragging && "opacity-30 scale-[0.98] border-dashed border-primary ring-2 ring-primary/40",
+        isDragOver && dragOverPosition === "swap" && "ring-2 ring-amber-500/50 bg-amber-500/10 border-amber-500/60 scale-[1.01] shadow-sm z-10",
+        isDragOver && dragOverPosition === "before" && "border-t-2 border-t-primary shadow-xs",
+        isDragOver && dragOverPosition === "after" && "border-b-2 border-b-primary shadow-xs"
+      )}
       aria-label={`Chỉnh hội đồng ${groupCodes.length > 0 ? groupCodes.join(", ") : "chưa chọn nhóm"}`}
     >
+      {isDragOver && dragOverPosition === "before" && (
+        <div className="pointer-events-none absolute -top-2 left-0 right-0 z-30 flex items-center justify-center animate-in fade-in zoom-in-95 duration-100">
+          <div className="h-1 w-full rounded-full bg-primary shadow-xs" />
+          <span className="absolute -top-3.5 inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground shadow-sm">
+            Chèn lên trên
+          </span>
+        </div>
+      )}
+
+      {isDragOver && dragOverPosition === "after" && (
+        <div className="pointer-events-none absolute -bottom-2 left-0 right-0 z-30 flex items-center justify-center animate-in fade-in zoom-in-95 duration-100">
+          <div className="h-1 w-full rounded-full bg-primary shadow-xs" />
+          <span className="absolute -bottom-3.5 inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground shadow-sm">
+            Chèn xuống dưới
+          </span>
+        </div>
+      )}
+
+      {isDragOver && dragOverPosition === "swap" && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-md bg-amber-500/[0.08] border border-amber-400/50 backdrop-blur-[1px] animate-in fade-in duration-100">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/80 bg-background/95 px-2.5 py-1 text-xs font-semibold text-amber-800 shadow-sm dark:border-amber-700/60 dark:bg-zinc-900/95 dark:text-amber-300">
+            <ArrowLeftRight className="size-3.5 text-amber-600 animate-pulse dark:text-amber-400" />
+            Hoán đổi vị trí
+          </span>
+        </div>
+      )}
+
       <span className="flex min-w-0 items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-1.5">
-          <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
+          <GripVertical className="size-3.5 shrink-0 text-primary/40 transition-colors group-hover:text-primary" />
           <span className="truncate font-mono text-xs font-semibold text-primary">
             {groupCodes[0] ?? "Chưa chọn nhóm"}
           </span>
@@ -482,6 +543,10 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
   const [groupSearch, setGroupSearch] = useState("");
   const [roomSearch, setRoomSearch] = useState("");
   const [reviewerSearchByRole, setReviewerSearchByRole] = useState<Record<string, string>>({});
+  const [draggedSessionId, setDraggedSessionId] = useState<string | null>(null);
+  const [dragOverCellKey, setDragOverCellKey] = useState<string | null>(null);
+  const [dragOverSessionId, setDragOverSessionId] = useState<string | null>(null);
+  const [dragOverPosition, setDragOverPosition] = useState<DropPosition>("swap");
 
   const manualBoardQuery = useManualScheduleBoard(roundId);
   const manualBoard = manualBoardQuery.data;
@@ -1095,6 +1160,150 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
     setReviewerSearchByRole((current) => ({ ...current, [roleKey]: value }));
   }
 
+  function handleDropSession(
+    targetDate: string,
+    targetSlot: RoundConfigTimeslot,
+    targetSessionId?: string,
+    position: DropPosition = "cell"
+  ) {
+    if (!draggedSessionId) return;
+
+    setSessions((currentSessions) => {
+      const draggedSession = currentSessions.find((s) => s.id === draggedSessionId);
+      if (!draggedSession) return currentSessions;
+
+      const isSameCell = draggedSession.date === targetDate && draggedSession.slotId === targetSlot.id;
+
+      // Case 1: Swap with target session
+      if (position === "swap" && targetSessionId && targetSessionId !== draggedSessionId) {
+        const targetSession = currentSessions.find((s) => s.id === targetSessionId);
+        if (!targetSession) return currentSessions;
+
+        const dragIndex = currentSessions.findIndex((s) => s.id === draggedSessionId);
+        const targetIndex = currentSessions.findIndex((s) => s.id === targetSessionId);
+        if (dragIndex === -1 || targetIndex === -1) return currentSessions;
+
+        const newSessions = [...currentSessions];
+        newSessions[dragIndex] = {
+          ...draggedSession,
+          date: targetSession.date,
+          slotId: targetSession.slotId,
+          startTime: targetSession.startTime,
+          endTime: targetSession.endTime,
+        };
+        newSessions[targetIndex] = {
+          ...targetSession,
+          date: draggedSession.date,
+          slotId: draggedSession.slotId,
+          startTime: draggedSession.startTime,
+          endTime: draggedSession.endTime,
+        };
+
+        toast.info("Đã hoán đổi vị trí hai hội đồng");
+        return newSessions;
+      }
+
+      // Case 2: Insert before target session (phía trên hoặc chen giữa)
+      if (position === "before" && targetSessionId && targetSessionId !== draggedSessionId) {
+        const targetSession = currentSessions.find((s) => s.id === targetSessionId);
+        if (!targetSession) return currentSessions;
+
+        if (!isSameCell) {
+          const targetCellCount = currentSessions.filter(
+            (s) => s.date === targetDate && s.slotId === targetSlot.id
+          ).length;
+          if (hasSessionLimit && typeof maxSessionsPerCell === "number" && targetCellCount >= maxSessionsPerCell) {
+            toast.error(`Ô này đã đủ tối đa ${maxSessionsPerCell} hội đồng. Bạn có thể kéo vào giữa để hoán đổi.`);
+            return currentSessions;
+          }
+        }
+
+        const remainingSessions = currentSessions.filter((s) => s.id !== draggedSessionId);
+        const newTargetIndex = remainingSessions.findIndex((s) => s.id === targetSessionId);
+        if (newTargetIndex === -1) return currentSessions;
+
+        const updatedDraggedSession: ManualScheduleSession = {
+          ...draggedSession,
+          date: targetDate,
+          slotId: targetSlot.id,
+          startTime: targetSlot.startTime,
+          endTime: targetSlot.endTime,
+        };
+
+        const newSessions = [...remainingSessions];
+        newSessions.splice(newTargetIndex, 0, updatedDraggedSession);
+
+        toast.info(isSameCell ? "Đã chuyển vị trí lên trên" : "Đã chuyển và chèn hội đồng");
+        return newSessions;
+      }
+
+      // Case 3: Insert after target session (phía dưới hoặc chen giữa)
+      if (position === "after" && targetSessionId && targetSessionId !== draggedSessionId) {
+        const targetSession = currentSessions.find((s) => s.id === targetSessionId);
+        if (!targetSession) return currentSessions;
+
+        if (!isSameCell) {
+          const targetCellCount = currentSessions.filter(
+            (s) => s.date === targetDate && s.slotId === targetSlot.id
+          ).length;
+          if (hasSessionLimit && typeof maxSessionsPerCell === "number" && targetCellCount >= maxSessionsPerCell) {
+            toast.error(`Ô này đã đủ tối đa ${maxSessionsPerCell} hội đồng. Bạn có thể kéo vào giữa để hoán đổi.`);
+            return currentSessions;
+          }
+        }
+
+        const remainingSessions = currentSessions.filter((s) => s.id !== draggedSessionId);
+        const newTargetIndex = remainingSessions.findIndex((s) => s.id === targetSessionId);
+        if (newTargetIndex === -1) return currentSessions;
+
+        const updatedDraggedSession: ManualScheduleSession = {
+          ...draggedSession,
+          date: targetDate,
+          slotId: targetSlot.id,
+          startTime: targetSlot.startTime,
+          endTime: targetSlot.endTime,
+        };
+
+        const newSessions = [...remainingSessions];
+        newSessions.splice(newTargetIndex + 1, 0, updatedDraggedSession);
+
+        toast.info(isSameCell ? "Đã chuyển vị trí xuống dưới" : "Đã chuyển và chèn hội đồng");
+        return newSessions;
+      }
+
+      // Case 4: Move to cell container / empty cell
+      if (!isSameCell) {
+        const targetCellCount = currentSessions.filter(
+          (s) => s.date === targetDate && s.slotId === targetSlot.id
+        ).length;
+        if (hasSessionLimit && typeof maxSessionsPerCell === "number" && targetCellCount >= maxSessionsPerCell) {
+          toast.error("Ô này đã đạt giới hạn hội đồng tối đa");
+          return currentSessions;
+        }
+
+        const remainingSessions = currentSessions.filter((s) => s.id !== draggedSessionId);
+        const updatedDraggedSession: ManualScheduleSession = {
+          ...draggedSession,
+          date: targetDate,
+          slotId: targetSlot.id,
+          startTime: targetSlot.startTime,
+          endTime: targetSlot.endTime,
+        };
+
+        toast.info("Đã di chuyển hội đồng");
+        return [...remainingSessions, updatedDraggedSession];
+      }
+
+      return currentSessions;
+    });
+
+    setDraggedSessionId(null);
+    setDragOverCellKey(null);
+    setDragOverSessionId(null);
+    setDragOverPosition("swap");
+  }
+
+
   if (dates.length === 0 || timeRows.length === 0) {
     return <p className="py-10 text-center text-sm text-muted-foreground">Round chưa có khung giờ nào.</p>;
   }
@@ -1315,10 +1524,38 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
                         ? "Không có nhóm khả dụng"
                         : "Không có GV khả dụng";
 
+                  const isCellDragOver = dragOverCellKey === key && draggedSessionId !== null;
+
                   return (
                     <td
                       key={key}
-                      className="h-40 min-w-0 border-b border-l border-border p-2 align-top transition-colors hover:bg-muted/20"
+                      onDragOver={(e) => {
+                        if (!scheduleInteractionLocked && draggedSessionId) {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          if (dragOverCellKey !== key) {
+                            setDragOverCellKey(key);
+                          }
+                        }
+                      }}
+                      onDragLeave={(e) => {
+                        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                        if (dragOverCellKey === key) {
+                          setDragOverCellKey(null);
+                        }
+                      }}
+                      onDrop={(e) => {
+                        if (!scheduleInteractionLocked && draggedSessionId) {
+                          e.preventDefault();
+                          handleDropSession(date, slot);
+                        }
+                      }}
+                      className={cn(
+                        "h-40 min-w-0 border-b border-l border-border p-2 align-top transition-all duration-150",
+                        isCellDragOver
+                          ? "bg-primary/10 ring-2 ring-primary/60 ring-inset"
+                          : "hover:bg-muted/20",
+                      )}
                     >
                       <div className="flex min-h-36 min-w-0 flex-col gap-2">
                         <div className="flex items-center justify-between gap-2">
@@ -1343,7 +1580,11 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
                         </div>
 
                         {cellSessions.length === 0 ? (
-                          showAddAction ? (
+                          isCellDragOver ? (
+                            <div className="flex min-h-24 flex-1 items-center justify-center rounded-md border-2 border-dashed border-primary bg-primary/20 text-xs font-semibold text-primary animate-pulse">
+                              Thả vào đây để chuyển lịch
+                            </div>
+                          ) : showAddAction ? (
                             <button
                               type="button"
                               onClick={() => openCreate(date, slot)}
@@ -1371,6 +1612,54 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
                                 roomById={roomById}
                                 lecturerById={lecturerById}
                                 disabled={scheduleInteractionLocked}
+                                isDragging={draggedSessionId === session.id}
+                                isDragOver={dragOverSessionId === session.id}
+                                dragOverPosition={dragOverPosition}
+                                onDragStart={(e) => {
+                                  if (scheduleInteractionLocked) return;
+                                  e.dataTransfer.setData("text/plain", session.id);
+                                  e.dataTransfer.effectAllowed = "move";
+                                  setDraggedSessionId(session.id);
+                                }}
+                                onDragEnd={() => {
+                                  setDraggedSessionId(null);
+                                  setDragOverCellKey(null);
+                                  setDragOverSessionId(null);
+                                  setDragOverPosition("swap");
+                                }}
+                                onDragOver={(e) => {
+                                  if (!scheduleInteractionLocked && draggedSessionId && draggedSessionId !== session.id) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    e.dataTransfer.dropEffect = "move";
+                                    
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const offsetY = e.clientY - rect.top;
+                                    const ratio = offsetY / rect.height;
+                                    let pos: DropPosition = "swap";
+                                    if (ratio < 0.28) pos = "before";
+                                    else if (ratio > 0.72) pos = "after";
+                                    
+                                    setDragOverSessionId(session.id);
+                                    setDragOverPosition(pos);
+                                    if (dragOverCellKey) setDragOverCellKey(null);
+                                  }
+                                }}
+                                onDragLeave={(e) => {
+                                  e.stopPropagation();
+                                  if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                                  if (dragOverSessionId === session.id) {
+                                    setDragOverSessionId(null);
+                                    setDragOverPosition("swap");
+                                  }
+                                }}
+                                onDrop={(e) => {
+                                  if (!scheduleInteractionLocked && draggedSessionId && draggedSessionId !== session.id) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleDropSession(date, slot, session.id, dragOverPosition);
+                                  }
+                                }}
                                 onEdit={() => openEdit(session)}
                               />
                             ))}

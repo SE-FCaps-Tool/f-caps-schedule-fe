@@ -45,6 +45,7 @@ import {
   RoundScheduleCalendar,
   type DayDraft,
   type DeadlineDraft,
+  type RoundTimeslotDraft,
 } from "./round-schedule-calendar";
 
 const ROUND_TYPES: RoundType[] = [
@@ -330,6 +331,73 @@ export function CreateRoundWizard() {
     );
   }
 
+  function applyPreset(
+    dates: string[],
+    preset: "morning" | "afternoon" | "full",
+  ) {
+    if (duration <= 0 || dates.length === 0) return;
+    
+    const slotWindows: Array<{ start: number; end: number; period: "morning" | "afternoon" }> = [
+      { start: 7 * 60, end: 9 * 60 + 15, period: "morning" },
+      { start: 9 * 60 + 30, end: 11 * 60 + 45, period: "morning" },
+      { start: 12 * 60 + 30, end: 14 * 60 + 45, period: "afternoon" },
+      { start: 15 * 60, end: 17 * 60 + 15, period: "afternoon" },
+      { start: 17 * 60 + 30, end: 19 * 60 + 45, period: "afternoon" },
+    ];
+
+    const targetWindows = slotWindows.filter((s) => {
+      if (preset === "morning") return s.period === "morning";
+      if (preset === "afternoon") return s.period === "afternoon";
+      return true;
+    });
+
+    setDays((prev) => {
+      const nextDays = [...prev];
+      for (const date of dates) {
+        const generatedSlots: RoundTimeslotDraft[] = [];
+        for (const w of targetWindows) {
+          let cur = w.start;
+          while (cur + duration <= w.end) {
+            const h = Math.floor(cur / 60);
+            const m = cur % 60;
+            const startTime = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+            const endCur = cur + duration;
+            const endH = Math.floor(endCur / 60);
+            const endM = endCur % 60;
+            const endTime = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+            generatedSlots.push({ startTime, endTime });
+            cur = endCur;
+          }
+        }
+
+        const existingIndex = nextDays.findIndex((d) => d.date === date);
+        if (existingIndex >= 0) {
+          const existing = nextDays[existingIndex];
+          const merged = [...existing.slots];
+          for (const gen of generatedSlots) {
+            if (!merged.some((s) => slotsOverlap(s, gen))) {
+              merged.push(gen);
+            }
+          }
+          merged.sort((a, b) => a.startTime.localeCompare(b.startTime));
+          nextDays[existingIndex] = { ...existing, slots: merged };
+        } else {
+          nextDays.push({ date, slots: generatedSlots });
+        }
+      }
+      return nextDays.sort((a, b) => a.date.localeCompare(b.date));
+    });
+  }
+
+  function clearSlots(dates?: string[]) {
+    if (!dates || dates.length === 0) {
+      setDays([]);
+    } else {
+      const set = new Set(dates);
+      setDays((prev) => prev.filter((d) => !set.has(d.date)));
+    }
+  }
+
   const step1Valid =
     name.trim() !== "" &&
     duration > 0 &&
@@ -422,7 +490,7 @@ export function CreateRoundWizard() {
     : "/manager/rounds";
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       <header className="shrink-0 border-b border-border px-6 py-4 md:px-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -473,9 +541,9 @@ export function CreateRoundWizard() {
         </div>
       )}
 
-      <main className="min-h-0 flex-1 overflow-y-auto px-6 py-6 md:px-8">
+      <main className="flex-1 px-6 py-6 md:px-8">
         {step === 1 && (
-          <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col">
+          <div className="mx-auto flex w-full max-w-7xl flex-col">
             <div className="shrink-0">
               <StepHeader
                 icon={FileText}
@@ -728,7 +796,7 @@ export function CreateRoundWizard() {
         )}
 
         {step === 2 && (
-          <div className="mx-auto flex h-full min-h-0 w-full max-w-5xl flex-col">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 pb-12">
             <div className="shrink-0">
               <StepHeader
                 icon={Settings2}
@@ -926,7 +994,7 @@ export function CreateRoundWizard() {
                 </div>
               </div>
             ) : (
-              <div className="min-h-0 flex-1">
+              <div className="w-full">
                 <RoundScheduleCalendar
                   duration={duration}
                   startDate={startDate}
@@ -943,6 +1011,8 @@ export function CreateRoundWizard() {
                   days={days}
                   onAddSlot={addSlot}
                   onRemoveSlot={removeSlot}
+                  onApplyPreset={applyPreset}
+                  onClearSlots={clearSlots}
                 />
               </div>
             )}

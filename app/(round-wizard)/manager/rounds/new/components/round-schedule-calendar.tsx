@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { CalendarRange, ChevronLeft, ChevronRight, Clock3 } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { useState } from "react";
+import { CalendarRange, ChevronLeft, ChevronRight, Clock3, Plus, Sparkles, Sun, Sunset, Trash2, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/shared/date-field";
 import { TimeField } from "@/components/shared/time-field";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -32,24 +36,8 @@ export interface DeadlineDraft {
   time: string;
 }
 
-const START_MINUTES = 7 * 60;
-const END_MINUTES = 18 * 60;
-const PIXELS_PER_MINUTE = 64 / 60;
-const GRID_PADDING = 14;
-const GRID_HEIGHT =
-  (END_MINUTES - START_MINUTES) * PIXELS_PER_MINUTE + GRID_PADDING * 2;
-const COLUMN_WIDTH = 100;
-const GUTTER_WIDTH = 56;
 const WEEKDAY_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
-function pixelsFromMinutes(minutes: number) {
-  return GRID_PADDING + (minutes - START_MINUTES) * PIXELS_PER_MINUTE;
-}
-
-function minutesFromTime(time: string) {
-  const [h, m] = time.split(":").map(Number);
-  return h * 60 + m;
-}
 
 function timeFromMinutes(minutes: number) {
   const h = Math.floor(minutes / 60);
@@ -74,6 +62,37 @@ function addDaysStr(dateStr: string, n: number): string {
 
 function todayKey(): string {
   return toDateKey(new Date());
+}
+
+function getMonday(dateStr: string): Date {
+  const d = parseDateOnly(dateStr);
+  const day = (d.getDay() + 6) % 7; // 0 for Mon, 6 for Sun
+  d.setDate(d.getDate() - day);
+  return d;
+}
+
+function getWeekColumns(startDate: string, endDate: string): string[][] {
+  if (!startDate || !endDate) return [];
+  const startD = getMonday(startDate);
+  const endD = parseDateOnly(endDate);
+
+  const weeks: string[][] = [];
+  const curMonday = new Date(startD);
+
+  // Create full Monday->Sunday weeks until the week containing endDate is included
+  let safeGuard = 0;
+  while (curMonday <= endD && safeGuard < 100) {
+    const week: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(curMonday);
+      d.setDate(d.getDate() + i);
+      week.push(toDateKey(d));
+    }
+    weeks.push(week);
+    curMonday.setDate(curMonday.getDate() + 7);
+    safeGuard++;
+  }
+  return weeks;
 }
 
 interface MonthCell {
@@ -144,8 +163,8 @@ const PHASE_BANNER: Record<
   },
   slots: {
     icon: Clock3,
-    text: "Bấm vào khung giờ trong lịch để thêm khung giờ đánh giá.",
-    tone: "text-emerald-600 dark:text-emerald-400",
+    text: "Bấm vào các ô slot để chọn hoặc bỏ chọn khung giờ đánh giá.",
+    tone: "text-primary",
   },
 };
 
@@ -158,14 +177,14 @@ const LEGEND_ITEMS: {
   badge: string;
   solid: string;
 }[] = [
-  {
-    key: "slot",
-    label: "Khung giờ đánh giá",
-    dot: "bg-primary",
-    badge: "bg-primary/10 text-primary",
-    solid: "bg-primary text-primary-foreground",
-  },
-];
+    {
+      key: "slot",
+      label: "Khung giờ đánh giá",
+      dot: "bg-primary",
+      badge: "bg-primary/10 text-primary",
+      solid: "bg-primary text-primary-foreground",
+    },
+  ];
 
 interface RoundScheduleCalendarProps {
   duration: number;
@@ -183,6 +202,94 @@ interface RoundScheduleCalendarProps {
   days: DayDraft[];
   onAddSlot: (date: string, startTime: string) => void;
   onRemoveSlot: (date: string, index: number) => void;
+  onApplyPreset?: (dates: string[], preset: "morning" | "afternoon" | "full") => void;
+  onClearSlots?: (dates?: string[]) => void;
+}
+
+export interface SubGroupSlot {
+  index: number;
+  label: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface UniversitySlotDef {
+  slotNumber: number;
+  label: string;
+  startTime: string;
+  endTime: string;
+  period: "morning" | "afternoon";
+  subSlots: SubGroupSlot[];
+}
+
+export const STANDARD_UNIVERSITY_SLOTS: Array<{
+  slotNumber: number;
+  label: string;
+  startMinutes: number;
+  endMinutes: number;
+  period: "morning" | "afternoon";
+}> = [
+    { slotNumber: 1, label: "SLOT 1", startMinutes: 7 * 60, endMinutes: 9 * 60 + 15, period: "morning" },
+    { slotNumber: 2, label: "SLOT 2", startMinutes: 9 * 60 + 30, endMinutes: 11 * 60 + 45, period: "morning" },
+    { slotNumber: 3, label: "SLOT 3", startMinutes: 12 * 60 + 30, endMinutes: 14 * 60 + 45, period: "afternoon" },
+    { slotNumber: 4, label: "SLOT 4", startMinutes: 15 * 60, endMinutes: 17 * 60 + 15, period: "afternoon" },
+    { slotNumber: 5, label: "SLOT 5", startMinutes: 17 * 60 + 30, endMinutes: 19 * 60 + 45, period: "afternoon" },
+  ];
+
+export function generateUniversitySlots(groupDurationMinutes: number) {
+  const dur = groupDurationMinutes > 0 ? groupDurationMinutes : 45;
+
+  const slots: UniversitySlotDef[] = STANDARD_UNIVERSITY_SLOTS.map((slot) => {
+    const subSlots: SubGroupSlot[] = [];
+    let cur = slot.startMinutes;
+    let idx = 1;
+
+    while (cur + dur <= slot.endMinutes) {
+      const endCur = cur + dur;
+      subSlots.push({
+        index: idx,
+        label: `Nhóm ${idx}`,
+        startTime: timeFromMinutes(cur),
+        endTime: timeFromMinutes(endCur),
+      });
+      idx++;
+      cur = endCur;
+    }
+
+    if (subSlots.length === 0) {
+      subSlots.push({
+        index: 1,
+        label: `Nhóm 1`,
+        startTime: timeFromMinutes(slot.startMinutes),
+        endTime: timeFromMinutes(Math.min(slot.endMinutes, slot.startMinutes + dur)),
+      });
+    }
+
+    return {
+      slotNumber: slot.slotNumber,
+      label: slot.label,
+      startTime: timeFromMinutes(slot.startMinutes),
+      endTime: timeFromMinutes(slot.endMinutes),
+      period: slot.period,
+      subSlots,
+    };
+  });
+
+  const morningSlots = slots.filter((s) => s.period === "morning");
+  const afternoonSlots = slots.filter((s) => s.period === "afternoon");
+
+  const lunchBreak = {
+    startTime: "11:45",
+    endTime: "12:30",
+    durationMinutes: 45,
+  };
+
+  return {
+    morningSlots,
+    afternoonSlots,
+    allSlots: slots,
+    lunchBreak,
+  };
 }
 
 export function RoundScheduleCalendar({
@@ -201,33 +308,15 @@ export function RoundScheduleCalendar({
   days,
   onAddSlot,
   onRemoveSlot,
+  onApplyPreset,
+  onClearSlots,
 }: RoundScheduleCalendarProps) {
-  const reduceMotion = useReducedMotion();
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const gridBodyRef = useRef<HTMLDivElement>(null);
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [hoverDate, setHoverDate] = useState<string | null>(null);
-  const [previewSlot, setPreviewSlot] = useState<{
-    date: string;
-    minutes: number;
-  } | null>(null);
-  const [isCreatingSlot, setIsCreatingSlot] = useState(false);
-  const [isPanning, setIsPanning] = useState(false);
-  const [movePreview, setMovePreview] = useState<{
-    date: string;
-    minutes: number;
-  } | null>(null);
-  const [movingSource, setMovingSource] = useState<{
-    sourceDate: string;
-    sourceIndex: number;
-  } | null>(null);
   const [manualMode, setManualMode] = useState<Mode | null>(null);
-  const [deadlineMovePreview, setDeadlineMovePreview] = useState<{
-    date: string;
-    minutes: number;
-  } | null>(null);
 
   const phase = computePhase(startDate, endDate);
   const defaultMode: Mode = phase === "deadline" ? "deadline" : "slot";
@@ -236,12 +325,20 @@ export function RoundScheduleCalendar({
     phase === "range" ? "range" : activeMode === "deadline" ? "deadline" : "slots";
   const banner = PHASE_BANNER[bannerPhase];
 
+  const weeksOfRange = phase !== "range" ? getWeekColumns(startDate, endDate) : [];
+  const currentWeekColumns = weeksOfRange[currentWeekIndex] || [];
+  const totalWeeks = weeksOfRange.length;
+
+  const [prevRange, setPrevRange] = useState({ startDate, endDate });
+  if (startDate !== prevRange.startDate || endDate !== prevRange.endDate) {
+    setPrevRange({ startDate, endDate });
+    setCurrentWeekIndex(0);
+  }
+
   function handleResetRange() {
     setManualMode(null);
     onResetRange();
   }
-
-  const columns = phase === "range" ? [] : dateRange(startDate, endDate);
 
   const dayByDate = new Map(days.map((d) => [d.date, d]));
   const today = todayKey();
@@ -257,284 +354,6 @@ export function RoundScheduleCalendar({
   function handleHeaderClickRangeCell(date: string) {
     onHeaderClickRange(date);
   }
-
-  function dateAtClientX(clientX: number): string | null {
-    const el = scrollRef.current;
-    if (!el || columns.length === 0) return null;
-    const rect = el.getBoundingClientRect();
-    const contentX = clientX - rect.left + el.scrollLeft - GUTTER_WIDTH;
-    if (contentX < 0) return null;
-    const index = Math.floor(contentX / COLUMN_WIDTH);
-    return columns[index] ?? null;
-  }
-
-  function minutesAtClientY(clientY: number): number {
-    const rect = gridBodyRef.current?.getBoundingClientRect();
-    const y = rect ? clientY - rect.top : 0;
-    let minutes = START_MINUTES + (y - GRID_PADDING) / PIXELS_PER_MINUTE;
-    minutes = Math.round(minutes / 30) * 30;
-    return Math.max(START_MINUTES, Math.min(END_MINUTES - duration, minutes));
-  }
-
-  function commitGridClick(date: string, minutes: number) {
-    if (activeMode === "slot" && duration > 0) {
-      onAddSlot(date, timeFromMinutes(minutes));
-      return;
-    }
-    if (activeMode === "deadline") {
-      onRegistrationDeadlineChange({ date, time: timeFromMinutes(minutes) });
-    }
-  }
-
-  function deadlinePositionFromEvent(
-    e: MouseEvent,
-    grabOffsetY: number,
-    fallbackDate: string,
-  ) {
-    const date = dateAtClientX(e.clientX) ?? fallbackDate;
-    const rect = gridBodyRef.current?.getBoundingClientRect();
-    const rawY = rect ? e.clientY - grabOffsetY - rect.top : 0;
-    let minutes = START_MINUTES + (rawY - GRID_PADDING) / PIXELS_PER_MINUTE;
-    minutes = Math.round(minutes / 30) * 30;
-    minutes = Math.max(START_MINUTES, Math.min(END_MINUTES, minutes));
-    return { date, minutes };
-  }
-
-  function slotFits(
-    date: string,
-    startTime: string,
-    excludeDate: string,
-    excludeIndex: number,
-  ): boolean {
-    const draft = dayByDate.get(date);
-    if (!draft) return true;
-    const endTime = timeFromMinutes(minutesFromTime(startTime) + duration);
-    return !draft.slots.some((s, i) => {
-      if (date === excludeDate && i === excludeIndex) return false;
-      return startTime < s.endTime && s.startTime < endTime;
-    });
-  }
-
-  interface MoveInfo {
-    sourceDate: string;
-    sourceIndex: number;
-    grabOffsetY: number;
-  }
-
-  interface DeadlineMoveInfo {
-    initialDate: string;
-    grabOffsetY: number;
-  }
-
-  const dragRef = useRef<{
-    kind: "pan" | "create" | "move" | "move-deadline" | null;
-    startX: number;
-    startY: number;
-    startScrollLeft: number;
-    date: string | null;
-    move: MoveInfo | null;
-    deadline: DeadlineMoveInfo | null;
-  } | null>(null);
-
-  function handleGridMouseDown(e: React.MouseEvent<HTMLDivElement>) {
-    if (e.button !== 0 || !scrollRef.current) return;
-    e.preventDefault();
-    dragRef.current = {
-      kind: null,
-      startX: e.clientX,
-      startY: e.clientY,
-      startScrollLeft: scrollRef.current.scrollLeft,
-      date: null,
-      move: null,
-      deadline: null,
-    };
-    window.addEventListener("mousemove", handleWindowMouseMove);
-    window.addEventListener("mouseup", handleWindowMouseUp);
-  }
-
-  function handleSlotMouseDown(
-    e: React.MouseEvent<HTMLButtonElement>,
-    date: string,
-    index: number,
-    startTime: string,
-  ) {
-    e.stopPropagation();
-    if (e.button !== 0 || activeMode !== "slot" || !scrollRef.current) return;
-    e.preventDefault();
-    const startMinutes = minutesFromTime(startTime);
-    const rect = gridBodyRef.current?.getBoundingClientRect();
-    const slotTopClientY = rect
-      ? rect.top + pixelsFromMinutes(startMinutes)
-      : e.clientY;
-    dragRef.current = {
-      kind: "move",
-      startX: e.clientX,
-      startY: e.clientY,
-      startScrollLeft: scrollRef.current.scrollLeft,
-      date: null,
-      move: {
-        sourceDate: date,
-        sourceIndex: index,
-        grabOffsetY: e.clientY - slotTopClientY,
-      },
-      deadline: null,
-    };
-    setMovePreview({ date, minutes: startMinutes });
-    setMovingSource({ sourceDate: date, sourceIndex: index });
-    window.addEventListener("mousemove", handleWindowMouseMove);
-    window.addEventListener("mouseup", handleWindowMouseUp);
-  }
-
-  function handleDeadlineMouseDown(
-    e: React.MouseEvent<HTMLDivElement>,
-    date: string,
-    time: string,
-  ) {
-    e.stopPropagation();
-    if (e.button !== 0 || !scrollRef.current) return;
-    e.preventDefault();
-    const minutes = minutesFromTime(time);
-    const rect = gridBodyRef.current?.getBoundingClientRect();
-    const lineClientY = rect
-      ? rect.top + pixelsFromMinutes(minutes)
-      : e.clientY;
-    dragRef.current = {
-      kind: "move-deadline",
-      startX: e.clientX,
-      startY: e.clientY,
-      startScrollLeft: scrollRef.current.scrollLeft,
-      date: null,
-      move: null,
-      deadline: {
-        initialDate: date,
-        grabOffsetY: e.clientY - lineClientY,
-      },
-    };
-    setDeadlineMovePreview({ date, minutes });
-    window.addEventListener("mousemove", handleWindowMouseMove);
-    window.addEventListener("mouseup", handleWindowMouseUp);
-  }
-
-  function movePositionFromEvent(e: MouseEvent, move: MoveInfo) {
-    const date = dateAtClientX(e.clientX) ?? move.sourceDate;
-    const rect = gridBodyRef.current?.getBoundingClientRect();
-    const rawY = rect ? e.clientY - move.grabOffsetY - rect.top : 0;
-    let minutes = START_MINUTES + (rawY - GRID_PADDING) / PIXELS_PER_MINUTE;
-    minutes = Math.round(minutes / 30) * 30;
-    minutes = Math.max(
-      START_MINUTES,
-      Math.min(END_MINUTES - duration, minutes),
-    );
-    return { date, minutes };
-  }
-
-  function handleWindowMouseMove(e: MouseEvent) {
-    const drag = dragRef.current;
-    if (!drag || !scrollRef.current) return;
-    const dx = e.clientX - drag.startX;
-    const dy = e.clientY - drag.startY;
-
-    if (drag.kind === "move" && drag.move) {
-      setMovePreview(movePositionFromEvent(e, drag.move));
-      return;
-    }
-
-    if (drag.kind === "move-deadline" && drag.deadline) {
-      const pos = deadlinePositionFromEvent(
-        e,
-        drag.deadline.grabOffsetY,
-        drag.deadline.initialDate,
-      );
-      setDeadlineMovePreview(pos);
-      return;
-    }
-
-    if (drag.kind === null) {
-      if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
-      if (Math.abs(dx) > Math.abs(dy)) {
-        drag.kind = "pan";
-        setIsPanning(true);
-      } else if (activeMode === "slot" && duration > 0) {
-        drag.kind = "create";
-        drag.date = dateAtClientX(e.clientX);
-        setIsCreatingSlot(true);
-      } else {
-        drag.kind = "pan";
-        setIsPanning(true);
-      }
-    }
-
-    if (drag.kind === "pan") {
-      scrollRef.current.scrollLeft = drag.startScrollLeft - dx;
-      return;
-    }
-
-    if (drag.kind === "create" && drag.date) {
-      setPreviewSlot({ date: drag.date, minutes: minutesAtClientY(e.clientY) });
-    }
-  }
-
-  function handleWindowMouseUp(e: MouseEvent) {
-    const drag = dragRef.current;
-    window.removeEventListener("mousemove", handleWindowMouseMove);
-    window.removeEventListener("mouseup", handleWindowMouseUp);
-    dragRef.current = null;
-    setIsPanning(false);
-    setIsCreatingSlot(false);
-    setPreviewSlot(null);
-    setMovePreview(null);
-    setMovingSource(null);
-    setDeadlineMovePreview(null);
-
-    if (!drag) return;
-
-    if (drag.kind === "move-deadline" && drag.deadline) {
-      const pos = deadlinePositionFromEvent(
-        e,
-        drag.deadline.grabOffsetY,
-        drag.deadline.initialDate,
-      );
-      onRegistrationDeadlineChange({
-        date: pos.date,
-        time: timeFromMinutes(pos.minutes),
-      });
-      return;
-    }
-
-    if (drag.kind === "move" && drag.move) {
-      const { date, minutes } = movePositionFromEvent(e, drag.move);
-      const newStart = timeFromMinutes(minutes);
-      const unchanged =
-        date === drag.move.sourceDate &&
-        newStart ===
-          dayByDate.get(date)?.slots[drag.move.sourceIndex]?.startTime;
-      if (
-        !unchanged &&
-        slotFits(date, newStart, drag.move.sourceDate, drag.move.sourceIndex)
-      ) {
-        onRemoveSlot(drag.move.sourceDate, drag.move.sourceIndex);
-        onAddSlot(date, newStart);
-      }
-      return;
-    }
-
-    if (drag.kind === "create" && drag.date) {
-      commitGridClick(drag.date, minutesAtClientY(e.clientY));
-      return;
-    }
-    if (drag.kind === null) {
-      const date = dateAtClientX(e.clientX);
-      if (date) commitGridClick(date, minutesAtClientY(e.clientY));
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      window.removeEventListener("mousemove", handleWindowMouseMove);
-      window.removeEventListener("mouseup", handleWindowMouseUp);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const previewEnd = pendingEnd ?? hoverDate ?? undefined;
   const weeks = getMonthMatrix(viewYear, viewMonth);
@@ -677,21 +496,21 @@ export function RoundScheduleCalendar({
                       className={cn(
                         "flex size-9 items-center justify-center rounded-full text-sm font-semibold tabular-nums transition-colors sm:size-10 sm:text-base",
                         !cell.inCurrentMonth &&
-                          selectable &&
-                          "text-muted-foreground/50",
+                        selectable &&
+                        "text-muted-foreground/50",
                         !cell.inCurrentMonth &&
-                          !selectable &&
-                          "text-muted-foreground/25",
+                        !selectable &&
+                        "text-muted-foreground/25",
                         cell.inCurrentMonth &&
-                          !selectable &&
-                          "text-muted-foreground/30",
+                        !selectable &&
+                        "text-muted-foreground/30",
                         cell.inCurrentMonth &&
-                          selectable &&
-                          !isPendingStart &&
-                          "text-foreground",
+                        selectable &&
+                        !isPendingStart &&
+                        "text-foreground",
                         isInPreview &&
-                          !isPendingStart &&
-                          "bg-primary/10 text-primary",
+                        !isPendingStart &&
+                        "bg-primary/10 text-primary",
                         isPendingStart && "bg-primary text-primary-foreground",
                         !isPendingStart && isToday && "ring-2 ring-sky-500",
                       )}
@@ -706,294 +525,546 @@ export function RoundScheduleCalendar({
         </div>
       )}
 
-      {phase !== "range" && (
-        <div
-          ref={scrollRef}
-          onMouseDown={handleGridMouseDown}
-          className={cn(
-            "min-h-0 flex-1 overflow-auto scrollbar-hide select-none",
-            isPanning || movePreview ? "cursor-grabbing" : "cursor-grab",
-          )}
-        >
-          <div
-            style={{ minWidth: columns.length * COLUMN_WIDTH + GUTTER_WIDTH }}
-          >
-            <div className="sticky top-0 z-30 flex border-b border-border bg-card">
-              <div
-                className="sticky left-0 z-40 shrink-0 border-r border-border bg-card"
-                style={{ width: GUTTER_WIDTH }}
-              />
-              {columns.map((date, index) => {
-                const isToday = date === today;
-                const isMonthStart =
-                  index === 0 ||
-                  date.slice(0, 7) !== columns[index - 1].slice(0, 7);
-                const isDeadlineDay = registrationDeadline?.date === date;
-
-                return (
-                  <div
-                    key={date}
-                    className={cn(
-                      "flex shrink-0 flex-col items-center gap-1 border-r border-border px-1 py-2.5",
-                      isToday && "bg-sky-500/5",
-                    )}
-                    style={{ width: COLUMN_WIDTH }}
-                  >
-                    <span className="h-3.5 text-[10px] font-medium text-primary/80">
-                      {isMonthStart ? formatDate(date, "MM/YYYY") : ""}
-                    </span>
-                    <span className="text-[11px] font-medium text-muted-foreground capitalize">
-                      {formatDate(date, "dd")}
-                    </span>
-                    <span
-                      className={cn(
-                        "flex size-7 items-center justify-center rounded-full text-sm font-semibold tabular-nums",
-                        isDeadlineDay && "bg-amber-500 text-white",
-                        !isDeadlineDay &&
-                          isToday &&
-                          "ring-2 ring-sky-500 text-foreground",
-                        !isDeadlineDay && !isToday && "text-foreground",
-                      )}
-                    >
-                      {formatDate(date, "DD")}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <motion.div
-              ref={gridBodyRef}
-              initial={reduceMotion ? undefined : { opacity: 0, scaleY: 0.96 }}
-              animate={reduceMotion ? undefined : { opacity: 1, scaleY: 1 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-              className="flex"
-              style={{ height: GRID_HEIGHT, transformOrigin: "top" }}
+      {phase !== "range" && currentWeekColumns.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-muted/10 px-4 py-2">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              disabled={currentWeekIndex === 0}
+              onClick={() => setCurrentWeekIndex((i) => i - 1)}
             >
-              <div
-                className="sticky left-0 z-20 shrink-0 border-r border-border bg-card"
-                style={{ width: GUTTER_WIDTH, height: GRID_HEIGHT }}
-              >
-                {Array.from(
-                  { length: (END_MINUTES - START_MINUTES) / 60 + 1 },
-                  (_, i) => START_MINUTES + i * 60,
-                ).map((minutes) => (
-                  <span
-                    key={minutes}
-                    className="absolute right-2 -translate-y-1/2 text-[11px] font-medium text-muted-foreground tabular-nums"
-                    style={{ top: pixelsFromMinutes(minutes) }}
-                  >
-                    {String(Math.floor(minutes / 60)).padStart(2, "0")}:00
-                  </span>
-                ))}
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="text-sm font-medium text-center px-2">
+              Tuần {currentWeekIndex + 1}/{totalWeeks}
+              {currentWeekColumns.length > 0 && (
+                <span className="text-xs text-muted-foreground font-normal ml-2 hidden sm:inline-block">
+                  ({formatDate(currentWeekColumns[0], "DD/MM")} – {formatDate(currentWeekColumns[6], "DD/MM/YYYY")})
+                </span>
+              )}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              disabled={currentWeekIndex === totalWeeks - 1}
+              onClick={() => setCurrentWeekIndex((i) => i + 1)}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground mr-1 hidden sm:inline">Thao tác nhanh tuần này:</span>
+            {onApplyPreset && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onApplyPreset(currentWeekColumns.filter(d => d >= startDate && d <= endDate), "morning")}
+                  className="h-7 px-2.5 gap-1.5 text-xs bg-card"
+                >
+                  <Sun className="size-3.5 text-amber-500" />
+                  + Ca sáng (Slot 1, 2)
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onApplyPreset(currentWeekColumns.filter(d => d >= startDate && d <= endDate), "afternoon")}
+                  className="h-7 px-2.5 gap-1.5 text-xs bg-card"
+                >
+                  <Sunset className="size-3.5 text-orange-500" />
+                  + Ca chiều (Slot 3, 4, 5)
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onApplyPreset(currentWeekColumns.filter(d => d >= startDate && d <= endDate), "full")}
+                  className="h-7 px-2.5 gap-1.5 text-xs bg-card"
+                >
+                  <Sparkles className="size-3.5 text-primary" />
+                  + Cả ngày
+                </Button>
+              </>
+            )}
+            {onClearSlots && days.length > 0 && (
+              <div className="ml-2 border-l border-border pl-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onClearSlots()}
+                  className="h-7 px-2.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="mr-1.5 size-3" />
+                  Xoá tất cả
+                </Button>
               </div>
-
-              {columns.map((date) => {
-                const draft = dayByDate.get(date);
-                const isToday = date === today;
-                const isSlotMode = activeMode === "slot";
-                const isDeadlineDay = registrationDeadline?.date === date;
-
-                return (
-                  <div
-                    key={date}
-                    className={cn(
-                      "relative shrink-0 cursor-crosshair border-r border-border select-none",
-                      isToday && "bg-sky-500/5",
-                    )}
-                    style={{ width: COLUMN_WIDTH, height: GRID_HEIGHT }}
-                  >
-                    {Array.from(
-                      {
-                        length:
-                          Math.floor((END_MINUTES - START_MINUTES) / 30) + 1,
-                      },
-                      (_, i) => START_MINUTES + i * 30,
-                    ).map((minutes) => (
-                      <span
-                        key={minutes}
-                        className={cn(
-                          "absolute inset-x-0 border-t",
-                          minutes % 60 === 0
-                            ? "border-border"
-                            : "border-dashed border-border/60",
-                        )}
-                        style={{ top: pixelsFromMinutes(minutes) }}
-                        aria-hidden
-                      />
-                    ))}
-
-                    {isDeadlineDay &&
-                      registrationDeadline &&
-                      !deadlineMovePreview && (
-                        <div
-                          onMouseDown={
-                            activeMode === "deadline"
-                              ? (e) =>
-                                  handleDeadlineMouseDown(
-                                    e,
-                                    date,
-                                    registrationDeadline.time,
-                                  )
-                              : undefined
-                          }
-                          className={cn(
-                            "absolute inset-x-0 z-10 flex items-center",
-                            activeMode === "deadline"
-                              ? "cursor-grab active:cursor-grabbing"
-                              : "pointer-events-none",
-                          )}
-                          style={{
-                            top: pixelsFromMinutes(
-                              minutesFromTime(registrationDeadline.time),
-                            ),
-                          }}
-                        >
-                          <span className="h-0.5 flex-1 bg-amber-500" />
-                          <span className="absolute right-1 -translate-y-1/2 rounded bg-amber-500 px-1 py-0.5 text-[10px] leading-none font-semibold text-white">
-                            {registrationDeadline.time}
-                          </span>
-                        </div>
-                      )}
-
-                    {deadlineMovePreview?.date === date && (
-                      <div
-                        className="pointer-events-none absolute inset-x-0 z-20 flex items-center"
-                        style={{
-                          top: pixelsFromMinutes(deadlineMovePreview.minutes),
-                        }}
-                      >
-                        <span className="h-0.5 flex-1 bg-amber-500" />
-                        <span className="absolute right-1 -translate-y-1/2 rounded bg-amber-500 px-1 py-0.5 text-[10px] leading-none font-semibold text-white shadow-md">
-                          {timeFromMinutes(deadlineMovePreview.minutes)}
-                        </span>
-                      </div>
-                    )}
-
-                    {isSlotMode &&
-                      isCreatingSlot &&
-                      previewSlot?.date === date &&
-                      duration > 0 && (
-                        <div
-                          className="pointer-events-none absolute inset-x-1 flex items-center justify-center rounded-md border-2 border-primary bg-primary/25 text-[11px] font-medium text-primary"
-                          style={{
-                            top: pixelsFromMinutes(previewSlot.minutes) + 1,
-                            height:
-                              Math.max(18, duration * PIXELS_PER_MINUTE) - 2,
-                          }}
-                        >
-                          {timeFromMinutes(previewSlot.minutes)}–
-                          {timeFromMinutes(previewSlot.minutes + duration)}
-                        </div>
-                      )}
-
-                    {movePreview?.date === date && movingSource && (
-                      <div
-                        className="pointer-events-none absolute inset-x-1 rounded-md border-2 border-primary bg-primary/30 px-1.5 py-1 text-left text-[11px] leading-tight font-medium text-primary shadow-md"
-                        style={{
-                          top: pixelsFromMinutes(movePreview.minutes) + 1,
-                          height:
-                            Math.max(18, duration * PIXELS_PER_MINUTE) - 2,
-                        }}
-                      >
-                        {timeFromMinutes(movePreview.minutes)}–
-                        {timeFromMinutes(movePreview.minutes + duration)}
-                      </div>
-                    )}
-
-                    {(draft?.slots ?? []).map((slot, index) => {
-                      const top = pixelsFromMinutes(
-                        minutesFromTime(slot.startTime),
-                      );
-                      const height = Math.max(
-                        18,
-                        (minutesFromTime(slot.endTime) -
-                          minutesFromTime(slot.startTime)) *
-                          PIXELS_PER_MINUTE,
-                      );
-                      const isBeingMoved =
-                        movingSource?.sourceDate === date &&
-                        movingSource.sourceIndex === index;
-                      return (
-                        <button
-                          key={`${slot.startTime}-${index}`}
-                          type="button"
-                          onMouseDown={(e) =>
-                            handleSlotMouseDown(e, date, index, slot.startTime)
-                          }
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRemoveSlot(date, index);
-                          }}
-                          className={cn(
-                            "absolute inset-x-1 cursor-grab rounded-md border border-primary/40 bg-primary/15 px-1.5 py-1 text-left text-[11px] leading-tight font-medium text-primary shadow-sm backdrop-blur-[1px] transition-colors hover:bg-primary/25 active:cursor-grabbing",
-                            isBeingMoved && "pointer-events-none opacity-0",
-                          )}
-                          style={{
-                            top: top + 1,
-                            height: Math.max(18, height) - 2,
-                          }}
-                          title="Kéo để đổi giờ · Bấm để xoá"
-                        >
-                          {slot.startTime}–{slot.endTime}
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </motion.div>
+            )}
           </div>
         </div>
       )}
 
+      {phase !== "range" && (() => {
+        const slotLayout = generateUniversitySlots(duration);
+
+        return (
+          <div className="min-h-[500px] flex-1 overflow-auto select-none">
+            <div className="min-w-[1050px] w-full pb-16">
+              <div className="sticky top-0 z-30 flex w-full border-b border-border bg-card shadow-xs">
+                <div className="sticky left-0 z-40 flex items-center justify-center shrink-0 border-r border-border bg-muted/40 w-[150px] px-3">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Khung giờ</span>
+                </div>
+                <div className="flex flex-1 min-w-0">
+                  {currentWeekColumns.map((date, index) => {
+                    const isToday = date === today;
+                    const draft = dayByDate.get(date);
+                    const isDeadlineDay = registrationDeadline?.date === date;
+                    const isOutOfRange = date < startDate || date > endDate;
+
+                    return (
+                      <div
+                        key={date}
+                        className={cn(
+                          "flex flex-1 min-w-[125px] flex-col items-center justify-center gap-1.5 border-r border-border px-2 py-3 bg-card transition-colors relative",
+                          isToday && "bg-amber-500/5",
+                          isOutOfRange && "bg-muted/30 opacity-60"
+                        )}
+                      >
+                        {isDeadlineDay && registrationDeadline && (
+                          <div className="absolute top-0 inset-x-0 h-1 bg-amber-500" />
+                        )}
+                        <div className="flex items-center gap-1.5">
+                          <span className={cn(
+                            "text-xs font-bold uppercase tracking-wide",
+                            isOutOfRange ? "text-muted-foreground/60" : isToday ? "text-primary font-extrabold" : "text-muted-foreground"
+                          )}>
+                            {WEEKDAY_LABELS[index]}
+                          </span>
+                          <span
+                            className={cn(
+                              "flex size-7 items-center justify-center rounded-full text-xs font-bold tabular-nums transition-all",
+                              isDeadlineDay && "bg-amber-500 text-white shadow-xs ring-2 ring-amber-500/30",
+                              !isDeadlineDay && isToday && "bg-primary text-primary-foreground shadow-xs font-extrabold",
+                              !isDeadlineDay && !isToday && (isOutOfRange ? "text-muted-foreground/60" : "text-foreground"),
+                            )}
+                          >
+                            {formatDate(date, "DD")}
+                          </span>
+                        </div>
+
+                        {isOutOfRange ? (
+                          <span className="rounded-md bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground/60 mt-0.5">
+                            Ngoài đợt
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className={cn(
+                              "rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors",
+                              (draft?.slots.length ?? 0) > 0 ? "bg-primary/15 text-primary ring-1 ring-primary/30" : "bg-muted text-muted-foreground"
+                            )}>
+                              {draft?.slots.length ?? 0} nhóm
+                            </span>
+                            {onApplyPreset && (
+                              <Popover>
+                                <PopoverTrigger
+                                  className="flex size-5 items-center justify-center rounded-md border border-border text-muted-foreground hover:border-primary/40 hover:bg-primary/10 hover:text-primary transition-all"
+                                  title="Thao tác nhanh cho ngày này"
+                                >
+                                  <Plus className="size-3" />
+                                </PopoverTrigger>
+                                <PopoverContent align="center" className="w-52 p-2 text-xs shadow-lg">
+                                  <div className="space-y-1">
+                                    <p className="px-2 py-1 font-semibold text-foreground text-xs border-b border-border pb-1.5 mb-1">
+                                      {formatDate(date, "dddd, DD/MM/YYYY")}
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() => onApplyPreset([date], "morning")}
+                                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left font-medium hover:bg-primary/10 hover:text-primary transition-colors"
+                                    >
+                                      <Sun className="size-3.5 text-amber-500" />
+                                      + Ca sáng (Slot 1, 2)
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onApplyPreset([date], "afternoon")}
+                                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left font-medium hover:bg-primary/10 hover:text-primary transition-colors"
+                                    >
+                                      <Sunset className="size-3.5 text-orange-500" />
+                                      + Ca chiều (Slot 3, 4, 5)
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onApplyPreset([date], "full")}
+                                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left font-medium hover:bg-primary/10 hover:text-primary transition-colors"
+                                    >
+                                      <Sparkles className="size-3.5 text-primary" />
+                                      + Cả ngày
+                                    </button>
+                                    {(draft?.slots.length ?? 0) > 0 && onClearSlots && (
+                                      <div className="border-t border-border pt-1 mt-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => onClearSlots([date])}
+                                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                                        >
+                                          <Trash2 className="size-3.5" />
+                                          Xoá tất cả slot ngày này
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex flex-col w-full relative">
+                {/* Morning Header */}
+                {slotLayout.morningSlots.length > 0 && (
+                  <div className="flex w-full border-b border-border bg-amber-50/50 dark:bg-amber-950/20">
+                    <div className="sticky left-0 z-20 shrink-0 border-r border-border bg-amber-50 dark:bg-amber-950/40 w-[150px] px-3 py-2 flex items-center gap-2 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
+                      <Sun className="size-4 text-amber-600 dark:text-amber-500" />
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">Ca sáng</span>
+                    </div>
+                    <div className="flex-1" />
+                  </div>
+                )}
+
+                {/* Morning Slots */}
+                {slotLayout.morningSlots.map((slotDef) => (
+                  <div key={`morning-${slotDef.slotNumber}`} className="flex w-full border-b border-border hover:bg-muted/10 transition-colors">
+                    <div className="sticky left-0 z-20 shrink-0 border-r border-border bg-card w-[150px] p-3 flex flex-col justify-center gap-0.5 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold uppercase tracking-wider text-foreground">{slotDef.label}</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-primary/10 text-primary font-bold">
+                          {slotDef.subSlots.length} nhóm
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-semibold tabular-nums text-muted-foreground">
+                        {slotDef.startTime} – {slotDef.endTime}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/75">
+                        {duration} phút / nhóm
+                      </span>
+                    </div>
+                    <div className="flex flex-1 min-w-0">
+                      {currentWeekColumns.map((date) => {
+                        const isOutOfRange = date < startDate || date > endDate;
+                        const draft = dayByDate.get(date);
+
+                        if (isOutOfRange) {
+                          return (
+                            <div key={`${date}-${slotDef.slotNumber}`} className="flex-1 min-w-[125px] border-r border-border p-1.5">
+                              <div className="w-full h-full min-h-[72px] rounded-lg bg-muted/20 border border-dashed border-border/40 flex items-center justify-center opacity-40">
+                                <span className="text-[10px] text-muted-foreground/60">Ngoài đợt</span>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        const selectedSubSlots = slotDef.subSlots.filter(sub =>
+                          draft?.slots.some(s => s.startTime === sub.startTime)
+                        );
+                        const allSelected = selectedSubSlots.length === slotDef.subSlots.length;
+
+                        return (
+                          <div key={`${date}-${slotDef.slotNumber}`} className="flex-1 min-w-[125px] border-r border-border p-1.5 flex flex-col gap-1.5 justify-center">
+                            {slotDef.subSlots.length > 1 && (
+                              <div className="flex items-center justify-between px-0.5 text-[10px] text-muted-foreground">
+                                <span className="font-semibold text-[10px] text-muted-foreground">
+                                  {selectedSubSlots.length}/{slotDef.subSlots.length} nhóm
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (allSelected) {
+                                      slotDef.subSlots.forEach(sub => {
+                                        const idx = draft?.slots.findIndex(s => s.startTime === sub.startTime) ?? -1;
+                                        if (idx >= 0) onRemoveSlot(date, idx);
+                                      });
+                                    } else {
+                                      slotDef.subSlots.forEach(sub => {
+                                        const exists = draft?.slots.some(s => s.startTime === sub.startTime);
+                                        if (!exists) onAddSlot(date, sub.startTime);
+                                      });
+                                    }
+                                  }}
+                                  className="text-[10px] font-medium text-primary hover:underline hover:text-primary/80 transition-colors"
+                                >
+                                  {allSelected ? "Bỏ cả slot" : "Chọn cả slot"}
+                                </button>
+                              </div>
+                            )}
+
+                            <div className="flex flex-col gap-1 w-full">
+                              {slotDef.subSlots.map((sub) => {
+                                const isSelected = draft?.slots.some(s => s.startTime === sub.startTime);
+                                return isSelected ? (
+                                  <button
+                                    key={sub.startTime}
+                                    type="button"
+                                    onClick={() => {
+                                      const index = draft!.slots.findIndex(s => s.startTime === sub.startTime);
+                                      if (index >= 0) onRemoveSlot(date, index);
+                                    }}
+                                    className="w-full px-2 py-1 rounded-md border-2 border-primary bg-primary/10 text-primary flex items-center justify-between hover:bg-destructive/10 hover:border-destructive hover:text-destructive transition-all group shadow-2xs text-left"
+                                  >
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="text-[11px] font-bold leading-tight flex items-center gap-1">
+                                        {sub.label}
+                                      </span>
+                                      <span className="text-[10px] tabular-nums font-semibold opacity-85 leading-tight group-hover:line-through">
+                                        {sub.startTime} – {sub.endTime}
+                                      </span>
+                                    </div>
+                                    <span className="size-4 rounded-full bg-primary/20 flex items-center justify-center text-primary group-hover:bg-destructive group-hover:text-white transition-colors shrink-0 ml-1">
+                                      <Check className="size-2.5 group-hover:hidden" />
+                                      <X className="size-2.5 hidden group-hover:block" />
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    key={sub.startTime}
+                                    type="button"
+                                    onClick={() => onAddSlot(date, sub.startTime)}
+                                    className="w-full px-2 py-1 rounded-md border border-dashed border-border/80 hover:border-primary/50 hover:bg-primary/5 text-muted-foreground/70 hover:text-primary flex items-center justify-between transition-all group text-left"
+                                  >
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="text-[11px] font-medium text-foreground/80 group-hover:text-primary leading-tight">
+                                        {sub.label}
+                                      </span>
+                                      <span className="text-[10px] tabular-nums text-muted-foreground group-hover:text-primary/80 leading-tight">
+                                        {sub.startTime} – {sub.endTime}
+                                      </span>
+                                    </div>
+                                    <Plus className="size-3 opacity-40 group-hover:opacity-100 group-hover:scale-110 transition-all shrink-0 ml-1" />
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Lunch Break */}
+                {slotLayout.lunchBreak && (
+                  <div className="flex w-full border-b border-border bg-muted/20">
+                    <div className="sticky left-0 z-20 shrink-0 border-r border-border bg-muted/30 w-[150px] px-3 py-2.5 flex items-center justify-center shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
+                      <Clock3 className="size-4 text-muted-foreground/50" />
+                    </div>
+                    <div className="flex flex-1 items-center justify-center py-2.5 opacity-80"
+                      style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.03) 4px, rgba(0,0,0,0.03) 8px)' }}
+                    >
+                      <div className="bg-background/90 px-3 py-1 rounded-full border border-border/50 shadow-xs text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 backdrop-blur-sm">
+                        <span>🍽️</span> Nghỉ trưa · {slotLayout.lunchBreak.durationMinutes} phút ({slotLayout.lunchBreak.startTime} — {slotLayout.lunchBreak.endTime})
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Afternoon Header */}
+                {slotLayout.afternoonSlots.length > 0 && (
+                  <div className="flex w-full border-b border-border bg-orange-50/50 dark:bg-orange-950/20">
+                    <div className="sticky left-0 z-20 shrink-0 border-r border-border bg-orange-50 dark:bg-orange-950/40 w-[150px] px-3 py-2 flex items-center gap-2 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
+                      <Sunset className="size-4 text-orange-600 dark:text-orange-500" />
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-orange-800 dark:text-orange-400">Ca chiều</span>
+                    </div>
+                    <div className="flex-1" />
+                  </div>
+                )}
+
+                {/* Afternoon Slots */}
+                {slotLayout.afternoonSlots.map((slotDef) => (
+                  <div key={`afternoon-${slotDef.slotNumber}`} className="flex w-full border-b border-border hover:bg-muted/10 transition-colors">
+                    <div className="sticky left-0 z-20 shrink-0 border-r border-border bg-card w-[150px] p-3 flex flex-col justify-center gap-0.5 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold uppercase tracking-wider text-foreground">{slotDef.label}</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-primary/10 text-primary font-bold">
+                          {slotDef.subSlots.length} nhóm
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-semibold tabular-nums text-muted-foreground">
+                        {slotDef.startTime} – {slotDef.endTime}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/75">
+                        {duration} phút / nhóm
+                      </span>
+                    </div>
+                    <div className="flex flex-1 min-w-0">
+                      {currentWeekColumns.map((date) => {
+                        const isOutOfRange = date < startDate || date > endDate;
+                        const draft = dayByDate.get(date);
+
+                        if (isOutOfRange) {
+                          return (
+                            <div key={`${date}-${slotDef.slotNumber}`} className="flex-1 min-w-[125px] border-r border-border p-1.5">
+                              <div className="w-full h-full min-h-[72px] rounded-lg bg-muted/20 border border-dashed border-border/40 flex items-center justify-center opacity-40">
+                                <span className="text-[10px] text-muted-foreground/60">Ngoài đợt</span>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        const selectedSubSlots = slotDef.subSlots.filter(sub =>
+                          draft?.slots.some(s => s.startTime === sub.startTime)
+                        );
+                        const allSelected = selectedSubSlots.length === slotDef.subSlots.length;
+
+                        return (
+                          <div key={`${date}-${slotDef.slotNumber}`} className="flex-1 min-w-[125px] border-r border-border p-1.5 flex flex-col gap-1.5 justify-center">
+                            {slotDef.subSlots.length > 1 && (
+                              <div className="flex items-center justify-between px-0.5 text-[10px] text-muted-foreground">
+                                <span className="font-semibold text-[10px] text-muted-foreground">
+                                  {selectedSubSlots.length}/{slotDef.subSlots.length} nhóm
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (allSelected) {
+                                      slotDef.subSlots.forEach(sub => {
+                                        const idx = draft?.slots.findIndex(s => s.startTime === sub.startTime) ?? -1;
+                                        if (idx >= 0) onRemoveSlot(date, idx);
+                                      });
+                                    } else {
+                                      slotDef.subSlots.forEach(sub => {
+                                        const exists = draft?.slots.some(s => s.startTime === sub.startTime);
+                                        if (!exists) onAddSlot(date, sub.startTime);
+                                      });
+                                    }
+                                  }}
+                                  className="text-[10px] font-medium text-primary hover:underline hover:text-primary/80 transition-colors"
+                                >
+                                  {allSelected ? "Bỏ cả slot" : "Chọn cả slot"}
+                                </button>
+                              </div>
+                            )}
+
+                            <div className="flex flex-col gap-1 w-full">
+                              {slotDef.subSlots.map((sub) => {
+                                const isSelected = draft?.slots.some(s => s.startTime === sub.startTime);
+                                return isSelected ? (
+                                  <button
+                                    key={sub.startTime}
+                                    type="button"
+                                    onClick={() => {
+                                      const index = draft!.slots.findIndex(s => s.startTime === sub.startTime);
+                                      if (index >= 0) onRemoveSlot(date, index);
+                                    }}
+                                    className="w-full px-2 py-1 rounded-md border-2 border-primary bg-primary/10 text-primary flex items-center justify-between hover:bg-destructive/10 hover:border-destructive hover:text-destructive transition-all group shadow-2xs text-left"
+                                  >
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="text-[11px] font-bold leading-tight flex items-center gap-1">
+                                        {sub.label}
+                                      </span>
+                                      <span className="text-[10px] tabular-nums font-semibold opacity-85 leading-tight group-hover:line-through">
+                                        {sub.startTime} – {sub.endTime}
+                                      </span>
+                                    </div>
+                                    <span className="size-4 rounded-full bg-primary/20 flex items-center justify-center text-primary group-hover:bg-destructive group-hover:text-white transition-colors shrink-0 ml-1">
+                                      <Check className="size-2.5 group-hover:hidden" />
+                                      <X className="size-2.5 hidden group-hover:block" />
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    key={sub.startTime}
+                                    type="button"
+                                    onClick={() => onAddSlot(date, sub.startTime)}
+                                    className="w-full px-2 py-1 rounded-md border border-dashed border-border/80 hover:border-primary/50 hover:bg-primary/5 text-muted-foreground/70 hover:text-primary flex items-center justify-between transition-all group text-left"
+                                  >
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="text-[11px] font-medium text-foreground/80 group-hover:text-primary leading-tight">
+                                        {sub.label}
+                                      </span>
+                                      <span className="text-[10px] tabular-nums text-muted-foreground group-hover:text-primary/80 leading-tight">
+                                        {sub.startTime} – {sub.endTime}
+                                      </span>
+                                    </div>
+                                    <Plus className="size-3 opacity-40 group-hover:opacity-100 group-hover:scale-110 transition-all shrink-0 ml-1" />
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {phase !== "range" && (
-        <div className="flex flex-wrap items-end gap-4 border-t border-border px-4 py-3">
-          <div className="space-y-1.5">
-            <label htmlFor="manual-registration-deadline-date" className="text-xs font-medium text-foreground">
-              Hạn đăng ký chọn lịch
-            </label>
-            <DateField
-              id="manual-registration-deadline-date"
-              ariaLabel="Ngày hạn đăng ký chọn lịch"
-              value={registrationDeadline?.date ?? ""}
-              max={startDate || undefined}
-              onChange={(date) =>
-                onRegistrationDeadlineChange({
-                  date,
-                  time: registrationDeadline?.time ?? "23:59",
-                })
-              }
-              className="h-11 w-44"
-              aria-describedby="manual-registration-deadline-help"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor="manual-registration-deadline-time" className="text-xs font-medium text-foreground">
-              Giờ hạn đăng ký
-            </label>
-            <TimeField
-              id="manual-registration-deadline-time"
-              size="default"
-              ariaLabel="Giờ hạn đăng ký chọn lịch"
-              value={registrationDeadline?.time ?? "23:59"}
-              onChange={(time) =>
-                onRegistrationDeadlineChange({
-                  date: registrationDeadline?.date ?? "",
-                  time,
-                })
-              }
-              className="min-h-11 w-36"
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border bg-muted/10 px-5 py-3">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label htmlFor="manual-registration-deadline-date" className="text-xs font-semibold text-foreground shrink-0">
+                Hạn đăng ký chọn lịch:
+              </label>
+              <DateField
+                id="manual-registration-deadline-date"
+                ariaLabel="Ngày hạn đăng ký chọn lịch"
+                value={registrationDeadline?.date ?? ""}
+                max={startDate || undefined}
+                onChange={(date) =>
+                  onRegistrationDeadlineChange({
+                    date,
+                    time: registrationDeadline?.time ?? "23:59",
+                  })
+                }
+                className="h-9 w-40 bg-background"
+                aria-describedby="manual-registration-deadline-help"
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="manual-registration-deadline-time" className="text-xs font-semibold text-foreground shrink-0">
+                Giờ hạn:
+              </label>
+              <TimeField
+                id="manual-registration-deadline-time"
+                size="default"
+                ariaLabel="Giờ hạn đăng ký chọn lịch"
+                value={registrationDeadline?.time ?? "23:59"}
+                onChange={(time) =>
+                  onRegistrationDeadlineChange({
+                    date: registrationDeadline?.date ?? "",
+                    time,
+                  })
+                }
+                className="min-h-9 h-9 w-32 bg-background"
+              />
+            </div>
           </div>
-          <p id="manual-registration-deadline-help" className="pb-1 text-xs text-muted-foreground">
-            Deadline có thể đặt trước hoặc đúng ngày bắt đầu chấm; lịch bên trên chỉ dùng để thêm khung giờ.
-          </p>
-          {registrationDeadline && startDate && registrationDeadline.date > startDate && (
-            <p className="basis-full text-xs text-destructive">
-              Hạn đăng ký phải vào hoặc trước ngày bắt đầu chấm ({startDate}).
+          <div className="flex flex-col gap-1 text-right">
+            <p id="manual-registration-deadline-help" className="text-xs text-muted-foreground">
+              Deadline phải trước/bằng ngày bắt đầu ({startDate || "..."}).
             </p>
-          )}
+            {registrationDeadline && startDate && registrationDeadline.date > startDate && (
+              <p className="text-xs font-medium text-destructive">
+                Lỗi: Hạn đăng ký phải vào hoặc trước ngày bắt đầu chấm.
+              </p>
+            )}
+          </div>
         </div>
       )}
 

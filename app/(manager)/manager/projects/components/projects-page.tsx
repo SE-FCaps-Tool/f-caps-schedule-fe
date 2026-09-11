@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
 import { FilePlus2, MoreHorizontal, Pencil, Search, Upload, UserRoundPlus, WifiOff } from "lucide-react";
+import { ImportProjectsDialog } from "@/components/projects/import-projects-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,9 +39,6 @@ import { normalizeListResponse } from "@/lib/api/pagination";
 import { useDebouncedValue } from "@/hooks/shared/useDebouncedValue";
 import { usePageState } from "@/hooks/shared/usePageState";
 
-function notImplemented(action: string) {
-  toast.info(`${action} — chưa có trong spec BE, cần chốt endpoint`);
-}
 
 function SupervisorPicker({
   mainLecturerId,
@@ -307,6 +304,7 @@ export function ProjectsPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectListItem | null>(null);
   const { containerRef, pageSize } = useAutoPageSize();
   const [page, setPage] = usePageState(debouncedSearch, pageSize);
@@ -331,7 +329,7 @@ export function ProjectsPage() {
           <p className="mt-1 text-sm text-muted-foreground">{meta ? `${meta.total} đề tài` : "…"}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => notImplemented("Import đề tài")}>
+          <Button onClick={() => setImportOpen(true)}>
             <Upload />
             Import
           </Button>
@@ -342,6 +340,7 @@ export function ProjectsPage() {
         </div>
       </div>
 
+      <ImportProjectsDialog open={importOpen} onOpenChange={setImportOpen} currentSemesterCode={currentSemesterId ?? undefined} />
       <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} semesterId={currentSemester?.id} />
       <EditProjectSupervisorsDialog
         key={editingProject?.id ?? "no-project"}

@@ -98,3 +98,21 @@ export function useRemoveRole() {
     },
   });
 }
+
+export function useImportAccounts() {
+  const invalidate = useInvalidateAfterAccountChange();
+
+  return useMutation({
+    mutationFn: (file: File) => fetchAccounts.import(file),
+    onSuccess: async (data) => {
+      await invalidate();
+      if (data.created > 0) {
+        toast.success(`Đã import thành công ${data.created} tài khoản`);
+      }
+    },
+    onError: (error: ApiError) => {
+      toast.error(error.message || "Không import được file tài khoản");
+    },
+  });
+}
+

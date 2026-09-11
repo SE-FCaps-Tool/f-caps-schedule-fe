@@ -108,6 +108,13 @@ class ApiService {
   }
 }
 
-const apiService = new ApiService(process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/");
+const getBaseUrl = () => {
+  if (typeof window !== "undefined") {
+    return "/"; // Same-origin relative path in browser
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/";
+};
+
+const apiService = new ApiService(getBaseUrl());
 
 export default apiService;
