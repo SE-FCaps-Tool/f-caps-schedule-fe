@@ -336,19 +336,26 @@ export function CreateRoundWizard() {
     preset: "morning" | "afternoon" | "full",
   ) {
     if (duration <= 0 || dates.length === 0) return;
-    const windows: { start: number; end: number }[] = [];
-    if (preset === "morning" || preset === "full") {
-      windows.push({ start: 7 * 60 + 30, end: 11 * 60 + 30 }); // 07:30 - 11:30
-    }
-    if (preset === "afternoon" || preset === "full") {
-      windows.push({ start: 13 * 60, end: 17 * 60 }); // 13:00 - 17:00
-    }
+    
+    const slotWindows: Array<{ start: number; end: number; period: "morning" | "afternoon" }> = [
+      { start: 7 * 60, end: 9 * 60 + 15, period: "morning" },
+      { start: 9 * 60 + 30, end: 11 * 60 + 45, period: "morning" },
+      { start: 12 * 60 + 30, end: 14 * 60 + 45, period: "afternoon" },
+      { start: 15 * 60, end: 17 * 60 + 15, period: "afternoon" },
+      { start: 17 * 60 + 30, end: 19 * 60 + 45, period: "afternoon" },
+    ];
+
+    const targetWindows = slotWindows.filter((s) => {
+      if (preset === "morning") return s.period === "morning";
+      if (preset === "afternoon") return s.period === "afternoon";
+      return true;
+    });
 
     setDays((prev) => {
       const nextDays = [...prev];
       for (const date of dates) {
         const generatedSlots: RoundTimeslotDraft[] = [];
-        for (const w of windows) {
+        for (const w of targetWindows) {
           let cur = w.start;
           while (cur + duration <= w.end) {
             const h = Math.floor(cur / 60);
@@ -359,7 +366,7 @@ export function CreateRoundWizard() {
             const endM = endCur % 60;
             const endTime = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
             generatedSlots.push({ startTime, endTime });
-            cur += duration;
+            cur = endCur;
           }
         }
 
