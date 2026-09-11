@@ -26,6 +26,22 @@ export type RoundStatus =
   | "LOCKED"
   | "CANCELLED";
 
+export interface CouncilChairConfig {
+  lecturerId: number;
+  quota?: number;
+  dailyQuota?: Record<string, number>;
+}
+
+export interface CouncilSecretaryConfig {
+  lecturerId: number;
+  maxSessions?: number;
+}
+
+export interface CouncilConfig {
+  chairs: CouncilChairConfig[];
+  secretaries: CouncilSecretaryConfig[];
+}
+
 export type RegistrationPhase = "INACTIVE" | "REGISTRATION" | "CLOSED";
 
 export type RoomType = "NORMAL" | "SEMINAR" | "LAB";
@@ -568,6 +584,34 @@ function normalizeRegistrationSummary(value: unknown): RegistrationSummary {
   };
 }
 
+function normalizeCouncilConfig(value: unknown): CouncilConfig {
+  const record = isRecord(value) ? value : {};
+  
+  const rawChairs = Array.isArray(record.chairs) ? record.chairs : [];
+  const rawSecs = Array.isArray(record.secretaries) ? record.secretaries : [];
+
+  const chairs = rawChairs.map((c) => {
+    const chairRecord = isRecord(c) ? c : {};
+    return {
+      lecturerId: asNumber(pick(chairRecord, "lecturerId", "lecturer_id")),
+      quota: asNullableNumber(pick(chairRecord, "quota")) ?? undefined,
+      dailyQuota: isRecord(pick(chairRecord, "dailyQuota", "daily_quota"))
+        ? (pick(chairRecord, "dailyQuota", "daily_quota") as Record<string, number>)
+        : undefined,
+    };
+  });
+
+  const secretaries = rawSecs.map((s) => {
+    const secRecord = isRecord(s) ? s : {};
+    return {
+      lecturerId: asNumber(pick(secRecord, "lecturerId", "lecturer_id")),
+      maxSessions: asNullableNumber(pick(secRecord, "maxSessions", "max_sessions")) ?? undefined,
+    };
+  });
+
+  return { chairs, secretaries };
+}
+
 export const fetchRounds = {
   /** GET /semesters/:semesterId/rounds — spec §19 */
   list: async (
@@ -625,6 +669,28 @@ export const fetchRounds = {
     if (payload.resultOwnerMode !== undefined) body.resultOwnerMode = payload.resultOwnerMode;
     if (payload.roomTypes !== undefined) body.roomTypes = payload.roomTypes;
     await apiService.patch(`api/v1/rounds/${roundId}`, body);
+  },
+
+  /** GET /rounds/:roundId/role-config */
+  getCouncilConfig: async (roundId: string): Promise<CouncilConfig> => {
+    const response = await apiService.get<unknown>(`api/v1/rounds/${roundId}/role-config`);
+    return normalizeCouncilConfig(unwrapData(response.data));
+  },
+
+  /** PUT /rounds/:roundId/role-config */
+  updateCouncilConfig: async (roundId: string, payload: CouncilConfig): Promise<void> => {
+    const payloadForBE = {
+      chairs: payload.chairs.map((c) => ({
+        lecturer_id: c.lecturerId,
+        quota: c.quota,
+        daily_quota: c.dailyQuota,
+      })),
+      secretaries: payload.secretaries.map((s) => ({
+        lecturer_id: s.lecturerId,
+        max_sessions: s.maxSessions,
+      })),
+    };
+    await apiService.put(`api/v1/rounds/${roundId}/role-config`, payloadForBE);
   },
 
   /** POST /rounds/:roundId/actions/open-registration — spec §21/§51. DRAFT → OPEN_REGISTRATION */
