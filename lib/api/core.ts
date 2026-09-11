@@ -16,7 +16,7 @@ const AUTH_ENDPOINT_PATTERN = /\/api\/v1\/auth\//;
 class ApiService {
   private client: AxiosInstance;
 
-  constructor(baseURL: string, timeout = 60000) {
+  constructor(baseURL: string, timeout = 300000) {
     this.client = axios.create({
       baseURL,
       timeout,
@@ -69,8 +69,8 @@ class ApiService {
     return this.request<T>({ method: "GET", url, params });
   }
 
-  async post<T, D, P = never>(url: string, data?: D, params?: P): Promise<AxiosResponse<T>> {
-    return this.request<T>({ method: "POST", url, data, params });
+  async post<T, D, P = never>(url: string, data?: D, params?: P, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return this.request<T>({ method: "POST", url, data, params, ...config });
   }
 
   async put<T, D, P = never>(url: string, data?: D, params?: P): Promise<AxiosResponse<T>> {
