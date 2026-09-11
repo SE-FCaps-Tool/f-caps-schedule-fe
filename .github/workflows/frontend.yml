@@ -30,6 +30,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Checkout latest backend contract
+        continue-on-error: true
+        id: checkout_branch
+        uses: actions/checkout@v4
+        with:
+          repository: SE-FCaps-Tool/f-caps-schedule-be
+          ref: ${{ github.head_ref || github.ref_name }}
+          path: .contract-be
+          fetch-depth: 1
+
+      - name: Checkout backend contract (fallback to main)
+        if: steps.checkout_branch.outcome == 'failure'
         uses: actions/checkout@v4
         with:
           repository: SE-FCaps-Tool/f-caps-schedule-be
