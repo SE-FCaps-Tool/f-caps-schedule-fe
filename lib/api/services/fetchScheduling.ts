@@ -323,7 +323,8 @@ export const fetchScheduling = {
     const response = await apiService.post<ScheduleRunResponse, ScheduleRunPayload, { semesterId?: number }>(
       `api/v1/rounds/${roundId}/schedule/run`,
       payload,
-      { semesterId: semesterId ?? undefined }
+      { semesterId: semesterId ?? undefined },
+      { timeout: 300000 }
     );
     return response.data;
   },
@@ -503,7 +504,12 @@ export const fetchScheduling = {
     // The running BE exposes the durable scheduler at /schedule/run. Keep the
     // phase-4 method name so existing UI hooks remain stable, but adapt the
     // legacy response into the model used by this page.
-    const response = await apiService.post<ScheduleRunResponse, ScheduleRunPayload>(`api/v1/rounds/${roundId}/schedule/run`, {});
+    const response = await apiService.post<ScheduleRunResponse, ScheduleRunPayload>(
+      `api/v1/rounds/${roundId}/schedule/run`,
+      {},
+      undefined,
+      { timeout: 300000 }
+    );
     const result = response.data;
     return {
       versionId: String(result.versionId),

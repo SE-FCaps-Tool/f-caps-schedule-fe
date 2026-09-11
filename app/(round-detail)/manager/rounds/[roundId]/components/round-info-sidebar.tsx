@@ -183,6 +183,17 @@ export function RoundInfoSidebar({
           />
           <ConfigRow label="Tự chọn lịch" value={<OnOffBadge on={round.groupSelectionMode} />} />
           <ConfigRow label="Result Owner" value={<OnOffBadge on={round.resultOwnerMode} />} />
+          <ConfigRow
+            label="Phân vai Hội đồng"
+            value={
+              <Link
+                href={`/manager/rounds/${round.id}/council-config`}
+                className="font-semibold text-primary hover:underline"
+              >
+                Cấu hình &rarr;
+              </Link>
+            }
+          />
         </dl>
       </section>
 

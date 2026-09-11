@@ -43,9 +43,11 @@ import type {
 import type { Timeframe } from "@/lib/api/services/fetchTimeframes";
 import {
   RoundScheduleCalendar,
+  getStandardUniversitySlots,
   type DayDraft,
   type DeadlineDraft,
   type RoundTimeslotDraft,
+  type ShiftBase,
 } from "./round-schedule-calendar";
 
 const ROUND_TYPES: RoundType[] = [
@@ -176,6 +178,7 @@ export function CreateRoundWizard() {
   const [timelineSource, setTimelineSource] = useState<"manual" | "timeframe">(
     "manual",
   );
+  const [shiftBase, setShiftBase] = useState<ShiftBase>("07:00");
   const [selectedTimeframeId, setSelectedTimeframeId] = useState<number | null>(
     null,
   );
@@ -293,9 +296,11 @@ export function CreateRoundWizard() {
     setDurationMinutes(String(timeframe.groupDurationMinutes));
   }
 
-  function addSlot(date: string, startTime: string) {
-    if (duration <= 0) return;
-    const candidate = { startTime, endTime: addMinutes(startTime, duration) };
+  function addSlot(date: string, startTime: string, customEndTime?: string) {
+    if (duration <= 0 && !customEndTime) return;
+    const endTime = customEndTime || addMinutes(startTime, duration);
+    if (endTime <= startTime) return;
+    const candidate = { startTime, endTime };
     setDays((prev) => {
       const existing = prev.find((d) => d.date === date);
       if (existing) {
@@ -319,6 +324,27 @@ export function CreateRoundWizard() {
     });
   }
 
+  function updateSlot(date: string, index: number, updated: RoundTimeslotDraft) {
+    if (updated.endTime <= updated.startTime) return;
+    setDays((prev) => {
+      const day = prev.find((d) => d.date === date);
+      if (!day) return prev;
+      // Check overlap with other slots in this day (excluding index)
+      const otherSlots = day.slots.filter((_, i) => i !== index);
+      if (otherSlots.some((s) => slotsOverlap(s, updated))) return prev;
+
+      return prev.map((d) => {
+        if (d.date !== date) return d;
+        const newSlots = [...d.slots];
+        newSlots[index] = updated;
+        return {
+          ...d,
+          slots: newSlots.sort((a, b) => a.startTime.localeCompare(b.startTime)),
+        };
+      });
+    });
+  }
+
   function removeSlot(date: string, index: number) {
     setDays((prev) =>
       prev
@@ -333,21 +359,21 @@ export function CreateRoundWizard() {
 
   function applyPreset(
     dates: string[],
-    preset: "morning" | "afternoon" | "full",
+    preset: "morning" | "afternoon" | "evening" | "full",
   ) {
     if (duration <= 0 || dates.length === 0) return;
     
-    const slotWindows: Array<{ start: number; end: number; period: "morning" | "afternoon" }> = [
-      { start: 7 * 60, end: 9 * 60 + 15, period: "morning" },
-      { start: 9 * 60 + 30, end: 11 * 60 + 45, period: "morning" },
-      { start: 12 * 60 + 30, end: 14 * 60 + 45, period: "afternoon" },
-      { start: 15 * 60, end: 17 * 60 + 15, period: "afternoon" },
-      { start: 17 * 60 + 30, end: 19 * 60 + 45, period: "afternoon" },
-    ];
+    const standardSlots = getStandardUniversitySlots(shiftBase);
+    const slotWindows = standardSlots.map(s => ({
+      start: s.startMinutes,
+      end: s.endMinutes,
+      period: s.period
+    }));
 
     const targetWindows = slotWindows.filter((s) => {
       if (preset === "morning") return s.period === "morning";
       if (preset === "afternoon") return s.period === "afternoon";
+      if (preset === "evening") return s.period === "evening";
       return true;
     });
 
@@ -1010,9 +1036,12 @@ export function CreateRoundWizard() {
                   onRegistrationDeadlineChange={setRegistrationDeadline}
                   days={days}
                   onAddSlot={addSlot}
+                  onUpdateSlot={updateSlot}
                   onRemoveSlot={removeSlot}
                   onApplyPreset={applyPreset}
                   onClearSlots={clearSlots}
+                  shiftBase={shiftBase}
+                  onShiftBaseChange={setShiftBase}
                 />
               </div>
             )}

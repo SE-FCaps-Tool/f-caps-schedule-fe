@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    proxyTimeout: 300000,
+  },
   async rewrites() {
     const apiUrl =
       process.env.NEXT_PUBLIC_API_URL ||
