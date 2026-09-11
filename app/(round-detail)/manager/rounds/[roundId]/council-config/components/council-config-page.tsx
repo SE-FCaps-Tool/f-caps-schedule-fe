@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import {
@@ -15,7 +15,6 @@ import {
   Search,
   Trash2,
   UserCheck,
-  UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,12 +43,11 @@ import {
   useRoundDetail,
   useCouncilConfig,
   useUpdateCouncilConfig,
-  useRoundInvitations,
 } from "@/hooks/manager/useRounds";
 import { useLecturers } from "@/hooks/manager/useLecturers";
 import { ErrorBlock, LoadingBlock, StatBlock } from "../../components/round-detail-shared";
 import { formatDate } from "@/lib/utils/formatDate";
-import type { CouncilChairConfig, CouncilSecretaryConfig } from "@/lib/api/services/fetchRounds";
+import type { CouncilChairConfig, CouncilSecretaryConfig, CouncilConfig } from "@/lib/api/services/fetchRounds";
 import type { LecturerApiItem } from "@/lib/api/services/fetchLecturers";
 
 /** Modal chọn giảng viên được thiết kế theo đúng quy chuẩn Dialog của hệ thống */
@@ -160,24 +158,25 @@ export function CouncilConfigPage({ roundId }: { roundId: string }) {
   const { data: round, isLoading: roundLoading, isError: roundError } = useRoundDetail(roundId);
   const { data: config, isLoading: configLoading, isError: configError } = useCouncilConfig(roundId);
   const { data: lecturers, isLoading: lecturersLoading } = useLecturers();
-  const { data: invitations } = useRoundInvitations(roundId);
   const updateConfig = useUpdateCouncilConfig();
 
   const [chairs, setChairs] = useState<CouncilChairConfig[]>([]);
   const [secretaries, setSecretaries] = useState<CouncilSecretaryConfig[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [prevConfig, setPrevConfig] = useState<CouncilConfig | null | undefined>(null);
 
   // Dialog states
   const [chairPickerOpen, setChairPickerOpen] = useState(false);
   const [secPickerOpen, setSecPickerOpen] = useState(false);
 
-  useEffect(() => {
+  if (config !== prevConfig) {
+    setPrevConfig(config);
     if (config) {
       setChairs(JSON.parse(JSON.stringify(config.chairs || [])));
       setSecretaries(JSON.parse(JSON.stringify(config.secretaries || [])));
       setHasUnsavedChanges(false);
     }
-  }, [config]);
+  }
 
   const lecturerMap = useMemo(() => {
     const map = new Map<number, LecturerApiItem>();
