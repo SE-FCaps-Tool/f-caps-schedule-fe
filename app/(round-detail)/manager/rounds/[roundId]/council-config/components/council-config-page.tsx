@@ -349,7 +349,7 @@ export function CouncilConfigPage({ roundId }: { roundId: string }) {
             <Info className="size-4 shrink-0 text-primary mt-0.5" />
             <div className="leading-relaxed">
               Cấu hình phân vai hỗ trợ chỉ định đích danh giảng viên đảm nhận các vị trí đặc thù:
-              <strong className="text-foreground font-semibold"> Chủ tịch (Tier 1)</strong> ngồi ở vị trí Sequence 1 theo định mức từng ngày, và
+              <strong className="text-foreground font-semibold"> Chủ tịch (Tier 1)</strong> ngồi ở vị trí Sequence 1 theo định mức số hội đồng từng ngày, và
               <strong className="text-foreground font-semibold"> Thư ký (Tier 2)</strong> ngồi ở vị trí Sequence 2 được thuật toán ưu tiên tối đa phân công.
             </div>
           </div>
@@ -358,13 +358,13 @@ export function CouncilConfigPage({ roundId }: { roundId: string }) {
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-border/70 bg-card p-4 shadow-xs">
               <StatBlock
-                label="Tổng số suất đánh giá"
-                value={`${totalSlots} suất`}
+                label="Tổng khung giờ (Timeslots)"
+                value={`${totalSlots} khung giờ`}
                 icon={CalendarClock}
                 tone="sky"
               />
               <p className="mt-2 text-xs text-muted-foreground">
-                {round.days.length} ngày chấm · {totalSlots} phiên cần xếp
+                {round.days.length} ngày tổ chức · {totalSlots} khung giờ
               </p>
             </div>
 
@@ -372,29 +372,10 @@ export function CouncilConfigPage({ roundId }: { roundId: string }) {
               <div className="flex items-start justify-between">
                 <StatBlock
                   label="Chủ tịch (Tier 1)"
-                  value={`${totalAssignedChairSessions} / ${totalSlots}`}
+                  value={`${totalAssignedChairSessions} hội đồng`}
                   icon={Crown}
-                  tone={
-                    totalAssignedChairSessions === totalSlots
-                      ? "emerald"
-                      : totalAssignedChairSessions < totalSlots
-                        ? "amber"
-                        : "orange"
-                  }
+                  tone="emerald"
                 />
-                {totalAssignedChairSessions === totalSlots ? (
-                  <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs">
-                    Đủ suất
-                  </Badge>
-                ) : totalAssignedChairSessions < totalSlots ? (
-                  <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs">
-                    Thiếu {totalSlots - totalAssignedChairSessions}
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs">
-                    Dư {totalAssignedChairSessions - totalSlots}
-                  </Badge>
-                )}
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
                 {chairs.length} giảng viên được phân công làm Chủ tịch
@@ -445,10 +426,10 @@ export function CouncilConfigPage({ roundId }: { roundId: string }) {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-sm font-semibold tracking-tight text-foreground">
-                    Chỉ định Chủ tịch và hạn mức số buổi theo từng ngày
+                    Chỉ định Chủ tịch và số hội đồng tham gia theo từng ngày
                   </h2>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Chủ tịch sẽ ngồi ở vị trí Sequence 1 trong phiên đánh giá. Nhập số buổi tối đa mà giảng viên sẽ tham gia trong từng ngày.
+                    Chủ tịch sẽ ngồi ở vị trí Sequence 1 trong phiên đánh giá. Thiết lập số hội đồng mà giảng viên sẽ tham gia trong ngày hôm đó.
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -474,12 +455,12 @@ export function CouncilConfigPage({ roundId }: { roundId: string }) {
                           <div className="flex flex-col items-center">
                             <span className="font-semibold text-foreground">{formatDate(date, "DD/MM")}</span>
                             <span className="text-[11px] font-normal text-muted-foreground">
-                              {formatDate(date, "dddd")} ({slotsPerDate.get(date) ?? 0} suất)
+                              {formatDate(date, "dddd")} ({slotsPerDate.get(date) ?? 0} khung giờ)
                             </span>
                           </div>
                         </TableHead>
                       ))}
-                      <TableHead className="text-center font-semibold w-[90px]">Tổng buổi</TableHead>
+                      <TableHead className="text-center font-semibold w-[120px]">Tổng hội đồng</TableHead>
                       <TableHead className="w-[60px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -564,32 +545,20 @@ export function CouncilConfigPage({ roundId }: { roundId: string }) {
                   {chairs.length > 0 && (
                     <tfoot>
                       <tr className="border-t border-border/70 bg-muted/30 text-xs font-medium text-muted-foreground">
-                        <td className="p-3 font-semibold text-foreground">Tổng buổi Chủ tịch đã bố trí</td>
+                        <td className="p-3 font-semibold text-foreground">Tổng số hội đồng CT đã bố trí</td>
                         {roundDates.map((date) => {
                           const daySum = chairs.reduce(
                             (acc, c) => acc + (c.dailyQuota?.[date] || 0),
                             0
                           );
-                          const dayCapacity = slotsPerDate.get(date) ?? 0;
-                          const isMatch = daySum === dayCapacity;
                           return (
-                            <td key={date} className="text-center p-3 font-semibold tabular-nums">
-                              <span
-                                className={
-                                  isMatch
-                                    ? "text-emerald-600 dark:text-emerald-400"
-                                    : daySum < dayCapacity
-                                      ? "text-amber-600 dark:text-amber-400"
-                                      : "text-orange-600 dark:text-orange-400"
-                                }
-                              >
-                                {daySum} / {dayCapacity}
-                              </span>
+                            <td key={date} className="text-center p-3 font-semibold tabular-nums text-foreground">
+                              {daySum}
                             </td>
                           );
                         })}
                         <td className="text-center p-3 font-bold text-foreground tabular-nums">
-                          {totalAssignedChairSessions} / {totalSlots}
+                          {totalAssignedChairSessions}
                         </td>
                         <td></td>
                       </tr>
