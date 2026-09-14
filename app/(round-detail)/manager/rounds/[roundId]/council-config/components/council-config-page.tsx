@@ -22,10 +22,8 @@ import {
   Trash2,
   Undo2,
   UserCheck,
-  UserMinus,
   UserPlus,
   Users,
-  Users2,
   X,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -186,8 +184,6 @@ interface SearchableLecturerComboboxProps {
   existingChairIds: Set<number>;
   existingSecIds: Set<number>;
   activeParticipantIds: Set<number>;
-  replacementNewIds: Set<number>;
-  replacementOldIds: Set<number>;
   disabledId?: number | null;
 }
 
@@ -201,8 +197,6 @@ function SearchableLecturerCombobox({
   existingChairIds,
   existingSecIds,
   activeParticipantIds,
-  replacementNewIds,
-  replacementOldIds,
   disabledId,
 }: SearchableLecturerComboboxProps) {
   const [open, setOpen] = useState(false);
@@ -557,10 +551,10 @@ export function CouncilConfigPage({ roundId }: { roundId: string }) {
       return new Set(invitations.map((i) => Number(i.lecturer.id)));
     }
     return new Set<number>();
-  }, [config?.baseLecturerIds, invitations]);
+  }, [config, invitations]);
 
   // Dynamic active participants considering replacements & role configs
-  const { activeParticipantIds, addedParticipantIds, removedParticipantIds, replacedOrRemovedMap } =
+  const { activeParticipantIds, addedParticipantIds, replacedOrRemovedMap } =
     useMemo(() => {
       const active = new Set<number>(baseParticipantIds);
       const added = new Set<number>();
@@ -598,14 +592,6 @@ export function CouncilConfigPage({ roundId }: { roundId: string }) {
 
   const existingChairIds = useMemo(() => new Set(chairs.map((c) => c.lecturerId)), [chairs]);
   const existingSecIds = useMemo(() => new Set(secretaries.map((s) => s.lecturerId)), [secretaries]);
-  const replacementOldIds = useMemo(
-    () => new Set(replacements.map((r) => r.oldLecturerId).filter((id) => id > 0)),
-    [replacements]
-  );
-  const replacementNewIds = useMemo(
-    () => new Set(replacements.map((r) => r.newLecturerId).filter((id) => id > 0)),
-    [replacements]
-  );
 
   // Active participants list mapped and sorted
   const activeParticipantsList = useMemo(() => {
@@ -1493,8 +1479,6 @@ export function CouncilConfigPage({ roundId }: { roundId: string }) {
                     existingChairIds={existingChairIds}
                     existingSecIds={existingSecIds}
                     activeParticipantIds={activeParticipantIds}
-                    replacementNewIds={replacementNewIds}
-                    replacementOldIds={replacementOldIds}
                     disabledId={swapTargetId}
                   />
 
@@ -1524,8 +1508,6 @@ export function CouncilConfigPage({ roundId }: { roundId: string }) {
                     existingChairIds={existingChairIds}
                     existingSecIds={existingSecIds}
                     activeParticipantIds={activeParticipantIds}
-                    replacementNewIds={replacementNewIds}
-                    replacementOldIds={replacementOldIds}
                     disabledId={swapSourceId}
                   />
                 </div>

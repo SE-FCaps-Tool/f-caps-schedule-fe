@@ -7,15 +7,11 @@ import {
   ChevronRight,
   Clock,
   DoorOpen,
-  Eye,
-  Filter,
-  Info,
   MapPin,
   Pencil,
   Search,
   User,
   Users,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
