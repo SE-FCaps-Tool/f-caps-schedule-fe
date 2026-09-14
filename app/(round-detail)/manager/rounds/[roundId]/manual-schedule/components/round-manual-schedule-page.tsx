@@ -138,11 +138,11 @@ export function RoundManualSchedulePage({ roundId }: { roundId: string }) {
         </Button>
       </header>
 
-      <main className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-5">
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden p-4 lg:p-5">
         {editingVersionedDraft && (
           <div
             role="status"
-            className="mb-3 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100"
+            className="mb-3 shrink-0 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100"
           >
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
@@ -155,7 +155,7 @@ export function RoundManualSchedulePage({ roundId }: { roundId: string }) {
           </div>
         )}
 
-        <div className="min-h-[32rem]">
+        <div className="flex min-h-0 flex-1 flex-col">
           <RoundManualScheduleBoard roundId={roundId} round={round} />
         </div>
       </main>

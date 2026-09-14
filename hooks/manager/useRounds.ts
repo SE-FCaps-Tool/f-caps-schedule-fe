@@ -81,6 +81,23 @@ export function useCloseRoundRegistration() {
   });
 }
 
+/** POST /rounds/:roundId/transition */
+export function useTransitionRound() {
+  const invalidate = useInvalidateRounds();
+
+  return useMutation({
+    mutationFn: ({ roundId, targetStatus }: { roundId: string; targetStatus: import("@/lib/api/services/fetchRounds").RoundStatus }) =>
+      fetchRounds.transition(roundId, targetStatus),
+    onSuccess: async (_data, { roundId, targetStatus }) => {
+      await invalidate(roundId);
+      toast.success(`Đã chuyển trạng thái sang ${targetStatus}`);
+    },
+    onError: (error: ApiError) => {
+      toast.error(friendlyErrorMessage(error, "Không chuyển được trạng thái"));
+    },
+  });
+}
+
 /** GET /rounds/:roundId — spec §21/§50 */
 export function useRoundDetail(roundId: string | null) {
   return useQuery({
