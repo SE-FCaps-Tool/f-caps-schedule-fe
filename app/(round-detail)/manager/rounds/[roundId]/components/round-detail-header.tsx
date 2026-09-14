@@ -38,6 +38,7 @@ import { useSemesterContext } from "@/app/(manager)/manager/_shared/semester-con
 import {
   useOpenRoundRegistration,
   useCloseRoundRegistration,
+  useTransitionRound,
   useEligibleProjects,
   useRoundGroups,
 } from "@/hooks/manager/useRounds";
@@ -195,6 +196,7 @@ export function RoundDetailHeader({
   const { currentSemesterId } = useSemesterContext();
   const openRegistration = useOpenRoundRegistration();
   const closeRegistration = useCloseRoundRegistration();
+  const transitionRound = useTransitionRound();
   const exportCouncil = useExportCouncil();
   const { data: eligibleProjects } = useEligibleProjects(roundId);
   const { data: attachedGroups } = useRoundGroups(roundId);
@@ -324,6 +326,23 @@ export function RoundDetailHeader({
         {round.status === "SCHEDULED" && (
           <Button size="sm" onClick={() => setPublishOpen(true)}>
             Công bố lịch
+          </Button>
+        )}
+        {round.status !== "SCHEDULING" && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-dashed border-primary text-primary hover:bg-primary/10"
+            disabled={transitionRound.isPending}
+            onClick={() =>
+              transitionRound.mutate({ roundId, targetStatus: "SCHEDULING" })
+            }
+            title="Nút tạm thời: Chuyển về trạng thái Đang xếp lịch"
+          >
+            {transitionRound.isPending ? (
+              <Loader2 className="animate-spin size-4" />
+            ) : null}
+            Về Đang xếp lịch
           </Button>
         )}
         {futurePhaseLabel && (

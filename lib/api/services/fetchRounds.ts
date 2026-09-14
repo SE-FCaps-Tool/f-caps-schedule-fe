@@ -37,9 +37,16 @@ export interface CouncilSecretaryConfig {
   maxSessions?: number;
 }
 
+export interface CouncilReplacementConfig {
+  oldLecturerId: number;
+  newLecturerId: number;
+}
+
 export interface CouncilConfig {
   chairs: CouncilChairConfig[];
   secretaries: CouncilSecretaryConfig[];
+  replacements?: CouncilReplacementConfig[];
+  baseLecturerIds?: number[];
 }
 
 export type RegistrationPhase = "INACTIVE" | "REGISTRATION" | "CLOSED";
@@ -609,7 +616,23 @@ function normalizeCouncilConfig(value: unknown): CouncilConfig {
     };
   });
 
-  return { chairs, secretaries };
+  const rawReplacements = Array.isArray(record.replacements) ? record.replacements : [];
+  const replacements = rawReplacements.map((r) => {
+    const repRecord = isRecord(r) ? r : {};
+    return {
+      oldLecturerId: asNumber(pick(repRecord, "oldLecturerId", "old_lecturer_id")),
+      newLecturerId: asNumber(pick(repRecord, "newLecturerId", "new_lecturer_id")),
+    };
+  });
+
+  const rawBaseIds = Array.isArray(record.base_lecturer_ids)
+    ? record.base_lecturer_ids
+    : Array.isArray(record.baseLecturerIds)
+    ? record.baseLecturerIds
+    : [];
+  const baseLecturerIds = rawBaseIds.map((id) => Number(id)).filter((id) => !isNaN(id) && id > 0);
+
+  return { chairs, secretaries, replacements, baseLecturerIds };
 }
 
 export const fetchRounds = {
@@ -689,6 +712,10 @@ export const fetchRounds = {
         lecturer_id: s.lecturerId,
         max_sessions: s.maxSessions,
       })),
+      replacements: (payload.replacements || []).map((r) => ({
+        old_lecturer_id: r.oldLecturerId,
+        new_lecturer_id: r.newLecturerId,
+      })),
     };
     await apiService.put(`api/v1/rounds/${roundId}/role-config`, payloadForBE);
   },
@@ -704,6 +731,11 @@ export const fetchRounds = {
   /** POST /rounds/:roundId/actions/close-registration — spec §21/§52. OPEN_REGISTRATION → REGISTRATION_CLOSED */
   closeRegistration: async (roundId: string): Promise<void> => {
     await apiService.post(`api/v1/rounds/${roundId}/actions/close-registration`, {});
+  },
+
+  /** POST /rounds/:roundId/transition */
+  transition: async (roundId: string, targetStatus: RoundStatus): Promise<void> => {
+    await apiService.post(`api/v1/rounds/${roundId}/transition`, { targetStatus });
   },
 
   /** GET /rounds/:roundId/invitations — spec §22 */

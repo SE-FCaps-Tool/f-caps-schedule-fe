@@ -15,6 +15,8 @@ import {
   Plus,
   Search,
   Sparkles,
+  Table2,
+  CalendarDays,
   Trash2,
   UserRoundPlus,
   UsersRound,
@@ -23,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -54,6 +57,7 @@ import {
 import { useRooms } from "@/hooks/useRooms";
 import { cn } from "@/lib/utils";
 import { formatDate, formatInVietnamTime } from "@/lib/utils/formatDate";
+import { RoundCalendarScheduleView } from "./round-calendar-schedule-view";
 import type {
   AttachedRoundGroup,
   RoundConfigTimeslot,
@@ -547,6 +551,7 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
   const [dragOverCellKey, setDragOverCellKey] = useState<string | null>(null);
   const [dragOverSessionId, setDragOverSessionId] = useState<string | null>(null);
   const [dragOverPosition, setDragOverPosition] = useState<DropPosition>("swap");
+  const [viewMode, setViewMode] = useState<"matrix" | "calendar">("matrix");
 
   const manualBoardQuery = useManualScheduleBoard(roundId);
   const manualBoard = manualBoardQuery.data;
@@ -1312,8 +1317,45 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold">Xếp lịch bằng tay</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-4">
+            <h2 className="text-sm font-semibold hidden sm:block">Xếp lịch bằng tay</h2>
+            
+            {/* View Mode Switcher */}
+            <div className="flex items-center rounded-lg border border-border/70 bg-muted/40 p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setViewMode("matrix")}
+                className={cn(
+                  "px-3 py-1.5 rounded-md transition-all font-medium flex items-center gap-1.5 whitespace-nowrap",
+                  viewMode === "matrix"
+                    ? "bg-background text-foreground shadow-2xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Table2 className="size-3.5" />
+                <span>Lưới ma trận</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("calendar")}
+                className={cn(
+                  "px-3 py-1.5 rounded-md transition-all font-medium flex items-center gap-1.5 whitespace-nowrap",
+                  viewMode === "calendar"
+                    ? "bg-primary text-primary-foreground shadow-2xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <CalendarDays className="size-3.5" />
+                <span>Lịch Google Calendar</span>
+                {viewMode !== "calendar" && (
+                  <Badge variant="secondary" className="ml-1 text-[9px] px-1 py-0 h-4 bg-primary/10 text-primary border-primary/20">
+                    Mới
+                  </Badge>
+                )}
+              </button>
+            </div>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
             {roles.length} vai trò chấm · {hasSessionLimit ? `tối đa ${maxSessionsPerCell} hội đồng / timeslot` : "không giới hạn hội đồng / timeslot"}
           </p>
         </div>
@@ -1462,7 +1504,28 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-background">
+      {viewMode === "calendar" ? (
+        <RoundCalendarScheduleView
+          round={round}
+          draftSessions={sessions}
+          rooms={rooms ?? []}
+          groupMap={groupById}
+          invitationMap={lecturerById}
+          roles={roles}
+          onSelectSessionForEdit={(sessionId) => {
+            const session = sessions.find((s) => s.id === sessionId);
+            if (session) {
+              const slot = round.days
+                .find((d) => d.date === session.date)
+                ?.slots.find((s) => String(s.id) === String(session.slotId));
+              if (slot) {
+                openEdit(session);
+              }
+            }
+          }}
+        />
+      ) : (
+        <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-background">
         <table className="w-full min-w-[1040px] table-fixed border-collapse text-sm">
           <thead>
             <tr>
@@ -1674,6 +1737,7 @@ export function RoundManualScheduleBoard({ roundId, round }: { roundId: string; 
           </tbody>
         </table>
       </div>
+      )}
 
       <Dialog open={Boolean(draft && activeEditor)} onOpenChange={(open) => !open && closeEditor()}>
         <DialogContent className="flex max-h-[calc(100dvh-2rem)] min-h-0 flex-col overflow-hidden sm:max-w-6xl">
