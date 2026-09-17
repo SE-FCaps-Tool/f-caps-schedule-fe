@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FilePlus2, MoreHorizontal, Pencil, Search, Upload, UserRoundPlus, WifiOff } from "lucide-react";
+import { FilePlus2, Search, Upload, WifiOff } from "lucide-react";
 import { ImportProjectsDialog } from "@/components/projects/import-projects-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
@@ -220,82 +219,51 @@ function toLecturerSelectValue(id: string | undefined) {
   return id?.replace(/^lec_/i, "") ?? "";
 }
 
-function EditProjectSupervisorsDialog({
-  project,
-  open,
-  onOpenChange,
-}: {
-  project: ProjectListItem | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+/**
+ * Dropdown đổi GVHD ngay trong ô bảng — thay cho dialog "Gán GVHD" trước đây (menu "..." đã bỏ).
+ * GVHD chính bắt buộc nên không cho chọn về rỗng; GVHD phụ chọn lại chính nó để bỏ trống.
+ * Loại đề tài giữ nguyên giá trị hiện có vì BE yêu cầu gửi kèm trong mọi lần PATCH.
+ */
+function InlineSupervisorCell({ project, role }: { project: ProjectListItem; role: "MAIN" | "CO" }) {
   const updateProject = useUpdateProject();
-  const [mainLecturerId, setMainLecturerId] = useState(() => toLecturerSelectValue(project?.mainSupervisor?.id));
-  const [coLecturerId, setCoLecturerId] = useState(() => toLecturerSelectValue(project?.coSupervisor?.id));
-  const [topicType, setTopicType] = useState<TopicType>(() => project?.topicType ?? "REGULAR");
+  const [search, setSearch] = useState("");
+  const { items, isLoading, isFetchingNextPage, sentinelRef } = useLecturersInfinite(search || undefined);
+  const mainId = toLecturerSelectValue(project.mainSupervisor?.id);
+  const coId = toLecturerSelectValue(project.coSupervisor?.id);
+  const currentId = role === "MAIN" ? mainId : coId;
+  const current = role === "MAIN" ? project.mainSupervisor : project.coSupervisor;
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!project || !mainLecturerId) return;
-    updateProject.mutate(
-      {
-        projectId: project.id,
-        payload: {
-          mainSupervisorId: mainLecturerId,
-          coSupervisorId: coLecturerId || undefined,
-          topicType,
-        },
+  function handleChange(value: string | null) {
+    if (role === "MAIN" && !value) return;
+    if ((value ?? "") === currentId) return;
+    updateProject.mutate({
+      projectId: project.id,
+      payload: {
+        mainSupervisorId: role === "MAIN" ? (value as string) : mainId,
+        coSupervisorId: role === "CO" ? (value ?? undefined) : (coId || undefined),
+        topicType: project.topicType,
       },
-      { onSuccess: () => onOpenChange(false) }
-    );
+    });
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto sm:max-w-lg">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader icon={UserRoundPlus} iconTone="sky">
-            <DialogTitle>Cập nhật đề tài</DialogTitle>
-            <DialogDescription>
-              {project ? `${project.code} — ${project.nameVi}` : "Chọn giảng viên hướng dẫn chính và phụ."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-1.5">
-              <Label>Loại đề tài</Label>
-              <Select value={topicType} onValueChange={(value) => setTopicType(value as TopicType)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chọn loại đề tài">
-                    {(value: TopicType) => topicTypeLabel(value)}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {TOPIC_TYPE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <span>{option.label}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">{option.description}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <SupervisorPicker
-              mainLecturerId={mainLecturerId}
-              coLecturerId={coLecturerId}
-              onChangeMain={setMainLecturerId}
-              onChangeCo={setCoLecturerId}
-              mainLabel={supervisorLabel(project?.mainSupervisor ?? null)}
-              coLabel={supervisorLabel(project?.coSupervisor ?? null)}
-            />
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={updateProject.isPending || !project || !mainLecturerId}>
-              {updateProject.isPending ? "Đang lưu..." : "Lưu thay đổi"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <AsyncCombobox
+      value={currentId || null}
+      onChange={handleChange}
+      items={role === "CO" ? items.filter((l) => String(l.id) !== mainId) : items}
+      getId={(l) => String(l.id)}
+      getLabel={(l) => `${l.lecturerCode} — ${l.displayName}`}
+      sentinelRef={sentinelRef}
+      onSearchChange={setSearch}
+      selectedLabelFallback={supervisorLabel(current ?? null)}
+      isLoading={isLoading}
+      isFetchingNextPage={isFetchingNextPage}
+      placeholder={role === "MAIN" ? "Chọn GVHD" : "Không có"}
+      searchPlaceholder="Tìm theo mã hoặc tên..."
+      emptyText="Không có giảng viên khớp tìm kiếm."
+      disabled={updateProject.isPending}
+      className="h-8 w-full text-xs"
+    />
   );
 }
 
@@ -305,7 +273,6 @@ export function ProjectsPage() {
   const debouncedSearch = useDebouncedValue(search);
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<ProjectListItem | null>(null);
   const { containerRef, pageSize } = useAutoPageSize();
   const [page, setPage] = usePageState(debouncedSearch, pageSize);
 
@@ -342,14 +309,6 @@ export function ProjectsPage() {
 
       <ImportProjectsDialog open={importOpen} onOpenChange={setImportOpen} semesterId={currentSemester?.id} />
       <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} semesterId={currentSemester?.id} />
-      <EditProjectSupervisorsDialog
-        key={editingProject?.id ?? "no-project"}
-        project={editingProject}
-        open={editingProject !== null}
-        onOpenChange={(open) => {
-          if (!open) setEditingProject(null);
-        }}
-      />
 
       <div className="relative mt-6 max-w-sm">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -380,30 +339,26 @@ export function ProjectsPage() {
             <Table className="min-w-[1446px] table-fixed">
               <colgroup>
                 <col className="w-[150px]" />
-                <col className="w-[440px]" />
-                <col className="w-[235px]" />
-                <col className="w-[235px]" />
-                <col className="w-[180px]" />
                 <col className="w-[150px]" />
-                <col className="w-[56px]" />
+                <col className="w-[400px]" />
+                <col className="w-[235px]" />
+                <col className="w-[235px]" />
+                <col className="w-[150px]" />
               </colgroup>
               <TableHeader>
                 <TableRow>
                   <TableHead className="pl-4">Mã đề tài</TableHead>
+                  <TableHead>Nhóm</TableHead>
                   <TableHead>Tên đề tài</TableHead>
                   <TableHead>GVHD 1</TableHead>
                   <TableHead>GVHD 2</TableHead>
-                  <TableHead>Nhóm</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="pr-4 text-right">
-                    <span className="sr-only">Hành động</span>
-                  </TableHead>
+                  <TableHead className="pr-4">Trạng thái</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                       Chưa có đề tài nào khớp tìm kiếm.
                     </TableCell>
                   </TableRow>
@@ -419,6 +374,9 @@ export function ProjectsPage() {
                         >
                           {project.code}
                         </Link>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {project.group?.code ?? "—"}
                       </TableCell>
                       <TableCell>
                         <Tooltip>
@@ -438,45 +396,13 @@ export function ProjectsPage() {
                         </Tooltip>
                       </TableCell>
                       <TableCell>
-                        {project.mainSupervisor ? (
-                          <span className="block truncate text-muted-foreground" title={project.mainSupervisor.fullName}>
-                            {project.mainSupervisor.fullName}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground/60">—</span>
-                        )}
+                        <InlineSupervisorCell project={project} role="MAIN" />
                       </TableCell>
                       <TableCell>
-                        {project.coSupervisor ? (
-                          <span className="block truncate text-muted-foreground" title={project.coSupervisor.fullName}>
-                            {project.coSupervisor.fullName}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground/60">—</span>
-                        )}
+                        <InlineSupervisorCell project={project} role="CO" />
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
-                        {project.group?.code ?? "—"}
-                      </TableCell>
-                      <TableCell>
+                      <TableCell className="pr-4">
                         <StatusDot tone={stateMeta.tone} label={stateMeta.label} />
-                      </TableCell>
-                      <TableCell className="pr-4 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            render={
-                              <Button variant="ghost" size="icon-sm" aria-label="Hành động">
-                                <MoreHorizontal />
-                              </Button>
-                            }
-                          />
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setEditingProject(project)}>
-                              <Pencil />
-                              Gán GVHD
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
