@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Crown, FolderKanban, MoreHorizontal, Search, UserMinus, UsersRound, WifiOff } from "lucide-react";
+import { Crown, FolderKanban, MoreHorizontal, Search, UserMinus, UsersRound, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -479,14 +478,13 @@ export function GroupsPage() {
         )}
         {groupsResult && (
           <div className="overflow-x-auto rounded-lg border border-border">
-            <Table className="min-w-[1360px] table-fixed">
+            <Table className="min-w-[1250px] table-fixed">
               <colgroup>
                 <col className="w-[170px]" />
                 <col className="w-[128px]" />
                 <col className="w-[420px]" />
                 <col className="w-[138px]" />
                 <col className="w-[280px]" />
-                <col className="w-[110px]" />
                 <col className="w-[88px]" />
               </colgroup>
               <TableHeader>
@@ -496,16 +494,15 @@ export function GroupsPage() {
                   <TableHead>Đề tài</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead>Leader</TableHead>
-                  <TableHead>Thành viên</TableHead>
                   <TableHead className="pr-4 text-right">
-                    <span className="sr-only">Cảnh báo và hành động</span>
+                    <span className="sr-only">Hành động</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                       Chưa có nhóm nào khớp tìm kiếm.
                     </TableCell>
                   </TableRow>
@@ -514,7 +511,6 @@ export function GroupsPage() {
                   const projectStateMeta = group.project
                     ? PROJECT_STATUS_META[group.project.status as ProjectProgressState]
                     : null;
-                  const warningMessage = group.warnings.map((warning) => warning.message).join("; ");
                   return (
                     <TableRow
                       key={group.id}
@@ -575,31 +571,8 @@ export function GroupsPage() {
                           <span className="text-amber-600 dark:text-amber-400">Chưa có leader</span>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <span className={`tabular-nums ${group.memberCount < 4 ? "font-medium text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
-                          {group.memberCount} TV
-                        </span>
-                      </TableCell>
                       <TableCell className="pr-4 text-right" onClick={(event) => event.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
-                          {warningMessage && (
-                            <Tooltip>
-                              <TooltipTrigger
-                                render={
-                                  <button
-                                    type="button"
-                                    aria-label={`Cảnh báo: ${warningMessage}`}
-                                    className="inline-flex size-7 items-center justify-center rounded-md text-amber-600 transition-colors hover:bg-amber-100 hover:text-amber-700 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none dark:text-amber-400 dark:hover:bg-amber-950/40 dark:hover:text-amber-300"
-                                  />
-                                }
-                              >
-                                <AlertTriangle className="size-4" aria-hidden="true" />
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs text-left leading-5">
-                                {warningMessage}
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
                           <DropdownMenu>
                             <DropdownMenuTrigger
                               render={
