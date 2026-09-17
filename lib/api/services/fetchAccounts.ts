@@ -11,6 +11,8 @@ export interface AccountApiItem {
   /** Legacy primary role; use roles for authorization management. */
   role?: UserRole;
   roles: UserRole[];
+  /** Chỉ có giá trị khi account có role LECTURER */
+  lecturerCode?: string | null;
 }
 
 export interface AccountCreatePayload {

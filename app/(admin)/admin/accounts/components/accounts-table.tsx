@@ -8,12 +8,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,14 +35,14 @@ import { RoleAssignmentDialog } from "./role-assignment-dialog";
 
 const ALL_ROLES: UserRole[] = [ROLE_ADMIN, ROLE_MANAGER, ROLE_LECTURER, ROLE_STUDENT];
 
-interface PendingAction {
+interface PendingRoleRemoval {
   account: AccountApiItem;
-  kind: "toggle-status" | "remove-role";
-  role?: UserRole;
+  role: UserRole;
 }
 
 export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
-  const [pending, setPending] = useState<PendingAction | null>(null);
+  const [pendingToggle, setPendingToggle] = useState<AccountApiItem | null>(null);
+  const [pending, setPending] = useState<PendingRoleRemoval | null>(null);
   const [pendingRole, setPendingRole] = useState<{ account: AccountApiItem; role: UserRole } | null>(null);
   const updateStatus = useUpdateAccountStatus();
   const assignRoleMutation = useAssignRole();
@@ -45,17 +54,21 @@ export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
 
   function handleConfirm(reason: string) {
     if (!pending) return;
-    const { account, kind, role } = pending;
-
-    if (kind === "toggle-status") {
-      updateStatus.mutate({
-        accountId: account.id,
-        payload: { status: account.status === "ACTIVE" ? "INACTIVE" : "ACTIVE", reason },
-      });
-    } else if (kind === "remove-role" && role) {
-      removeRoleMutation.mutate({ accountId: account.id, role, reason });
-    }
+    removeRoleMutation.mutate({ accountId: pending.account.id, role: pending.role, reason });
     closeDialog();
+  }
+
+  function handleToggleConfirm() {
+    if (!pendingToggle) return;
+    const nextStatus = pendingToggle.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    updateStatus.mutate({
+      accountId: pendingToggle.id,
+      payload: {
+        status: nextStatus,
+        reason: `${nextStatus === "INACTIVE" ? "Khóa" : "Mở khóa"} tài khoản qua thao tác nhanh`,
+      },
+    });
+    setPendingToggle(null);
   }
 
   return (
@@ -78,7 +91,14 @@ export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
             {accounts.map((account) => (
               <TableRow key={account.id}>
                 <TableCell className="pl-4 font-mono text-xs">{account.email}</TableCell>
-                <TableCell className="font-medium">{account.displayName}</TableCell>
+                <TableCell className="font-medium">
+                  {account.displayName}
+                  {account.lecturerCode && (
+                    <span className="block font-mono text-xs font-normal text-muted-foreground">
+                      {account.lecturerCode}
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {account.roles.map((role) => (
@@ -104,47 +124,49 @@ export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
                   {formatDate(account.createdAt, "DD/MM/YYYY")}
                 </TableCell>
                 <TableCell className="pr-4 text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={
-                        <Button variant="ghost" size="icon-sm" aria-label="Hành động">
-                          <MoreHorizontal />
-                        </Button>
-                      }
-                    />
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuGroup>
-                        <DropdownMenuLabel>Vai trò</DropdownMenuLabel>
-                        {ALL_ROLES.filter((role) => !account.roles.includes(role)).map((role) => (
-                          <DropdownMenuItem
-                            key={role}
-                            onClick={() => setPendingRole({ account, role })}
-                          >
-                            <ShieldPlus />
-                            Gán {ROLE_LABEL_VI[role]}
-                          </DropdownMenuItem>
-                        ))}
-                        {account.roles.map((role) => (
-                          <DropdownMenuItem
-                            key={`remove-${role}`}
-                            variant="destructive"
-                            onClick={() => setPending({ account, kind: "remove-role", role })}
-                          >
-                            <ShieldMinus />
-                            Gỡ {ROLE_LABEL_VI[role]}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuGroup>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        variant={account.status === "ACTIVE" ? "destructive" : "default"}
-                        onClick={() => setPending({ account, kind: "toggle-status" })}
-                      >
-                        {account.status === "ACTIVE" ? <UserX /> : <UserCheck />}
-                        {account.status === "ACTIVE" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      variant={account.status === "ACTIVE" ? "destructive" : "outline"}
+                      size="sm"
+                      onClick={() => setPendingToggle(account)}
+                    >
+                      {account.status === "ACTIVE" ? <UserX /> : <UserCheck />}
+                      {account.status === "ACTIVE" ? "Khóa tài khoản" : "Mở khóa"}
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button variant="ghost" size="icon-sm" aria-label="Hành động">
+                            <MoreHorizontal />
+                          </Button>
+                        }
+                      />
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuGroup>
+                          <DropdownMenuLabel>Vai trò</DropdownMenuLabel>
+                          {ALL_ROLES.filter((role) => !account.roles.includes(role)).map((role) => (
+                            <DropdownMenuItem
+                              key={role}
+                              onClick={() => setPendingRole({ account, role })}
+                            >
+                              <ShieldPlus />
+                              Gán {ROLE_LABEL_VI[role]}
+                            </DropdownMenuItem>
+                          ))}
+                          {account.roles.map((role) => (
+                            <DropdownMenuItem
+                              key={`remove-${role}`}
+                              variant="destructive"
+                              onClick={() => setPending({ account, role })}
+                            >
+                              <ShieldMinus />
+                              Gỡ {ROLE_LABEL_VI[role]}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuGroup>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -152,20 +174,34 @@ export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
         </Table>
       </div>
 
+      <AlertDialog open={pendingToggle !== null} onOpenChange={(open) => !open && setPendingToggle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingToggle?.status === "ACTIVE" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Áp dụng cho {pendingToggle?.displayName} ({pendingToggle?.email}).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              variant={pendingToggle?.status === "ACTIVE" ? "destructive" : "default"}
+              onClick={handleToggleConfirm}
+            >
+              Xác nhận
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <ReasonDialog
         open={pending !== null}
         onOpenChange={(open) => !open && closeDialog()}
-        title={
-          pending?.kind === "toggle-status"
-            ? pending.account.status === "ACTIVE"
-              ? "Khóa tài khoản"
-              : "Mở khóa tài khoản"
-            : pending?.kind === "remove-role"
-              ? `Gỡ vai trò ${pending.role ? ROLE_LABEL_VI[pending.role] : ""}`
-              : ""
-        }
+        title={`Gỡ vai trò ${pending?.role ? ROLE_LABEL_VI[pending.role] : ""}`}
         description={`Áp dụng cho ${pending?.account.displayName ?? ""} (${pending?.account.email ?? ""}). Lý do sẽ được ghi vào audit log.`}
-        destructive={pending?.kind === "remove-role" || (pending?.kind === "toggle-status" && pending.account.status === "ACTIVE")}
+        destructive
         confirmLabel="Xác nhận"
         onConfirm={handleConfirm}
       />
