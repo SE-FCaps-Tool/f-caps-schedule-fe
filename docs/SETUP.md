@@ -261,6 +261,10 @@ export default config;
 ### `utils/cookieConfig.ts`
 
 ```typescript
+// isProductionEnv() sống ở lib/utils/env.ts — dùng chung cho mọi chỗ cần biết
+// đang production hay không (vd. gate UI dev-only ở login-form.tsx).
+import { isProductionEnv } from "@/lib/utils/env";
+
 interface CookieOptions {
   maxAge?: number;
   path?: string;
@@ -271,8 +275,7 @@ interface CookieOptions {
 }
 
 function getCookieDomain(): string | undefined {
-  const isProduction =
-    process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENV === "production";
+  const isProduction = isProductionEnv();
 
   if (!isProduction) return undefined;
 
@@ -282,8 +285,7 @@ function getCookieDomain(): string | undefined {
 }
 
 export function getSecureCookieConfig(customOptions: Partial<CookieOptions> = {}): CookieOptions {
-  const isProduction =
-    process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENV === "production";
+  const isProduction = isProductionEnv();
   const isSecureEnvironment =
     typeof window !== "undefined" ? window.location.protocol === "https:" : isProduction;
 

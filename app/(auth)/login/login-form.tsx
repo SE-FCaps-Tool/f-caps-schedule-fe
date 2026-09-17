@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { fetchAuth } from "@/lib/api/services/fetchAuth";
 import { MOCK_ACCOUNTS } from "@/lib/mock/mockUsers";
 import { ROLE_LABEL_VI } from "@/lib/utils/roleLabels";
+import { isProductionEnv } from "@/lib/utils/env";
 import type { UserRole } from "@/lib/types/roles";
 import type { ApiError } from "@/types/api";
 
@@ -155,29 +156,31 @@ export function LoginForm() {
         Đăng nhập với Google
       </Button>
 
-      <div className="space-y-2 border-t border-border pt-4">
-        <p className="text-xs font-medium text-muted-foreground">
-          Tài khoản demo (chưa nối backend)
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {DEMO_ACCOUNTS.map((account) => (
-            <Button
-              key={account.email}
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setValue("email", account.email, { shouldValidate: true });
-                setValue("password", account.password, {
-                  shouldValidate: true,
-                });
-              }}
-            >
-              {account.roleLabel}
-            </Button>
-          ))}
+      {!isProductionEnv() && (
+        <div className="space-y-2 border-t border-border pt-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            Tài khoản demo (chưa nối backend)
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {DEMO_ACCOUNTS.map((account) => (
+              <Button
+                key={account.email}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setValue("email", account.email, { shouldValidate: true });
+                  setValue("password", account.password, {
+                    shouldValidate: true,
+                  });
+                }}
+              >
+                {account.roleLabel}
+              </Button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </form>
   );
 }

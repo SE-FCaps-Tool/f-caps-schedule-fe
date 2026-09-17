@@ -1,3 +1,5 @@
+import { isProductionEnv } from "@/lib/utils/env";
+
 interface CookieOptions {
   maxAge?: number;
   path?: string;
@@ -8,8 +10,7 @@ interface CookieOptions {
 }
 
 function getCookieDomain(): string | undefined {
-  const isProduction =
-    process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENV === "production";
+  const isProduction = isProductionEnv();
 
   if (!isProduction) return undefined;
 
@@ -17,8 +18,7 @@ function getCookieDomain(): string | undefined {
 }
 
 export function getSecureCookieConfig(customOptions: Partial<CookieOptions> = {}): CookieOptions {
-  const isProduction =
-    process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENV === "production";
+  const isProduction = isProductionEnv();
   const isSecureEnvironment =
     typeof window !== "undefined" ? window.location.protocol === "https:" : isProduction;
 
