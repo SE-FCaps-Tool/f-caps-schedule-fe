@@ -68,6 +68,12 @@ const TEMPLATE_COLUMNS = [
     required: false,
   },
   {
+    header: "Department",
+    example: "SE",
+    note: "Mã chuyên ngành — bỏ trống giữ nguyên ngành cũ (đề tài mới thì mặc định SE), tự tạo mã mới nếu chưa có",
+    required: false,
+  },
+  {
     header: "GVHD",
     example: "AnhLT151",
     note: "Mã giảng viên hướng dẫn chính — bắt buộc (dùng GVHD1 nếu có)",

@@ -54,6 +54,7 @@ projects-page.tsx (has currentSemester.id already, used by useProjects/CreatePro
 - [x] `ProjectImportResponse` (FE) has `updated: number`.
 - [x] Dialog sends `semesterId` with the upload request.
 - [x] Template guide table shows Mã đề tài/Mã nhóm/2 titles/GVHD/GVHD2 (GVHD1 folded into "GVHD" per confirmed rule), no semesterCode/majorCode/topicType.
+- [x] Template guide includes a Department row (added in round 2, after real-file testing revealed the BE now reads it — "blank keeps existing major" documented in the note).
 - [x] Result summary shows created/updated/skipped counts.
 - [x] `npx tsc --noEmit`, `npm run lint`, `npm test` pass.
 - [x] `npm run typegen:check -- ../f-caps-schedule-be/apps/api/openapi.json` passes (generated contract matches byte-for-byte).
