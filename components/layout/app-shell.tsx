@@ -21,11 +21,10 @@ import {
   Users2,
   ClipboardList,
   User,
-  Mail,
-  CalendarCheck,
   CalendarDays,
   Award,
   Menu,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -130,20 +129,38 @@ const NAV_CONFIG: Record<UserRole, { areaLabel: string; groups: NavGroup[] }> = 
         ],
       },
       {
-        label: "Lịch & tham gia",
+        label: "GVHD",
         items: [
-          { label: "Lời mời", href: "/lecturer/invitations", icon: Mail },
-          { label: "Đăng ký lịch rảnh", href: "/lecturer/availability", icon: CalendarCheck },
-          { label: "Lịch của tôi", href: "/lecturer/schedule", icon: CalendarClock },
+          { label: "Nhóm đồ án", href: "/lecturer/supervised-groups", icon: Users2 },
+          { label: "Tài liệu", href: "/lecturer/documents", icon: FileText },
         ],
       },
       {
-        label: "Theo dõi",
+        label: "GV Review",
         items: [
-          { label: "Nhóm hướng dẫn", href: "/lecturer/supervised-groups", icon: Users2 },
-          { label: "Khắc phục", href: "/lecturer/results", icon: ClipboardList },
+          { label: "Nhóm phản biện", href: "/lecturer/review-groups", icon: ClipboardCheck },
+          { label: "Checklist", href: "/lecturer/checklist", icon: ClipboardList },
         ],
       },
+      {
+        items: [
+          { label: "Lịch của tôi", href: "/lecturer/schedule", icon: CalendarClock },
+        ],
+      },
+      // Tạm ẩn — giữ lại code, chưa xoá (yêu cầu đơn giản hoá menu Giảng viên).
+      // {
+      //   label: "Lịch & tham gia",
+      //   items: [
+      //     { label: "Lời mời", href: "/lecturer/invitations", icon: Mail },
+      //     { label: "Đăng ký lịch rảnh", href: "/lecturer/availability", icon: CalendarCheck },
+      //   ],
+      // },
+      // {
+      //   label: "Theo dõi",
+      //   items: [
+      //     { label: "Khắc phục", href: "/lecturer/results", icon: ClipboardList },
+      //   ],
+      // },
     ],
   },
   [ROLE_STUDENT]: {
