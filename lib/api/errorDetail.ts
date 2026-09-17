@@ -59,6 +59,7 @@ export function detailDetails(error: ApiError): unknown {
 const ERROR_CODE_MESSAGES: Record<string, string> = {
   // --- Chung / cũ (docs/manager-api.md, docs/role-api-matrix.md) ---
   AUTH_REQUIRED: "Phiên đăng nhập đã hết hạn — vui lòng đăng nhập lại",
+  ROLE_SELECTION_EXPIRED: "Phiên chọn vai trò đã hết hạn — vui lòng đăng nhập lại",
   INSUFFICIENT_PERMISSION: "Bạn không có quyền thực hiện thao tác này",
   SEMESTER_NOT_FOUND: "Học kỳ không tồn tại",
   SEMESTER_REQUIRED: "Thiếu học kỳ — vui lòng chọn học kỳ trước khi thao tác",

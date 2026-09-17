@@ -134,7 +134,9 @@ export function LoginForm() {
         <p className="text-sm text-destructive">
           {oauthError === "account_not_provisioned"
             ? "Email Google chưa được cấp tài khoản. Vui lòng liên hệ quản trị viên."
-            : "Đăng nhập Google không thành công. Vui lòng thử lại."}
+            : oauthError === "role_selection_expired"
+              ? "Phiên chọn vai trò đã hết hạn. Vui lòng đăng nhập lại."
+              : "Đăng nhập Google không thành công. Vui lòng thử lại."}
         </p>
       )}
 

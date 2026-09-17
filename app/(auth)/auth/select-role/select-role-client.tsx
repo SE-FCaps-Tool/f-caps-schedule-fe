@@ -16,6 +16,7 @@ import { SESSION_ROLE_COOKIE } from "@/lib/constants/auth";
 import { getSecureCookieConfig } from "@/utils/cookieConfig";
 import { setCookie } from "cookies-next";
 import { rememberAuthProfile } from "@/lib/utils/authProfile";
+import { detailCode, friendlyErrorMessage } from "@/lib/api/errorDetail";
 import type { ApiError } from "@/types/api";
 
 const VALID_ROLES: UserRole[] = ["ADMIN", "MANAGER", "LECTURER", "STUDENT"];
@@ -56,7 +57,12 @@ export default function SelectRoleClient({ rolesParam }: { rolesParam: string | 
       router.replace(ROLE_HOME[data.role] ?? "/login");
     },
     onError: (error: ApiError) => {
-      toast.error(error.message || "Không thể chọn vai trò");
+      if (detailCode(error) === "ROLE_SELECTION_EXPIRED") {
+        toast.error("Phiên chọn vai trò đã hết hạn. Vui lòng đăng nhập lại.");
+        router.replace("/login?oauth_error=role_selection_expired");
+        return;
+      }
+      toast.error(friendlyErrorMessage(error, "Không thể chọn vai trò"));
     },
   });
 
