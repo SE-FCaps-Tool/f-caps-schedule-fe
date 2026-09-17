@@ -127,11 +127,12 @@ export function AccountsTable({ accounts }: { accounts: AccountApiItem[] }) {
                   <div className="flex items-center justify-end gap-1">
                     <Button
                       variant={account.status === "ACTIVE" ? "destructive" : "outline"}
-                      size="sm"
+                      size="icon-sm"
+                      aria-label={account.status === "ACTIVE" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                      title={account.status === "ACTIVE" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
                       onClick={() => setPendingToggle(account)}
                     >
                       {account.status === "ACTIVE" ? <UserX /> : <UserCheck />}
-                      {account.status === "ACTIVE" ? "Khóa tài khoản" : "Mở khóa"}
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger
