@@ -40,12 +40,16 @@ PATCH /api/v1/rounds/:roundId
 Body: cùng field với `POST /semesters/:semesterId/rounds` (spec §49), tất cả optional.
 📁 `app/(manager)/manager/rounds/[roundId]/components/round-detail-page.tsx` (menu "Sửa cấu hình" đang tắt)
 
-### A3. Import đề tài hàng loạt
+### A3. Import đề tài hàng loạt — ĐÃ XONG (2026-09-17), shape khác đề xuất ban đầu
 ```http
-POST /api/v1/semesters/:semesterId/projects/import
+POST /api/v1/projects/import?semesterId=
 ```
-Đề xuất: multipart file (CSV/Excel), response trả `{ "data": { "created": number, "errors": [{row, message}] } }`.
-📁 `app/(manager)/manager/projects/components/projects-page.tsx` (nút "Import" đang tắt)
+`semesterId` là query param (không phải path param như đề xuất ban đầu). Response phẳng, không bọc
+`data`: `{ created, updated, skipped, errors: [{row, code, message}] }`. Đọc cột Mã đề tài, Mã nhóm,
+Tên đề tài Tiếng Anh/Nhật, Tên đề tài Tiếng Việt, GVHD/GVHD1, GVHD2 — tạo/cập nhật Project + Group
+rỗng + tối đa 2 `project_supervisors` (MAIN/CO), khớp GVHD bằng lecturer_code. Trùng mã đề tài thì
+upsert, không báo lỗi trùng.
+📁 `app/(manager)/manager/projects/components/projects-page.tsx`, `components/projects/import-projects-dialog.tsx`
 
 ### A4. CRUD phòng
 ```http

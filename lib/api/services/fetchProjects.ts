@@ -157,11 +157,17 @@ export const fetchProjects = {
     return response.data.data;
   },
 
-  /** POST /projects/import — ADMIN, MANAGER. Nhận file .xlsx theo template danh sách đề tài. */
-  importFile: async (file: File): Promise<ProjectImportResponse> => {
+  /**
+   * POST /projects/import?semesterId= — ADMIN, MANAGER. Nhận file .xlsx: Mã đề tài, Mã nhóm,
+   * Tên đề tài Tiếng Anh/Tiếng Nhật, Tên đề tài Tiếng Việt, GVHD/GVHD1 (bắt buộc), GVHD2 (tùy chọn).
+   */
+  importFile: async (file: File, semesterId: number): Promise<ProjectImportResponse> => {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await apiService.upload<ProjectImportResponse>("api/v1/projects/import", formData);
+    const response = await apiService.upload<ProjectImportResponse>(
+      `api/v1/projects/import?semesterId=${semesterId}`,
+      formData
+    );
     return response.data;
   },
 };
@@ -174,6 +180,7 @@ export interface ProjectImportError {
 
 export interface ProjectImportResponse {
   created: number;
+  updated: number;
   skipped: number;
   errors: ProjectImportError[];
 }

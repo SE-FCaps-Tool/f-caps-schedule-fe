@@ -24,10 +24,12 @@ import { useImportProjects } from "@/hooks/manager/useProjects";
 import type { ProjectImportResponse } from "@/lib/api/services/fetchProjects";
 
 const ERROR_CODE_LABEL: Record<string, string> = {
-  REQUIRED_FIELD_MISSING: "Thiếu trường bắt buộc (code, semester, major)",
-  SEMESTER_OR_MAJOR_NOT_FOUND: "Không tìm thấy học kỳ hoặc chuyên ngành (vui lòng kiểm tra lại mã đã nhập)",
-  TOPIC_TYPE_INVALID: "Loại đề tài không hợp lệ (Chỉ nhận: REGULAR, APPLICATION, RESEARCH, INTEGRATED)",
-  PROJECT_DUPLICATE_OR_INVALID: "Mã đề tài đã tồn tại hoặc dữ liệu không hợp lệ",
+  REQUIRED_FIELD_MISSING: "Thiếu trường bắt buộc (Mã đề tài, Mã nhóm, tên đề tài hoặc GVHD)",
+  GVHD_NOT_FOUND: "Không tìm thấy giảng viên với mã GVHD đã nhập",
+  GVHD_DUPLICATE: "GVHD và GVHD2 không được trùng nhau",
+  GROUP_CODE_MISMATCH: "Đề tài đã có mã nhóm khác — không thể đổi mã nhóm qua import",
+  SEMESTER_NOT_FOUND: "Học kỳ không tồn tại",
+  PROJECT_ROW_INVALID: "Dữ liệu dòng không hợp lệ",
   IMPORT_INVALID_FILE: "File không đọc được — chỉ hỗ trợ .xlsx",
   IMPORT_FILE_TOO_LARGE: "File vượt quá giới hạn 5 MB",
 };
@@ -42,49 +44,45 @@ function friendlyError(code: string, message?: string) {
  */
 const TEMPLATE_COLUMNS = [
   {
-    header: "code",
-    example: "SE001",
-    note: "Mã đề tài — bắt buộc, duy nhất trong HK",
+    header: "Mã đề tài",
+    example: "SU26SE094",
+    note: "Bắt buộc — trùng mã sẽ cập nhật đề tài đã có, không tạo trùng",
     required: true,
   },
   {
-    header: "semesterCode",
-    example: "SP26",
-    note: "Mã học kỳ — bắt buộc, khớp hệ thống",
+    header: "Mã nhóm",
+    example: "GSU26SE01",
+    note: "Bắt buộc — mỗi đề tài chỉ có đúng 1 nhóm",
     required: true,
   },
   {
-    header: "majorCode",
-    example: "SE",
-    note: "Mã chuyên ngành — bắt buộc, khớp hệ thống",
-    required: true,
-  },
-  {
-    header: "titleVi",
+    header: "Tên đề tài Tiếng Việt",
     example: "Hệ thống QL khóa luận",
-    note: "Tên đề tài TV (để trống lấy mã đề tài)",
+    note: "Bắt buộc nếu bỏ trống Tiếng Anh/Nhật",
     required: false,
   },
   {
-    header: "titleEn",
+    header: "Tên đề tài Tiếng Anh/ Tiếng Nhật",
     example: "Capstone Scheduler",
-    note: "Tên đề tài TA (tùy chọn)",
+    note: "Bắt buộc nếu bỏ trống Tiếng Việt",
     required: false,
   },
   {
-    header: "topicType",
-    example: "REGULAR",
-    note: "REGULAR · APPLICATION · RESEARCH · INTEGRATED",
+    header: "GVHD",
+    example: "AnhLT151",
+    note: "Mã giảng viên hướng dẫn chính — bắt buộc (dùng GVHD1 nếu có)",
+    required: true,
+  },
+  {
+    header: "GVHD2",
+    example: "DucDNM2",
+    note: "Mã giảng viên hướng dẫn phụ — tùy chọn",
     required: false,
   },
 ] as const;
 
-function TemplateGuide({ currentSemesterCode }: { currentSemesterCode?: string }) {
-  const columns = TEMPLATE_COLUMNS.map((col) =>
-    col.header === "semesterCode"
-      ? { ...col, example: currentSemesterCode || "SP26" }
-      : col
-  );
+function TemplateGuide() {
+  const columns = TEMPLATE_COLUMNS;
 
   return (
     <div className="space-y-2">
@@ -129,7 +127,7 @@ function TemplateGuide({ currentSemesterCode }: { currentSemesterCode?: string }
         </Table>
       </div>
       <p className="text-[11px] text-muted-foreground">
-        Dòng đầu là tiêu đề. Dòng trùng mã hoặc thiếu thông tin sẽ tự động bỏ qua.
+        Dòng đầu là tiêu đề. Trùng mã đề tài sẽ cập nhật đề tài đã có; thiếu thông tin hoặc GVHD không khớp sẽ tự động bỏ qua dòng đó.
       </p>
     </div>
   );
@@ -140,7 +138,7 @@ function ResultSummary({ result }: { result: ProjectImportResponse }) {
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <div className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="size-3.5" />
-          <span className="font-medium">{result.created} đề tài đã tạo</span>
+          <span className="font-medium">{result.created} đề tài đã tạo, {result.updated} đã cập nhật</span>
         </div>
         {result.skipped > 0 && (
           <div className="flex items-center gap-1 text-destructive">
@@ -182,16 +180,16 @@ function ResultSummary({ result }: { result: ProjectImportResponse }) {
 export function ImportProjectsDialog({
   open,
   onOpenChange,
-  currentSemesterCode,
+  semesterId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentSemesterCode?: string;
+  semesterId?: number;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<ProjectImportResponse | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { mutate, isPending } = useImportProjects();
+  const { mutate, isPending } = useImportProjects(semesterId);
 
   function reset() {
     setFile(null);
@@ -218,13 +216,16 @@ export function ImportProjectsDialog({
         <DialogHeader icon={FileSpreadsheet} iconTone="emerald">
           <DialogTitle className="text-base">Import đề tài từ Excel</DialogTitle>
           <DialogDescription className="text-xs">
-            Tải lên file .xlsx để tạo đề tài hàng loạt (trạng thái khởi tạo: Nháp).
+            Tải lên file .xlsx để tạo hoặc cập nhật đề tài, nhóm và GVHD hàng loạt cho học kỳ đang chọn.
           </DialogDescription>
         </DialogHeader>
 
         {!result ? (
           <div className="space-y-3">
-            <TemplateGuide currentSemesterCode={currentSemesterCode} />
+            <TemplateGuide />
+            {!semesterId && (
+              <p className="text-xs text-destructive">Chưa chọn học kỳ — vui lòng chọn học kỳ trước khi import.</p>
+            )}
 
             <button
               type="button"
@@ -282,7 +283,7 @@ export function ImportProjectsDialog({
               <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); reset(); }}>
                 Hủy
               </Button>
-              <Button size="sm" onClick={handleImport} disabled={!file || isPending}>
+              <Button size="sm" onClick={handleImport} disabled={!file || !semesterId || isPending}>
                 <Upload className="size-3.5" />
                 {isPending ? "Đang import..." : "Import"}
               </Button>
