@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { buildPageMetadata } from "@/lib/seo/metadata";
+import { isProductionEnv } from "@/lib/utils/env";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = buildPageMetadata({
@@ -14,7 +15,9 @@ export default function LoginPage() {
     <div className="w-full max-w-sm">
       <h1 className="text-2xl font-semibold text-foreground">Đăng nhập</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Dùng tài khoản đã được cấp hoặc đăng nhập với Google.
+        {isProductionEnv()
+          ? "Đăng nhập bằng tài khoản Google được cấp."
+          : "Dùng tài khoản đã được cấp hoặc đăng nhập với Google."}
       </p>
       <div className="mt-8">
         <Suspense fallback={<div className="h-12" />}>
