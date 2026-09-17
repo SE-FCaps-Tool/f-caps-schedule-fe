@@ -691,7 +691,7 @@ export function RoundAvailabilityHeatmap({
                               )}
                               style={{ verticalAlign: "middle" }}
                             >
-                              <span className="flex flex-col items-center justify-center">
+                              <span className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center justify-center">
                                 <span className="font-semibold">{formatDate(date, "DD/MM/YYYY")}</span>
                                 <span className="text-xs font-normal capitalize text-muted-foreground">
                                   {formatDate(date, "dddd")}
