@@ -108,6 +108,27 @@ const START_HOUR = 6; // 06:00 AM
 const END_HOUR = 21; // 21:00 PM
 const HOURS_COUNT = END_HOUR - START_HOUR;
 
+function parseDateOnly(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function startOfWeek(date: Date) {
+  const start = new Date(date);
+  const dayIndex = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - dayIndex);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+function dateKey(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
 function timeToMinutes(timeStr: string): number {
   const [h, m] = timeStr.split(":").map((v) => parseInt(v, 10));
   return (h || 0) * 60 + (m || 0);
@@ -146,9 +167,35 @@ export function RoundCalendarScheduleView({
   }, [round.days]);
 
   const [selectedDateFilter, setSelectedDateFilter] = useState<string | "ALL">("ALL");
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
   const [selectedRoomFilter, setSelectedRoomFilter] = useState<string | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeDetailSessionId, setActiveDetailSessionId] = useState<string | null>(null);
+
+  const weekGroups = useMemo(() => {
+    const groups: string[][] = [];
+    let currentWeekKey: string | null = null;
+
+    roundDates.forEach((date) => {
+      const weekKey = dateKey(startOfWeek(parseDateOnly(date)));
+      if (weekKey !== currentWeekKey) {
+        groups.push([]);
+        currentWeekKey = weekKey;
+      }
+      groups.at(-1)?.push(date);
+    });
+
+    return groups;
+  }, [roundDates]);
+
+  const activeWeekIndex = Math.min(selectedWeekIndex, Math.max(weekGroups.length - 1, 0));
+  const activeWeekDates = useMemo(() => weekGroups[activeWeekIndex] ?? [], [weekGroups, activeWeekIndex]);
+
+  function selectWeek(index: number) {
+    if (index < 0 || index >= weekGroups.length) return;
+    setSelectedWeekIndex(index);
+    setSelectedDateFilter("ALL");
+  }
 
   // Map room IDs to consistent colors
   const roomColorMap = useMemo(() => {
@@ -167,9 +214,9 @@ export function RoundCalendarScheduleView({
 
   // Displayed dates according to selected filter
   const visibleDates = useMemo(() => {
-    if (selectedDateFilter === "ALL") return roundDates;
-    return roundDates.filter((d) => d === selectedDateFilter);
-  }, [roundDates, selectedDateFilter]);
+    if (selectedDateFilter === "ALL" || !activeWeekDates.includes(selectedDateFilter)) return activeWeekDates;
+    return [selectedDateFilter];
+  }, [activeWeekDates, selectedDateFilter]);
 
   // Filter sessions based on room, search query, and valid dates
   const filteredSessions = useMemo(() => {
@@ -201,6 +248,11 @@ export function RoundCalendarScheduleView({
       return true;
     });
   }, [draftSessions, selectedRoomFilter, searchQuery, groupMap, invitationMap, roomMap]);
+
+  const visibleSessionCount = useMemo(
+    () => filteredSessions.filter((session) => visibleDates.includes(session.date)).length,
+    [filteredSessions, visibleDates]
+  );
 
   // Layout calculation for Google Calendar: cluster overlapping events in each day
   const eventsByDate = useMemo(() => {
@@ -303,12 +355,8 @@ export function RoundCalendarScheduleView({
               variant="ghost"
               size="icon-xs"
               className="size-7 text-muted-foreground hover:text-foreground"
-              disabled={selectedDateFilter === "ALL" || roundDates.indexOf(selectedDateFilter) <= 0}
-              onClick={() => {
-                if (selectedDateFilter === "ALL") return;
-                const idx = roundDates.indexOf(selectedDateFilter);
-                if (idx > 0) setSelectedDateFilter(roundDates[idx - 1]);
-              }}
+              disabled={activeWeekIndex <= 0}
+              onClick={() => selectWeek(activeWeekIndex - 1)}
             >
               <ChevronLeft className="size-4" />
             </Button>
@@ -318,21 +366,14 @@ export function RoundCalendarScheduleView({
               className="h-7 px-2 text-xs font-medium"
               onClick={() => setSelectedDateFilter("ALL")}
             >
-              Toàn bộ đợt
+              Cả tuần
             </Button>
             <Button
               variant="ghost"
               size="icon-xs"
               className="size-7 text-muted-foreground hover:text-foreground"
-              disabled={
-                selectedDateFilter === "ALL" ||
-                roundDates.indexOf(selectedDateFilter) >= roundDates.length - 1
-              }
-              onClick={() => {
-                if (selectedDateFilter === "ALL") return;
-                const idx = roundDates.indexOf(selectedDateFilter);
-                if (idx < roundDates.length - 1) setSelectedDateFilter(roundDates[idx + 1]);
-              }}
+              disabled={activeWeekIndex >= weekGroups.length - 1}
+              onClick={() => selectWeek(activeWeekIndex + 1)}
             >
               <ChevronRight className="size-4" />
             </Button>
@@ -342,16 +383,16 @@ export function RoundCalendarScheduleView({
             <CalendarDays className="size-4 text-primary" />
             <h3 className="text-sm font-semibold text-foreground">
               {selectedDateFilter === "ALL"
-                ? roundDates.length > 0
-                  ? `${formatDate(roundDates[0], "DD/MM")} – ${formatDate(
-                      roundDates[roundDates.length - 1],
+                ? activeWeekDates.length > 0
+                  ? `Tuần ${activeWeekIndex + 1}/${weekGroups.length} · ${formatDate(activeWeekDates[0], "DD/MM")} – ${formatDate(
+                      activeWeekDates[activeWeekDates.length - 1],
                       "DD/MM/YYYY"
                     )}`
                   : "Chưa có ngày"
                 : `${formatDate(selectedDateFilter, "dddd, DD/MM/YYYY")}`}
             </h3>
             <Badge variant="secondary" className="font-semibold text-xs px-2 py-0.5 whitespace-nowrap">
-              {filteredSessions.length} phiên chấm
+              {visibleSessionCount} phiên chấm
             </Badge>
           </div>
         </div>
@@ -370,9 +411,9 @@ export function RoundCalendarScheduleView({
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Tất cả ngày ({roundDates.length})
+              Cả tuần ({activeWeekDates.length})
             </button>
-            {roundDates.map((date) => (
+            {activeWeekDates.map((date) => (
               <button
                 key={`pill-${date}`}
                 type="button"

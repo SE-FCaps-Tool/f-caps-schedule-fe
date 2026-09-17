@@ -121,6 +121,9 @@ export function useImportProjects(semesterId: number | undefined) {
         await queryClient.invalidateQueries({ queryKey: ["manager", "projects"] });
         await queryClient.invalidateQueries({ queryKey: ["manager", "dashboard"] });
       }
+      if ((data.membersAssigned ?? 0) > 0) {
+        await queryClient.invalidateQueries({ queryKey: ["manager", "groups"] });
+      }
       if (affected > 0 && data.skipped === 0) {
         toast.success(`Đã tạo ${data.created}, cập nhật ${data.updated} đề tài`);
       } else if (affected > 0) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Check, ChevronsUpDown, Loader2, Search } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ interface AsyncComboboxProps<T> {
   items: T[];
   getId: (item: T) => string;
   getLabel: (item: T) => string;
+  /** Nhãn hiển thị trong trigger sau khi chọn, tách khỏi nhãn đầy đủ trong danh sách. */
+  getSelectedLabel?: (item: T) => string;
   /** Bỏ trống khi danh sách đã nằm hết trong `items` (không phân trang). */
   sentinelRef?: RefObject<HTMLDivElement | null>;
   /**
@@ -29,6 +31,8 @@ interface AsyncComboboxProps<T> {
   placeholder?: string;
   searchPlaceholder?: string;
   emptyText?: string;
+  /** Icon hiển thị ở cuối trigger, mặc định là icon dropdown. */
+  triggerIcon?: ReactNode;
   className?: string;
   disabled?: boolean;
 }
@@ -44,6 +48,7 @@ export function AsyncCombobox<T>({
   items,
   getId,
   getLabel,
+  getSelectedLabel,
   sentinelRef,
   onSearchChange,
   selectedLabelFallback,
@@ -52,6 +57,7 @@ export function AsyncCombobox<T>({
   placeholder = "Chọn...",
   searchPlaceholder = "Tìm kiếm...",
   emptyText = "Không có kết quả.",
+  triggerIcon,
   className,
   disabled,
 }: AsyncComboboxProps<T>) {
@@ -72,10 +78,10 @@ export function AsyncCombobox<T>({
   const [pickedLabel, setPickedLabel] = useState<string | null>(null);
   const selectedLabel = useMemo(() => {
     const found = items.find((item) => getId(item) === value);
-    if (found) return getLabel(found);
+    if (found) return getSelectedLabel?.(found) ?? getLabel(found);
     if (value === null) return null;
     return pickedLabel ?? selectedLabelFallback ?? null;
-  }, [items, value, getId, getLabel, pickedLabel, selectedLabelFallback]);
+  }, [items, value, getId, getLabel, getSelectedLabel, pickedLabel, selectedLabelFallback]);
 
   const filtered = useMemo(() => {
     if (serverSearch || !search.trim()) return items;
@@ -101,7 +107,7 @@ export function AsyncCombobox<T>({
             {/* min-w-0: Button là inline-flex + whitespace-nowrap, thiếu nó thì `truncate` không cắt
                 được, min-content phình theo nhãn dài và đẩy tràn cả dialog/grid bọc ngoài. */}
             <span className="min-w-0 truncate">{selectedLabel ?? placeholder}</span>
-            <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
+            {triggerIcon ?? <ChevronsUpDown className="size-4 shrink-0 opacity-50" />}
           </Button>
         }
       />
@@ -136,7 +142,7 @@ export function AsyncCombobox<T>({
                   key={id}
                   type="button"
                   onClick={() => {
-                    setPickedLabel(isSelected ? null : getLabel(item));
+                    setPickedLabel(isSelected ? null : (getSelectedLabel?.(item) ?? getLabel(item)));
                     onChange(isSelected ? null : id);
                     handleOpenChange(false);
                   }}

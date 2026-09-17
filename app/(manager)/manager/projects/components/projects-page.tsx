@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FilePlus2, Search, Upload, WifiOff } from "lucide-react";
+import { FilePlus2, Pencil, Search, Upload, WifiOff } from "lucide-react";
 import { ImportProjectsDialog } from "@/components/projects/import-projects-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,7 +106,7 @@ function SupervisorPicker({
 }
 
 function supervisorLabel(s: ProjectListItem["mainSupervisor"]) {
-  return s ? `${s.code} — ${s.fullName}` : undefined;
+  return s?.code;
 }
 
 function CreateProjectDialog({
@@ -253,16 +253,18 @@ function InlineSupervisorCell({ project, role }: { project: ProjectListItem; rol
       items={role === "CO" ? items.filter((l) => String(l.id) !== mainId) : items}
       getId={(l) => String(l.id)}
       getLabel={(l) => `${l.lecturerCode} — ${l.displayName}`}
+      getSelectedLabel={(l) => l.lecturerCode}
       sentinelRef={sentinelRef}
       onSearchChange={setSearch}
       selectedLabelFallback={supervisorLabel(current ?? null)}
       isLoading={isLoading}
       isFetchingNextPage={isFetchingNextPage}
-      placeholder={role === "MAIN" ? "Chọn GVHD" : "Không có"}
+      placeholder={role === "MAIN" ? "Chọn GVHD" : ""}
       searchPlaceholder="Tìm theo mã hoặc tên..."
       emptyText="Không có giảng viên khớp tìm kiếm."
+      triggerIcon={<Pencil className="size-3.5 shrink-0 opacity-60" aria-hidden />}
       disabled={updateProject.isPending}
-      className="h-8 w-full text-xs"
+      className="h-8 w-full justify-center gap-2 rounded-md border-0 bg-transparent px-1 text-center text-xs shadow-none hover:bg-muted/60 focus-visible:ring-2"
     />
   );
 }
@@ -350,8 +352,8 @@ export function ProjectsPage() {
                   <TableHead className="pl-4">Mã đề tài</TableHead>
                   <TableHead>Nhóm</TableHead>
                   <TableHead>Tên đề tài</TableHead>
-                  <TableHead>GVHD 1</TableHead>
-                  <TableHead>GVHD 2</TableHead>
+                  <TableHead className="text-center">GVHD 1</TableHead>
+                  <TableHead className="text-center">GVHD 2</TableHead>
                   <TableHead className="pr-4">Trạng thái</TableHead>
                 </TableRow>
               </TableHeader>
@@ -395,10 +397,10 @@ export function ProjectsPage() {
                           </TooltipContent>
                         </Tooltip>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <InlineSupervisorCell project={project} role="MAIN" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <InlineSupervisorCell project={project} role="CO" />
                       </TableCell>
                       <TableCell className="pr-4">

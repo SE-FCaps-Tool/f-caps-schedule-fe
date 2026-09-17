@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { CalendarDays, ChevronLeft, ChevronRight, Table2 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { DateField } from "@/components/shared/date-field";
 import { TimeField } from "@/components/shared/time-field";
@@ -27,6 +28,18 @@ function useNowInVietnamTime() {
 /** Serialize a Vietnam-local date/time without letting the browser shift the calendar day. */
 function buildDeadlineIso(date: string, time: string) {
   return `${date}T${time}:00+07:00`;
+}
+
+function parseDateOnly(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function getWeekKey(date: string) {
+  const monday = parseDateOnly(date);
+  const dayIndex = (monday.getDay() + 6) % 7;
+  monday.setDate(monday.getDate() - dayIndex);
+  return [monday.getFullYear(), monday.getMonth() + 1, monday.getDate()].join("-");
 }
 
 /** Một dòng người/nhóm trong ô timeslot, compact để đọc như bảng thay vì card lịch. */
@@ -70,6 +83,7 @@ function RegistrationPersonRow({
 }
 
 const CELL_PREVIEW_LIMIT = 2;
+type AvailabilityView = "calendar" | "table";
 
 function RegistrationCellSection({
   tone,
@@ -239,6 +253,27 @@ export function RoundAvailabilityHeatmap({
     ).sort();
   }, [round.days, availability]);
 
+  const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
+  const [viewMode, setViewMode] = useState<AvailabilityView>("table");
+  const weekGroups = useMemo(() => {
+    const groups: string[][] = [];
+    let currentWeekKey: string | null = null;
+
+    for (const date of dates) {
+      const weekKey = getWeekKey(date);
+      if (weekKey !== currentWeekKey) {
+        groups.push([]);
+        currentWeekKey = weekKey;
+      }
+      groups.at(-1)?.push(date);
+    }
+
+    return groups;
+  }, [dates]);
+
+  const activeWeekIndex = Math.min(currentWeekIndex, Math.max(weekGroups.length - 1, 0));
+  const visibleDates = useMemo(() => weekGroups[activeWeekIndex] ?? [], [activeWeekIndex, weekGroups]);
+
   /** Lấy đúng các hàng slot đã cấu hình, giống lưới Calendar chính của Round Detail. */
   const timeRows = useMemo(() => {
     const rows = new Map<string, { start: string; end: string }>();
@@ -320,6 +355,27 @@ export function RoundAvailabilityHeatmap({
     return map;
   }, [groups]);
 
+  const tableRows = useMemo(() => {
+    return visibleDates.flatMap((date) =>
+      timeRows.flatMap((row) => {
+        const cellKey = `${date}__${row.start}`;
+        const roundSlot = roundSlotByCell.get(cellKey);
+        if (!roundSlot) return [];
+
+        const timeslot = timeslotByCell.get(cellKey);
+        return [
+          {
+            date,
+            row,
+            hasData: Boolean(timeslot),
+            lecturerIds: timeslot ? Array.from(lecturerAvailableByTimeslot.get(timeslot.id) ?? []) : [],
+            groupIds: timeslot ? Array.from(groupSelectedByTimeslot.get(timeslot.id) ?? []) : [],
+          },
+        ];
+      })
+    );
+  }, [groupSelectedByTimeslot, lecturerAvailableByTimeslot, roundSlotByCell, timeRows, timeslotByCell, visibleDates]);
+
   const deadlineDate = round.registrationDeadline ? formatInVietnamTime(round.registrationDeadline, "YYYY-MM-DD") : null;
   const deadlineTime = round.registrationDeadline ? formatInVietnamTime(round.registrationDeadline, "HH:mm") : "23:59";
   const [deadlineDraftDate, setDeadlineDraftDate] = useState(() => deadlineDate ?? "");
@@ -393,14 +449,88 @@ export function RoundAvailabilityHeatmap({
         )}
 
         {availability && dates.length > 0 && (
-          <div className="flex-1 overflow-auto rounded-lg border border-border">
+          <>
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 px-3 py-2.5">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">Lịch đăng ký</p>
+                <p className="text-xs text-muted-foreground">
+                  Tuần {activeWeekIndex + 1}/{weekGroups.length}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border bg-background p-0.5">
+                <button
+                  type="button"
+                  aria-label="Xem tuần trước"
+                  disabled={activeWeekIndex <= 0}
+                  onClick={() => setCurrentWeekIndex((index) => Math.max(0, index - 1))}
+                  className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                >
+                  <ChevronLeft className="size-4" aria-hidden />
+                </button>
+                <span className="min-w-36 px-2 text-center text-xs font-medium tabular-nums text-foreground">
+                  {visibleDates.length > 0
+                    ? `${formatDate(visibleDates[0], "DD/MM")} – ${formatDate(
+                        visibleDates[visibleDates.length - 1],
+                        "DD/MM/YYYY"
+                      )}`
+                    : "Chưa có ngày"}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Xem tuần sau"
+                  disabled={activeWeekIndex >= weekGroups.length - 1}
+                  onClick={() => setCurrentWeekIndex((index) => Math.min(weekGroups.length - 1, index + 1))}
+                  className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                >
+                  <ChevronRight className="size-4" aria-hidden />
+                </button>
+              </div>
+              <div
+                className="flex items-center gap-0.5 rounded-lg border border-border bg-muted/60 p-0.5"
+                aria-label="Kiểu hiển thị lịch đăng ký"
+                role="tablist"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === "calendar"}
+                  onClick={() => setViewMode("calendar")}
+                  className={cn(
+                    "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors",
+                    viewMode === "calendar"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <CalendarDays className="size-3.5" aria-hidden />
+                  Lưới
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === "table"}
+                  onClick={() => setViewMode("table")}
+                  className={cn(
+                    "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors",
+                    viewMode === "table"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Table2 className="size-3.5" aria-hidden />
+                  Bảng
+                </button>
+              </div>
+            </div>
+            {viewMode === "calendar" ? (
+              <div className="flex-1 overflow-auto rounded-lg border border-border">
             <table className="w-full min-w-[960px] border-collapse text-sm">
               <thead>
                 <tr>
                   <th className="sticky top-0 left-0 z-30 w-28 min-w-28 border-r border-b border-border bg-muted px-3 py-3 text-left align-middle text-xs font-semibold text-muted-foreground">
                     Timeslot
                   </th>
-                  {dates.map((date) => {
+                  {visibleDates.map((date) => {
                     const isDeadline = date === deadlineDate;
                     const isToday = date === nowDate;
                     return (
@@ -450,7 +580,7 @@ export function RoundAvailabilityHeatmap({
                           đến {row.end}
                         </span>
                       </th>
-                      {dates.map((date) => {
+                      {visibleDates.map((date) => {
                         const cellKey = `${date}__${row.start}`;
                         const roundSlot = roundSlotByCell.get(cellKey);
                         const timeslot = timeslotByCell.get(cellKey);
@@ -510,7 +640,116 @@ export function RoundAvailabilityHeatmap({
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+            ) : (
+              <div className="flex-1 overflow-auto rounded-lg border border-border">
+                <table className="min-w-[920px] w-full border-collapse text-sm">
+                  <thead>
+                    <tr>
+                      <th className="sticky top-0 left-0 z-30 min-w-36 border-b border-r border-border bg-muted px-3 py-3 text-left text-xs font-semibold text-muted-foreground">
+                        Ngày / thứ
+                      </th>
+                      <th className="sticky top-0 z-20 min-w-36 border-b border-l border-border bg-muted px-3 py-3 text-left text-xs font-semibold text-muted-foreground">
+                        Timeslot
+                      </th>
+                      <th className="sticky top-0 z-20 min-w-64 border-b border-l border-border bg-muted px-3 py-3 text-left text-xs font-semibold text-muted-foreground">
+                        Giảng viên đăng ký
+                      </th>
+                      <th className="sticky top-0 z-20 min-w-52 border-b border-l border-border bg-muted px-3 py-3 text-left text-xs font-semibold text-muted-foreground">
+                        Nhóm đăng ký
+                      </th>
+                      <th className="sticky top-0 z-20 min-w-28 border-b border-l border-border bg-muted px-3 py-3 text-left text-xs font-semibold text-muted-foreground">
+                        Tổng
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableRows.map(({ date, row, hasData, lecturerIds, groupIds }, rowIndex) => {
+                      const total = lecturerIds.length + groupIds.length;
+                      const isToday = date === nowDate;
+                      const isNowRow = nowTime >= row.start && nowTime < row.end;
+                      const isFirstDateRow = rowIndex === 0 || tableRows[rowIndex - 1]?.date !== date;
+                      const dateRowSpan = isFirstDateRow
+                        ? tableRows.filter((tableRow) => tableRow.date === date).length
+                        : undefined;
+
+                      return (
+                        <tr
+                          key={`${date}-${row.start}`}
+                          className={cn(
+                            "border-b border-border last:border-b-0",
+                            isToday && "bg-primary/[0.025]",
+                            isNowRow && "shadow-[inset_0_2px_0_var(--primary)]"
+                          )}
+                        >
+                          {isFirstDateRow && (
+                            <td
+                              rowSpan={dateRowSpan}
+                              className={cn(
+                                "sticky top-11 left-0 z-10 whitespace-nowrap border-r border-border bg-background px-3 py-3 text-center align-middle tabular-nums",
+                                isToday && "bg-primary/[0.025]"
+                              )}
+                              style={{ verticalAlign: "middle" }}
+                            >
+                              <span className="flex flex-col items-center justify-center">
+                                <span className="font-semibold">{formatDate(date, "DD/MM/YYYY")}</span>
+                                <span className="text-xs font-normal capitalize text-muted-foreground">
+                                  {formatDate(date, "dddd")}
+                                </span>
+                              </span>
+                            </td>
+                          )}
+                          <td className="whitespace-nowrap border-l border-border px-3 py-3 align-top tabular-nums">
+                            <span className="font-semibold">{row.start}</span>
+                            <span className="block text-xs text-muted-foreground">đến {row.end}</span>
+                          </td>
+                          <td className="border-l border-border px-3 py-2 align-top">
+                            {hasData && lecturerIds.length > 0 ? (
+                              <div className="space-y-1">
+                                {lecturerIds.map((id) => (
+                                  <RegistrationPersonRow
+                                    key={id}
+                                    tone="orange"
+                                    code={lecturerById.get(id)?.code ?? `GV${id}`}
+                                    subtitle={lecturerById.get(id)?.fullName}
+                                  />
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/70">{hasData ? "Chưa có ai" : "Chưa có dữ liệu"}</span>
+                            )}
+                          </td>
+                          <td className="border-l border-border px-3 py-2 align-top">
+                            {hasData && groupIds.length > 0 ? (
+                              <div className="space-y-1">
+                                {groupIds.map((id) => (
+                                  <RegistrationPersonRow
+                                    key={id}
+                                    tone="violet"
+                                    code={groupCodeById.get(id) ?? `#${id}`}
+                                  />
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/70">{hasData ? "Chưa có nhóm" : "Chưa có dữ liệu"}</span>
+                            )}
+                          </td>
+                          <td className="border-l border-border px-3 py-3 align-top">
+                            <span className="inline-flex min-w-8 items-center justify-center rounded-md bg-muted px-2 py-1 text-xs font-semibold tabular-nums">
+                              {hasData ? total : "—"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {tableRows.length === 0 && (
+                  <p className="py-10 text-center text-sm text-muted-foreground">Tuần này chưa có timeslot nào.</p>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </motion.div>

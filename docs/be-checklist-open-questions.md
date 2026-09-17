@@ -45,10 +45,22 @@ Body: cùng field với `POST /semesters/:semesterId/rounds` (spec §49), tất 
 POST /api/v1/projects/import?semesterId=
 ```
 `semesterId` là query param (không phải path param như đề xuất ban đầu). Response phẳng, không bọc
-`data`: `{ created, updated, skipped, errors: [{row, code, message}] }`. Đọc cột Mã đề tài, Mã nhóm,
-Tên đề tài Tiếng Anh/Nhật, Tên đề tài Tiếng Việt, GVHD/GVHD1, GVHD2 — tạo/cập nhật Project + Group
-rỗng + tối đa 2 `project_supervisors` (MAIN/CO), khớp GVHD bằng lecturer_code. Trùng mã đề tài thì
-upsert, không báo lỗi trùng.
+`data`: `{ created, updated, skipped, errors: [{row, code, message}], studentsCreated, membersAssigned }`.
+Đọc cột Mã đề tài, Mã nhóm, Tên đề tài Tiếng Anh/Nhật, Tên đề tài Tiếng Việt, Department/Ngành,
+GVHD/GVHD1, GVHD2 — tạo/cập nhật Project + Group rỗng + tối đa 2 `project_supervisors` (MAIN/CO),
+khớp GVHD bằng lecturer_code. Trùng mã đề tài thì upsert, không báo lỗi trùng.
+
+**Biến thể có MSSV (2026-09-17)**: cùng 1 endpoint, tự nhận diện qua cột "MSSV" — mỗi dòng là 1
+sinh viên, chỉ dòng đầu của mỗi nhóm (có Mã nhóm) mang dữ liệu đề tài/GVHD, các dòng thành viên
+theo sau thuộc nhóm đó tới khi gặp Mã nhóm tiếp theo. Sinh viên ở dòng đầu = Leader. Sheet dạng này
+không có mã GV nên GVHD1/GVHD2 khớp theo TÊN hiển thị đã chuẩn hoá khoảng trắng (trùng tên chuẩn
+hoá giữa 2 GV → GVHD_NOT_FOUND, không đoán bừa). Sinh viên chưa có trong hệ thống được tạo mới ở
+bảng `students` KHÔNG kèm tài khoản đăng nhập (`students.full_name` — cột mới, migration
+`0045_student_full_name` — vì `students` trước đó không có tên riêng, luôn lấy qua join `accounts`).
+Mọi nơi hiển thị tên sinh viên (`GET /students`, `GET /groups/:id`, `GET /groups/:id/members`,
+`GET /groups/:id/overview`, danh sách nhóm theo học kỳ, leader trong `GET /projects/:id`) đã
+COALESCE `accounts.display_name` → `students.full_name` để hoạt động đúng cho sinh viên chưa có
+tài khoản.
 📁 `app/(manager)/manager/projects/components/projects-page.tsx`, `components/projects/import-projects-dialog.tsx`
 
 ### A4. CRUD phòng

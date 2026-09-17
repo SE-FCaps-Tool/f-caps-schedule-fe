@@ -16,7 +16,7 @@ export function SemesterSwitcher() {
   return (
     <Select value={currentSemesterId || ""} onValueChange={(value) => value && setCurrentSemesterId(value)}>
       <SelectTrigger
-        className="h-8 gap-1.5 border-none bg-transparent px-2 shadow-none hover:bg-muted"
+        className="h-9 gap-2 border-none bg-transparent px-2.5 shadow-none hover:bg-muted"
         aria-label="Chọn học kỳ"
       >
         <CalendarRange className="size-3.5 text-muted-foreground" />
@@ -24,13 +24,13 @@ export function SemesterSwitcher() {
           {(value: string | null) => (value ? <span className="font-medium">{value}</span> : "Chọn học kỳ")}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent align="end" alignItemWithTrigger={false} className="w-64">
+      <SelectContent align="end" alignItemWithTrigger={false} className="w-72 p-1.5">
         {semesters.map((semester) => (
-          <SelectItem key={semester.code} value={semester.code}>
-            <span className="flex items-center gap-2">
+          <SelectItem key={semester.code} value={semester.code} className="min-h-9 gap-2.5 py-1.5">
+            <span className="flex items-center gap-2.5">
               <span className={cn("size-1.5 shrink-0 rounded-full", SEMESTER_STATUS_DOT[semester.status])} aria-hidden />
-              <span className="font-mono text-xs font-medium">{semester.code}</span>
-              <span className="truncate text-muted-foreground">— {semester.name}</span>
+              <span className="font-mono text-sm font-medium">{semester.code}</span>
+              <span className="truncate text-sm text-muted-foreground">— {semester.name}</span>
             </span>
           </SelectItem>
         ))}

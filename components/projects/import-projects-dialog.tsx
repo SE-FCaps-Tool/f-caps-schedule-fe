@@ -25,11 +25,13 @@ import type { ProjectImportResponse } from "@/lib/api/services/fetchProjects";
 
 const ERROR_CODE_LABEL: Record<string, string> = {
   REQUIRED_FIELD_MISSING: "Thiếu trường bắt buộc (Mã đề tài, Mã nhóm, tên đề tài hoặc GVHD)",
-  GVHD_NOT_FOUND: "Không tìm thấy giảng viên với mã GVHD đã nhập",
+  GVHD_NOT_FOUND: "Không tìm thấy giảng viên khớp với mã/tên GVHD đã nhập",
   GVHD_DUPLICATE: "GVHD và GVHD2 không được trùng nhau",
   GROUP_CODE_MISMATCH: "Đề tài đã có mã nhóm khác — không thể đổi mã nhóm qua import",
   SEMESTER_NOT_FOUND: "Học kỳ không tồn tại",
   PROJECT_ROW_INVALID: "Dữ liệu dòng không hợp lệ",
+  MEMBER_ALREADY_IN_ANOTHER_GROUP: "Sinh viên đã là thành viên active của một nhóm khác",
+  MEMBER_ROW_INVALID: "Không import được dòng sinh viên này",
   IMPORT_INVALID_FILE: "File không đọc được — chỉ hỗ trợ .xlsx",
   IMPORT_FILE_TOO_LARGE: "File vượt quá giới hạn 5 MB",
 };
@@ -135,6 +137,11 @@ function TemplateGuide() {
       <p className="text-[11px] text-muted-foreground">
         Dòng đầu là tiêu đề. Trùng mã đề tài sẽ cập nhật đề tài đã có; thiếu thông tin hoặc GVHD không khớp sẽ tự động bỏ qua dòng đó.
       </p>
+      <p className="text-[11px] text-muted-foreground">
+        Cũng hỗ trợ file có thêm cột <span className="font-medium text-foreground">MSSV</span> và{" "}
+        <span className="font-medium text-foreground">Họ và tên</span> (1 dòng/sinh viên) — chỉ dòng đầu của mỗi nhóm cần Mã nhóm/Mã đề tài/GVHD, các dòng thành viên tiếp theo để trống các cột đó. Sinh viên ở dòng đầu là Leader; sinh viên chưa có trong hệ thống sẽ được tạo mới. Với file dạng này, GVHD 1/GVHD 2 nhập theo{" "}
+        <span className="font-medium text-foreground">tên hiển thị</span> thay vì mã.
+      </p>
     </div>
   );
 }
@@ -146,6 +153,14 @@ function ResultSummary({ result }: { result: ProjectImportResponse }) {
           <CheckCircle2 className="size-3.5" />
           <span className="font-medium">{result.created} đề tài đã tạo, {result.updated} đã cập nhật</span>
         </div>
+        {(!!result.studentsCreated || !!result.membersAssigned) && (
+          <div className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+            <CheckCircle2 className="size-3.5" />
+            <span className="font-medium">
+              {result.studentsCreated ?? 0} sinh viên mới, {result.membersAssigned ?? 0} lượt gán vào nhóm
+            </span>
+          </div>
+        )}
         {result.skipped > 0 && (
           <div className="flex items-center gap-1 text-destructive">
             <AlertCircle className="size-3.5" />

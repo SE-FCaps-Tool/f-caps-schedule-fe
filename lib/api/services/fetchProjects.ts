@@ -183,4 +183,6 @@ export interface ProjectImportResponse {
   updated: number;
   skipped: number;
   errors: ProjectImportError[];
+  studentsCreated?: number;
+  membersAssigned?: number;
 }
